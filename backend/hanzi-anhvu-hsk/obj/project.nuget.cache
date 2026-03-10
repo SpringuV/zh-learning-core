@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "RBhqAtJWNJQ=",
+  "dgSpecHash": "9q5wkUM60D4=",
   "success": true,
-  "projectFilePath": "E:\\data-program\\CNTT\\Project Compile\\zh-learning-core\\backend\\hanzi-anhvu-hsk\\hanzi-anhvu-hsk.csproj",
+  "projectFilePath": "/home/spring-19/vscode-project-compilation/zh-learning-core/backend/hanzi-anhvu-hsk/hanzi-anhvu-hsk.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\xuanv\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.3\\microsoft.aspnetcore.openapi.10.0.3.nupkg.sha512",
-    "C:\\Users\\xuanv\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512",
-    "C:\\Users\\xuanv\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.23.0\\microsoft.visualstudio.azure.containers.tools.targets.1.23.0.nupkg.sha512"
+    "/home/spring-19/.nuget/packages/microsoft.netcore.app.ref/8.0.24/microsoft.netcore.app.ref.8.0.24.nupkg.sha512",
+    "/home/spring-19/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.24/microsoft.aspnetcore.app.ref.8.0.24.nupkg.sha512",
+    "/home/spring-19/.nuget/packages/microsoft.netcore.app.host.linux-x64/8.0.24/microsoft.netcore.app.host.linux-x64.8.0.24.nupkg.sha512"
   ],
   "logs": []
 }

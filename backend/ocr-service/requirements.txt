@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+
+paddlepaddle==3.0.0
+paddleocr==2.7.3
+
+opencv-python-headless
+numpy<2
+Pillow
+pypdfium2
+jieba
+
+python-multipart
+httpx
+pydantic-settings
+setuptools
