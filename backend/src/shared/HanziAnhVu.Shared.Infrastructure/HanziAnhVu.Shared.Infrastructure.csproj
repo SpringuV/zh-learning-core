@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
     <ProjectReference Include="..\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
