@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.5" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Boostraping\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
+    <ProjectReference Include="..\shared\HanziAnhVu.Shared.Contracts\HanziAnhVu.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
+    <ProjectReference Include="..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
+    <ProjectReference Include="..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,90 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/API/">
+    <Project Path="src/aspire-hanzi-anhvu/aspire-hanzi-anhvu.AppHost/AspireHanziAnhVu.AppHost.csproj" />
+    <Project Path="src/aspire-hanzi-anhvu/aspire-hanzi-anhvu.ServiceDefaults/AspireHanziAnhVu.ServiceDefaults.csproj" />
+    <Project Path="src/hanzi-anhvu-hsk/HanziAnhVuHsk.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Achievement/">
+    <Project Path="src/module/achievement/Achievement.Application/Achievement.Application.csproj" />
+    <Project Path="src/module/achievement/Achievement.Contracts/Achievement.Contracts.csproj" />
+    <Project Path="src/module/achievement/Achievement.Domain/Achievement.Domain.csproj" />
+    <Project Path="src/module/achievement/Achievement.Infrastructure/Achievement.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Auth/">
+    <Project Path="src/module/auth/Auth.Application/Auth.Application.csproj" />
+    <Project Path="src/module/auth/Auth.Contracts/Auth.Contracts.csproj" />
+    <Project Path="src/module/auth/Auth.Domain/Auth.Domain.csproj" />
+    <Project Path="src/module/auth/Auth.Infrastructure/Auth.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Classroom/">
+    <Project Path="src/module/classroom/Classroom.Application/Classroom.Application.csproj" />
+    <Project Path="src/module/classroom/Classroom.Contracts/Classroom.Contracts.csproj" />
+    <Project Path="src/module/classroom/Classroom.Domain/Classroom.Domain.csproj" />
+    <Project Path="src/module/classroom/Classroom.Infrastructure/Classroom.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Lesson/">
+    <Project Path="src/module/lesson/Lesson.Application/Lesson.Application.csproj" />
+    <Project Path="src/module/lesson/Lesson.Contracts/Lesson.Contracts.csproj" />
+    <Project Path="src/module/lesson/Lesson.Domain/Lesson.Domain.csproj" />
+    <Project Path="src/module/lesson/Lesson.Infrastructure/Lesson.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Notification/">
+    <Project Path="src/module/notification/Notification.Application/Notification.Application.csproj" />
+    <Project Path="src/module/notification/Notification.Contracts/Notification.Contracts.csproj" />
+    <Project Path="src/module/notification/Notification.Domain/Notification.Domain.csproj" />
+    <Project Path="src/module/notification/Notification.Infrastructure/Notification.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Payment/">
+    <Project Path="src/module/payment/Payment.Application/Payment.Application.csproj" />
+    <Project Path="src/module/payment/Payment.Contracts/Payment.Contracts.csproj" />
+    <Project Path="src/module/payment/Payment.Domain/Payment.Domain.csproj" />
+    <Project Path="src/module/payment/Payment.Infrastructure/Payment.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Progress/">
+    <Project Path="src/module/progress/Progress.Application/Progress.Application.csproj" />
+    <Project Path="src/module/progress/Progress.Contracts/Progress.Contracts.csproj" />
+    <Project Path="src/module/progress/Progress.Domain/Progress.Domain.csproj" />
+    <Project Path="src/module/progress/Progress.Infrastructure/Progress.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Review/">
+    <Project Path="src/module/review/Review.Application/Review.Application.csproj" />
+    <Project Path="src/module/review/Review.Contracts/Review.Contracts.csproj" />
+    <Project Path="src/module/review/Review.Domain/Review.Domain.csproj" />
+    <Project Path="src/module/review/Review.Infrastructure/Review.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Search/">
+    <Project Path="src/module/search/Search.Application/Search.Application.csproj" />
+    <Project Path="src/module/search/Search.Contracts/Search.Contracts.csproj" />
+    <Project Path="src/module/search/Search.Domain/Search.Domain.csproj" />
+    <Project Path="src/module/search/Search.Infrastructure/Search.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Speaking/">
+    <Project Path="src/module/speaking/Speaking.Application/Speaking.Application.csproj" />
+    <Project Path="src/module/speaking/Speaking.Contracts/Speaking.Contracts.csproj" />
+    <Project Path="src/module/speaking/Speaking.Domain/Speaking.Domain.csproj" />
+    <Project Path="src/module/speaking/Speaking.Infrastructure/Speaking.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Speaking/Assessment/">
+    <Project Path="src/module/assessment/Assessment.Application/Assessment.Application.csproj" />
+    <Project Path="src/module/assessment/Assessment.Contracts/Assessment.Contracts.csproj" />
+    <Project Path="src/module/assessment/Assessment.Domain/Assessment.Domain.csproj" />
+    <Project Path="src/module/assessment/Assessment.Infrastructure/Assessment.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Users/">
+    <Project Path="src/module/users/Users.Application/Users.Application.csproj" />
+    <Project Path="src/module/users/Users.Contracts/Users.Contracts.csproj" />
+    <Project Path="src/module/users/Users.Domain/Users.Domain.csproj" />
+    <Project Path="src/module/users/Users.Infrastructure/Users.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/shared/HanziAnhVu.Shared.Application/HanziAnhVu.Shared.Application.csproj" />
+    <Project Path="src/shared/HanziAnhVu.Shared.Contracts/HanziAnhVu.Shared.Contracts.csproj" />
+    <Project Path="src/shared/HanziAnhVu.Shared.Domain/HanziAnhVu.Shared.Domain.csproj" />
+    <Project Path="src/shared/HanziAnhVu.Shared.EventBus/HanziAnhVu.Shared.EventBus.csproj" />
+    <Project Path="src/shared/HanziAnhVu.Shared.Infrastructure/HanziAnhVu.Shared.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Worker/" />
+  <Folder Name="/test/" />
+</Solution>

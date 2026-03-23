@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "hanzi-anhvu-hsk": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:61595;http://localhost:61596"
+    }
+  }
+}
