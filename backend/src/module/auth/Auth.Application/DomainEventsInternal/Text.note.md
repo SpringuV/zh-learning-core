@@ -1,4 +1,4 @@
-
+﻿
 // - nơi này giống như dto cho cái event bus
 // - khi một user mới được tạo, chúng ta sẽ publish một UserCreatedDomainEvent
 // để các handler khác trong cùng module có thể lắng nghe và thực hiện các hành động liên quan

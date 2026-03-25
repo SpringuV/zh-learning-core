@@ -5,8 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.5" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.5" />
+    <PackageReference Include="Aspire.Elastic.Clients.Elasticsearch" Version="13.1.0" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.3.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.6" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.6" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Boostraping\" />
@@ -17,5 +23,7 @@
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\module\auth\Auth.Contracts\Auth.Contracts.csproj" />
+    <ProjectReference Include="..\module\auth\Auth.Infrastructure\Auth.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

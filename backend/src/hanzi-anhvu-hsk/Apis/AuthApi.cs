@@ -1,0 +1,93 @@
+﻿using Auth.Contracts;
+using Auth.Contracts.DTOs;
+using HanziAnhVuHsk.Api.Config;
+
+namespace HanziAnhVuHsk.Api.Apis;
+
+public class AuthApi
+{
+
+    public static async Task<IResult> Register(RegisterRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    { 
+        try
+        {
+            var result = await authService.RegisterAsync(request, ct);
+            return Results.Ok(new { result.Message, result.UserId });
+        } catch(OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+         
+    }
+
+    public static async Task<IResult> Login(LoginRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        try
+        {
+            var result = await authService.LoginAsync(request, ct);
+            SetTokenCookies(
+                httpContext.Response,
+                result.AccessToken,
+                result.RefreshToken,
+                result.AccessTokenExpiresAt,
+                result.RefreshTokenExpiresAt);
+            return Results.Ok(new { result.Message });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+
+    public static async Task<IResult> RefreshToken(HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        string refreshToken = httpContext.Request.Cookies[ConfigureCookieSettings.RefreshTokenCookieName] ?? string.Empty;
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return Results.BadRequest(new { Message = "Refresh token bị thiếu." });
+        }
+        try
+        {
+            var result = await authService.RefreshTokenAsync(refreshToken, ct);
+            SetTokenCookies(
+                httpContext.Response,
+                result.AccessToken,
+                result.RefreshToken,
+                result.AccessTokenExpiresAt,
+                result.RefreshTokenExpiresAt);
+            return Results.Ok(new {result.Message});
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+
+
+    private static void SetTokenCookies(
+        HttpResponse httpResponse,
+        string accessToken,
+        string refreshToken,
+        DateTimeOffset accessTokenExpiresAt,
+        DateTimeOffset refreshTokenExpiresAt)
+    {
+        httpResponse.Cookies.Append(ConfigureCookieSettings.IdentifierCookieName, accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = accessTokenExpiresAt
+        });
+
+        // Refresh token: dài hạn (7 ngày), chỉ gửi đến các endpoint trong /api/auth (refresh + logout)
+        // Path=/api/auth thay vì /api/auth/refresh để logout cũng nhận được cookie và revoke trong DB.
+        httpResponse.Cookies.Append(ConfigureCookieSettings.RefreshTokenCookieName, refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Lax,
+            Expires = refreshTokenExpiresAt,
+            Path = "/api/auth"
+        });
+    }
+}

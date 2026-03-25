@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.2.0">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,5 +7,15 @@
     <Nullable>enable</Nullable>
     <UserSecretsId>29d4bfab-a0cd-4fcb-84a9-8950727c2ed2</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+	  <PackageReference Include="Aspire.Hosting.Elasticsearch" Version="13.1.0" />
+	  <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.2.0" />
+	  <PackageReference Include="Aspire.Hosting.Redis" Version="13.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <ProjectReference Include="..\..\hanzi-anhvu-hsk\HanziAnhVuHsk.Api.csproj" />
+  </ItemGroup>
 
 </Project>

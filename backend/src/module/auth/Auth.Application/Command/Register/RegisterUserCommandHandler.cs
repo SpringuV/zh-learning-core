@@ -1,23 +1,28 @@
 ﻿namespace Auth.Application.Command.Register;
 
 // logic thuc thi khi register user, sẽ được gọi bởi controller
-public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Guid>
+public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Guid?>
 {
     private readonly IIdentityService _identityService;
     private readonly IPublisher _publisher; 
+    private readonly IOutboxWriter _outboxWriter;
     private readonly IUnitOfWork _unitOfWork;
 
     public RegisterUserCommandHandler(
         IIdentityService identityService,
         IPublisher publisher,
+        IOutboxWriter outboxWriter,
         IUnitOfWork unitOfWork)
     {
         _identityService = identityService;
-        _publisher = publisher;
+        _publisher = publisher; // in process, dùng cho domain event nội bộ, không giao tiếp với các service,
+                                // dùng trong cùng bounded context để publish domain event,
+                                // còn outbox sẽ dùng để giao tiếp với các service khác thông qua integration event
+        _outboxWriter = outboxWriter;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Guid> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+    public async Task<Guid?> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
         return await _unitOfWork.SaveChangeAsync(async () =>
         {
@@ -29,7 +34,21 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, G
                 request.Password,
                 cancellationToken);
 
-            await _publisher.Publish(new AuthUserCreatedDomainEvent(userId, request.Email, request.UserName), cancellationToken);
+            if(userId is null)
+            {
+                // Nếu tạo user thất bại, có thể throw exception hoặc trả về null tùy theo thiết kế.
+                return null;
+            }
+
+            // publish domain event để các service khác có thể subscribe
+            // và thực hiện các logic liên quan đến user mới được tạo,
+            // ví dụ như gửi email chào mừng, tạo profile mặc định, v.v.
+            await _publisher.Publish(new AuthUserCreatedDomainEvent(userId.Value, request.Email, request.UserName), cancellationToken);
+
+            // Enqueue integration event vào outbox để đảm bảo tính nhất quán khi giao tiếp với các service khác.
+            await _outboxWriter.EnqueueAsync(
+                new UserRegisteredIntegrationEvent(userId.Value, request.Email, request.UserName),
+                cancellationToken);
 
             return userId;
         }, cancellationToken);

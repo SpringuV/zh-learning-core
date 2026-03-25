@@ -1,6 +1,7 @@
 ﻿
 using Auth.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Transactions;
 
 namespace HanziAnhVu.Shared.Infrastructure;
 
@@ -10,44 +11,34 @@ public class EfUnitOfWork<T> : IUnitOfWork where T : DbContext
 {
     private readonly T _dbContext;
 
-    public EfUnitOfWork(T dbContext)
-    {
-        _dbContext = dbContext;
-    }
+    public EfUnitOfWork(T dbContext) => _dbContext = dbContext;
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _dbContext.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public async Task SaveChangeAsync(Func<Task> action, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            await action();
-            await transaction.CommitAsync(cancellationToken);
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        // sử dụng TransactionScope để đảm bảo rằng tất cả các thao tác trong action được thực thi trong một transaction,
+        // nếu có lỗi sẽ rollback lại toàn bộ thay đổi.
+        // transactionScopeAsyncFlowOption.Enabled cho phép sử dụng TransactionScope trong các phương thức async,
+        // đảm bảo rằng transaction vẫn hoạt động đúng cách khi có await.
+        using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+        await action();
+        cancellationToken.ThrowIfCancellationRequested();
+        transaction.Complete();
     }
 
     public async Task<T> SaveChangeAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            var result = await action();
-            await transaction.CommitAsync(cancellationToken);
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+        var result = await action();
+        cancellationToken.ThrowIfCancellationRequested();
+        transaction.Complete();
+        return result;
     }
 }

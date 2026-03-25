@@ -1,7 +1,7 @@
 ﻿using Interface;
 
 namespace Apis;
-public  class OcrApi
+public  class OcrApi // handle OCR related endpoints, delegate the actual work to IOcrClient which is implemented in OcrClient, and OcrClient will call the OCR service (e.g. Google Cloud Vision API) to perform OCR tasks
 {
     public static async Task<IResult> PostImage(IFormFile file, IOcrClient ocrClient, CancellationToken ct)
     {

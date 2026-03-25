@@ -7,6 +7,7 @@ public class AuthIdentityDbContextSeed
     {
         if (identityDbContext.Database.IsNpgsql())
         {
+            // migrate này sẽ tạo ra bảng __EFMigrationsHistory nếu chưa tồn tại, sau đó mới áp dụng các migration còn thiếu
             await identityDbContext.Database.MigrateAsync();
         }
 

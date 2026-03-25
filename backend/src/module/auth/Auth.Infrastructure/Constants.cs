@@ -1,6 +1,6 @@
 ﻿namespace Auth.Application
 {
-    public class Constants
+    public static class Constants
     {
         // limitter
         public const string CONCURRENCY_LIMIT = "Concurrency";
@@ -19,5 +19,9 @@
         public const string DEFAULT_PASSWORD = "Admin@123";
         // TODO: Change this to an environment variable
         public const string JWT_SECRET_KEY = "SecretKeyOfDoomThatMustBeAMinimumNumberOfBytesSpring1907";
+
+        // Tên scheme JWT dùng cho DefaultAuthenticateScheme và DefaultChallengeScheme
+        // Đổi ở đây nếu muốn đổi toàn bộ hệ thống
+        public const string JWT_SCHEME = "Bearer";
     }
 }

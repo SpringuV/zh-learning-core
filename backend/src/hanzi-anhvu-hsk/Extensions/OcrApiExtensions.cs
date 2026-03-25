@@ -1,7 +1,6 @@
 ﻿using Apis;
-using Interface;
-
 namespace HanziAnhVuHsk.Extensions;
+// khai báo route
 public static class OcrApiExtensions
 {
     public static IEndpointRouteBuilder MapOcrApi(this IEndpointRouteBuilder builder)

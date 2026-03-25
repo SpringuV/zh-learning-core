@@ -10,12 +10,12 @@ namespace Auth.Infrastructure.Services
             _userManager = userManager;
         }
 
-        public Task<Guid> ChangeUserPasswordAsync(string? email, string? phoneNumber, string? userName, string newPassword, CancellationToken cancellationToken = default)
+        public Task<Guid?> ChangeUserPasswordAsync(string? email, string? phoneNumber, string? userName, string newPassword, CancellationToken cancellationToken = default)
         {
             return ChangeUserPasswordInternalAsync(email, phoneNumber, userName, newPassword, cancellationToken);
         }
 
-        public async Task<Guid> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default)
+        public async Task<Guid?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(email);
             ArgumentException.ThrowIfNullOrWhiteSpace(username);
@@ -41,7 +41,7 @@ namespace Auth.Infrastructure.Services
             return userId;
         }
 
-        private async Task<Guid> ChangeUserPasswordInternalAsync(
+        private async Task<Guid?> ChangeUserPasswordInternalAsync(
             string? email,
             string? phoneNumber,
             string? userName,
@@ -114,6 +114,49 @@ namespace Auth.Infrastructure.Services
 
             var errors = string.Join("; ", result.Errors.Select(x => x.Description));
             throw new AuthDomainException($"{message} {errors}");
+        }
+
+        public async Task<ValidateUser?> ValidateCredentialsAsync(string Username, string Password, string LoginType)
+        {
+            if (string.IsNullOrEmpty(Username))
+            { 
+                throw new AuthDomainException("Username is required.");
+            }
+            if (string.IsNullOrEmpty(Password))
+            {
+                throw new AuthDomainException("Password is required.");
+            }
+            AuthApplicationUser? user;
+            switch (LoginType)
+            {
+                case "Email":
+                    // Handle email login
+                    user = await _userManager.FindByEmailAsync(Username);
+                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
+                    {
+                        return null;
+                    }
+                    var roles = await _userManager.GetRolesAsync(user);
+                    return new ValidateUser (user.Id, user.UserName!, roles.ToList());
+                case "Phone":
+                    // Handle phone login
+                    user = await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == Username);
+                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
+                    {
+                        return null;
+                    }
+                    return new ValidateUser (user.Id, user.UserName!, new List<string>());
+                case "Username":
+                    // Handle username login
+                    user = await _userManager.FindByNameAsync(Username);
+                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
+                    {
+                        return null;
+                    }
+                    return new ValidateUser (user.Id, user.UserName!, new List<string>());
+                default:
+                    throw new AuthDomainException("Invalid login type.");
+            }
         }
     }
 }
