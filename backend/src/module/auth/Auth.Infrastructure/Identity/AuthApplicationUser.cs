@@ -10,13 +10,20 @@
         public DateTime LastLogin { get; private set; } = DateTime.UtcNow;
         public DateTime LastTimeChangeEmail { get; private set; } = DateTime.UtcNow;
         public DateTime LastTimeChangePassword { get; private set; } = DateTime.UtcNow;
-        public ICollection<IdentityUserRole<string>> UserRoles { get; set; } = new List<IdentityUserRole<string>>();
+        public ICollection<IdentityUserRole<string>> UserRoles { get; private set; } = new List<IdentityUserRole<string>>();
 
+        public DateTime ExpireTimeActivateCode { get; private set; } = DateTime.UtcNow.AddMinutes(5);
+        public string ActivateCode { get; private set; } = Random.Shared.Next(000000, 1000000).ToString("D6");
         public AuthApplicationUser()
         {
             var now = DateTime.UtcNow;
             CreatedAt = now;
             UpdatedAt = now;
+        }
+
+        public void GenerateActivateCode()
+        {
+            ActivateCode = Random.Shared.Next(000000, 1000000).ToString("D6");
         }
 
         public void Activate()

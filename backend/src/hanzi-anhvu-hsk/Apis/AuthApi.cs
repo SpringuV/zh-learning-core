@@ -1,13 +1,14 @@
 ﻿using Auth.Contracts;
 using Auth.Contracts.DTOs;
 using HanziAnhVuHsk.Api.Config;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HanziAnhVuHsk.Api.Apis;
 
 public class AuthApi
 {
 
-    public static async Task<IResult> Register(RegisterRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    public static async Task<IResult> Register([FromBody] RegisterRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
     { 
         try
         {
@@ -20,7 +21,7 @@ public class AuthApi
          
     }
 
-    public static async Task<IResult> Login(LoginRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    public static async Task<IResult> Login([FromBody] LoginRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
     {
         try
         {

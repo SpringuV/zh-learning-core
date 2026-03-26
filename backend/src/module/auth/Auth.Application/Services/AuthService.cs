@@ -73,14 +73,14 @@ public class AuthService : IAuthService
         return new DateTimeOffset(DateTime.SpecifyKind(token.ValidTo, DateTimeKind.Utc));
     }
 
-    public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
+    public async Task<UserRegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        var command = new RegisterUserCommand(request.Username, request.Password, request.Email);
+        var command = new RegisterUserCommand( request.Email, request.Username, request.Password);
         var result = await _mediator.Send(command, cancellationToken);
         if (result is null)
         {
             throw new UnauthorizedAccessException("Đăng ký thất bại.");
         }
-        return new RegisterResponse("Đăng ký thành công.", result);
+        return new UserRegisterResponse("Đăng ký thành công.", result);
     }
 }

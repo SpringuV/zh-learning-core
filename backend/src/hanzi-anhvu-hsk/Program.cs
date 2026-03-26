@@ -15,9 +15,22 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<OcrServiceOptions>(
     builder.Configuration.GetSection(OcrServiceOptions.SectionName));
 
+// Configure MailSettings for notification
+builder.Services.Configure<Notification.Application.Config.MailSettings>(
+    // get mail settings từ config và bind vào MailSettings class để có thể inject vào các service trong module notification
+    // trình tự lấy section -> bind vào class -> inject vào service
+    // services.Configure<MailSettings>(builder.Configuration.GetSection("Notification:MailSettings"))
+    // cũng được nhưng sẽ bị hardcode tên section, nên tốt hơn là dùng MailSettings.SectionName
+    // để tránh lỗi khi đổi tên section trong config
+    builder.Configuration.GetSection(Notification.Application.Config.MailSettings.SectionName)
+);
+
 // khai báo các service trong module auth để có thể inject vào api mà không cần reference đến project auth
 // auth dependency
 Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
+
+// notification dependency
+Notification.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
 
 // add elasticsearch service

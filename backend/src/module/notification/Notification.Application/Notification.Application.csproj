@@ -6,4 +6,22 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Handlers\" />
+    <Folder Include="Templates\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Templates\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
+    <ProjectReference Include="..\..\auth\Auth.Contracts\Auth.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

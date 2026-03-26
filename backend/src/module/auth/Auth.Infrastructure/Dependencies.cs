@@ -25,7 +25,14 @@ public static class Dependencies
         services.AddDataProtection();
 
         // ASP.NET Identity
-        services.AddIdentityCore<AuthApplicationUser>()
+        services.AddIdentityCore<AuthApplicationUser>(options =>
+            {
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequiredLength = 6;
+            })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<AuthIdentityDbContext>()
             .AddDefaultTokenProviders();

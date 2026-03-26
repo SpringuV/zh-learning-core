@@ -15,7 +15,7 @@ namespace Auth.Infrastructure.Services
             return ChangeUserPasswordInternalAsync(email, phoneNumber, userName, newPassword, cancellationToken);
         }
 
-        public async Task<Guid?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default)
+        public async Task<RegisterResponse?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(email);
             ArgumentException.ThrowIfNullOrWhiteSpace(username);
@@ -25,10 +25,8 @@ namespace Auth.Infrastructure.Services
             {
                 Id = Guid.CreateVersion7().ToString(),
                 Email = email,
-                UserName = username
+                UserName = username,
             };
-
-            user.Activate();
 
             var result = await _userManager.CreateAsync(user, password);
             ThrowIfFailed(result, "Failed to register user.");
@@ -38,7 +36,7 @@ namespace Auth.Infrastructure.Services
                 throw new AuthDomainException("Created user id is not a valid guid.");
             }
 
-            return userId;
+            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode);
         }
 
         private async Task<Guid?> ChangeUserPasswordInternalAsync(

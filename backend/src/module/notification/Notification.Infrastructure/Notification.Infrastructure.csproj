@@ -6,4 +6,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.15.1" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
+    <PackageReference Include="MimeKit" Version="4.15.1" />
+    <PackageReference Include="RazorLight" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
+    <ProjectReference Include="..\Notification.Application\Notification.Application.csproj" />
+  </ItemGroup>
+
 </Project>

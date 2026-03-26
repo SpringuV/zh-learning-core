@@ -1,3 +1,3 @@
 ﻿namespace Auth.Contracts.DTOs;
 
-public record RegisterRequest(string Username, string Password, string Email);
+public record RegisterRequest(string Email, string Username, string Password);

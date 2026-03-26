@@ -1,0 +1,29 @@
+@model dynamic
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kích hoạt tài khoản</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #555; line-height: 1.6; }
+        .code { font-size: 24px; font-weight: bold; color: #007bff; background-color: #e9ecef; padding: 10px; border-radius: 4px; display: inline-block; margin: 10px 0; }
+        .footer { margin-top: 20px; font-size: 12px; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Xin chào @Model.UserName!</h1>
+        <p>Cảm ơn bạn đã đăng ký tài khoản. Để kích hoạt tài khoản, vui lòng sử dụng mã kích hoạt dưới đây:</p>
+        <div class="code">@Model.ActivationCode</div>
+        <p>Mã này sẽ hết hạn sau <strong>5 phút</strong>. Vui lòng nhập mã vào ứng dụng để hoàn tất quá trình kích hoạt.</p>
+        <p>Nếu bạn không yêu cầu kích hoạt tài khoản này, vui lòng bỏ qua email này.</p>
+        <div class="footer">
+            <p>Trân trọng <b>Hanzi AnhVu</b></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -9,7 +9,9 @@ namespace HanziAnhVu.Shared.EventBus.InMemory
         public Task PublishAsync<T>(T @event, CancellationToken ct = default) where T : IntegrationEvent
         {
             // Get all handlers for the event type T and invoke them
-            var handlers = serviceProvider.GetServices<IIntegrationEventHandler<T>>();
+            using var scope = serviceProvider.CreateScope();
+            var scopedProvider = scope.ServiceProvider;
+            IEnumerable<IIntegrationEventHandler<T>> handlers = scopedProvider.GetServices<IIntegrationEventHandler<T>>();
             var tasks = handlers.Select(handler => handler.HandleAsync(@event, ct));
             return Task.WhenAll(tasks); // wait for all handlers to complete
         }

@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Elastic.Clients.Elasticsearch" Version="13.1.0" />
@@ -11,13 +12,14 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.6" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.6" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Boostraping\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\module\notification\Notification.Infrastructure\Notification.Infrastructure.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Contracts\HanziAnhVu.Shared.Contracts.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />

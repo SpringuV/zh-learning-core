@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Shared.Infrastructure.Outbox;
 
 namespace Auth.Infrastructure.Outbox;
 
@@ -15,13 +16,7 @@ public class OutboxMessageDbContext : DbContext
     
         builder.Entity<OutboxMessage>(entity =>
         {
-            entity.ToTable("OutboxMessages");
-            entity.HasKey(m => m.Id);
-            entity.HasIndex(m => m.ProcessedOnUtc);
-            entity.HasIndex(m => m.OccurredOnUtc);
-            entity.Property(m => m.Type).IsRequired();
-            entity.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
-            entity.Property(m => m.OccurredOnUtc).IsRequired();
+            entity.ConfigureOutboxMessage("OutboxMessages");
         });
     }
 }

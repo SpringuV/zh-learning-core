@@ -6,6 +6,8 @@ dotnet ef database update \
   --project src/module/auth/Auth.Infrastructure \
   --startup-project src/hanzi-anhvu-hsk
 
+
+
   // chạy để appli migration
 
 dotnet ef migrations add InitialOutbox `

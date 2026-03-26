@@ -1,7 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Shared.Infrastructure;
 
 namespace Auth.Infrastructure.Identity;
 
@@ -34,12 +33,21 @@ public sealed class AuthIdentityDbInitializerHostedService : IHostedService
 
             if (outboxDbContext.Database.IsNpgsql())
             {
-                var migrated = await MigrateWithRetryAsync(outboxDbContext.Database, cancellationToken);
+                var migrated = await outboxDbContext.Database.MigrateWithRetryAsync(
+                    _logger,
+                    cancellationToken,
+                    maxAttempts: 10,
+                    retryDelay: TimeSpan.FromSeconds(2));
                 if (!migrated)
                 {
                     _logger.LogError("Outbox migration failed after retries. Skipping auth initialization for this startup.");
                     return;
                 }
+
+                await outboxDbContext.Database.EnsureOutboxNotifyTriggerAsync(
+                    tableName: "OutboxMessages",
+                    channelName: "outbox_channel",
+                    cancellationToken: cancellationToken);
             }
 
             await AuthIdentityDbContextSeed.SeedAsync(identityDbContext, userManager, roleManager);
@@ -51,41 +59,4 @@ public sealed class AuthIdentityDbInitializerHostedService : IHostedService
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    private async Task<bool> MigrateWithRetryAsync(DatabaseFacade database, CancellationToken cancellationToken)
-    {
-        const int maxAttempts = 10;
-        var delay = TimeSpan.FromSeconds(2);
-
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            try
-            {
-                await database.MigrateAsync(cancellationToken);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                if (attempt >= maxAttempts)
-                {
-                    _logger.LogError(ex,
-                        "Database migration failed after {MaxAttempts} attempts.",
-                        maxAttempts);
-                    return false;
-                }
-
-                _logger.LogWarning(ex,
-                    "Database migration attempt {Attempt}/{MaxAttempts} failed. Retrying in {DelaySeconds}s.",
-                    attempt,
-                    maxAttempts,
-                    delay.TotalSeconds);
-
-                await Task.Delay(delay, cancellationToken);
-            }
-        }
-
-        return false;
-    }
 }
