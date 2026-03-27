@@ -24,7 +24,7 @@ public class UserRegisteredEventHandler : IIntegrationEventHandler<UserRegistere
         await _emailService.SendEmailAsync(
             toEmail: @event.Email,
             subject: "Kích hoạt tài khoản",
-            model: new { UserName = @event.Username, ActivationCode = @event.CodeActivate },
+            model: new { UserName = @event.Username, ActivationCode = @event.CodeActivate, ActivationLink = @event.ActivationLink },
             templateName: "ActivateAccountTemplate.cshtml"
         );
     }

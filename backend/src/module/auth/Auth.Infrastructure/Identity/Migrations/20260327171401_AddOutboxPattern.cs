@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Auth.Infrastructure.Outbox.Migrations
+namespace Auth.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialOutbox : Migration
+    public partial class AddOutboxPattern : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,6 +28,16 @@ namespace Auth.Infrastructure.Outbox.Migrations
                 {
                     table.PrimaryKey("PK_OutboxMessages", x => x.Id);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OutboxMessages_OccurredOnUtc",
+                table: "OutboxMessages",
+                column: "OccurredOnUtc");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OutboxMessages_ProcessedOnUtc",
+                table: "OutboxMessages",
+                column: "ProcessedOnUtc");
         }
 
         /// <inheritdoc />

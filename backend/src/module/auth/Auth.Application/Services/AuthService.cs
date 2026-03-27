@@ -4,6 +4,8 @@ using Auth.Application.Command.Login;
 using System.IdentityModel.Tokens.Jwt;
 using Auth.Application.Command.Refresh;
 using Auth.Application.Command.Register;
+using Auth.Application.Command.Logout;
+using Auth.Application.Command.ActivateAccount;
 
 namespace Auth.Application.Services;
 
@@ -82,5 +84,22 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Đăng ký thất bại.");
         }
         return new UserRegisterResponse("Đăng ký thành công.", result);
+    }
+
+    public async Task<UserLoggoutResponse> LogoutAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        var command = new LogoutCommand(refreshToken);
+        var result = await _mediator.Send(command, cancellationToken);
+        if (result is null)
+        {
+            throw new UnauthorizedAccessException("Logout thất bại.");
+        }
+        return result;
+    }
+
+    public async Task<bool> ActivateAccountAsync(ActivateAccountRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ActivateAccountCommand(request.Email, request.Code);
+        return await _mediator.Send(command, cancellationToken);
     }
 }

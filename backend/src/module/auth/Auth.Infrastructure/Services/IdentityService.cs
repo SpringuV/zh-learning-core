@@ -1,5 +1,4 @@
-﻿
-namespace Auth.Infrastructure.Services
+﻿namespace Auth.Infrastructure.Services
 {
     public class IdentityService : IIdentityService
     {
@@ -36,7 +35,37 @@ namespace Auth.Infrastructure.Services
                 throw new AuthDomainException("Created user id is not a valid guid.");
             }
 
-            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode);
+            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode, string.Empty);
+        }
+
+        public async Task<bool> ActivateUserAsync(string email, string code, CancellationToken cancellationToken = default)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+            {
+                throw new AuthDomainException("User not found.");
+            }
+
+            if (user.IsActive)
+            {
+                throw new AuthDomainException("User is already active.");
+            }
+
+            if (user.ActivateCode != code)
+            {
+                throw new AuthDomainException("Invalid activation code.");
+            }
+
+            if (user.ExpireTimeActivateCode < DateTime.UtcNow)
+            {
+                throw new AuthDomainException("Activation code has expired.");
+            }
+
+            user.Activate();
+            var result = await _userManager.UpdateAsync(user);
+            ThrowIfFailed(result, "Failed to activate user.");
+
+            return true;
         }
 
         private async Task<Guid?> ChangeUserPasswordInternalAsync(

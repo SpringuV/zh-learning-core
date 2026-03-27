@@ -8,6 +8,44 @@ namespace HanziAnhVuHsk.Api.Apis;
 public class AuthApi
 {
 
+    public static async Task<IResult> ActiveAccount([FromBody] ActivateAccountRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        try
+        {
+            var result = await authService.ActivateAccountAsync(request, ct);
+            return result ? Results.Ok(new { Message = "Kích hoạt tài khoản thành công." }) : Results.BadRequest(new { Message = "Mã kích hoạt không hợp lệ hoặc đã hết hạn." });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+
+    //public static async Task<IResult> VerifyEmail()
+    public static async Task<IResult> Logout(HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        string refreshToken = httpContext.Request.Cookies[ConfigureCookieSettings.RefreshTokenCookieName] ?? string.Empty;
+        if (string.IsNullOrEmpty(refreshToken))
+        {
+            return Results.BadRequest(new { Message = "Refresh token bị thiếu." });
+        }
+        try
+        {
+            var result = await authService.LogoutAsync(refreshToken, ct);
+            // Xóa cookie sau khi logout
+            httpContext.Response.Cookies.Delete(ConfigureCookieSettings.IdentifierCookieName);
+            httpContext.Response.Cookies.Delete(ConfigureCookieSettings.RefreshTokenCookieName, new CookieOptions
+            {
+                Path = "/api/auth" // Phải chỉ định path giống với lúc tạo cookie để xóa đúng cookie đó
+            });
+            return Results.Ok(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+
     public static async Task<IResult> Register([FromBody] RegisterRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
     { 
         try

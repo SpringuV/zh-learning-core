@@ -1,4 +1,4 @@
-﻿namespace Auth.Application
+﻿namespace Auth.Infrastructure
 {
     public static class Constants
     {

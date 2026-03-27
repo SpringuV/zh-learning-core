@@ -1,5 +1,4 @@
-﻿
-using Auth.Application.Interfaces;
+﻿using Auth.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Transactions;
 
@@ -28,6 +27,7 @@ public class EfUnitOfWork<T> : IUnitOfWork where T : DbContext
         // đảm bảo rằng transaction vẫn hoạt động đúng cách khi có await.
         using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         await action();
+        await _dbContext.SaveChangesAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         transaction.Complete();
     }
@@ -37,6 +37,7 @@ public class EfUnitOfWork<T> : IUnitOfWork where T : DbContext
         cancellationToken.ThrowIfCancellationRequested();
         using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         var result = await action();
+        await _dbContext.SaveChangesAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         transaction.Complete();
         return result;

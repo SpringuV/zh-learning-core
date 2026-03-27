@@ -51,9 +51,41 @@ namespace Auth.Infrastructure.Services
             return new TokenResult(newAccessToken, newRefreshToken);
         }
 
-        public Task RevokeAsync(string refreshToken, CancellationToken cancellationToken)
+        public async Task<bool> RevokeAsync(string refreshToken, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var tokenStored = _dbContext.RefreshTokens.SingleOrDefault(t => t.Token == refreshToken);
+            if (tokenStored is null || tokenStored.IsRevoked)
+            {
+                return false;
+            }
+
+            tokenStored.IsRevoked = true;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        public async Task<bool> ValidateAccessToken(string accessToken)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            try
+            {
+                var principal = handler.ValidateToken(accessToken, new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = Constants.JWT_ISSUER,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(Constants.JWT_SECRET_KEY)),
+                    ValidateIssuerSigningKey = true,
+                }, out _);
+                // Nếu token hợp lệ, có thể kiểm tra thêm các claim nếu cần thiết
+                return true;
+            }
+            catch (Exception)
+            {
+                // Token không hợp lệ (hết hạn, bị sửa đổi, v.v.)
+                return false;
+            }
         }
 
         private string GenerateAccessTokenAsync(string userId, string userName, IEnumerable<string> roles)

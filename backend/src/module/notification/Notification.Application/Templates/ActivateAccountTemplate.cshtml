@@ -10,17 +10,31 @@
         .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         h1 { color: #333; }
         p { color: #555; line-height: 1.6; }
-        .code { font-size: 24px; font-weight: bold; color: #007bff; background-color: #e9ecef; padding: 10px; border-radius: 4px; display: inline-block; margin: 10px 0; }
+        .code { font-size: 24px; font-weight: bold; color: #007bff; background-color: #e9ecef; padding: 10px; border-radius: 4px; display: flex; justify-content: center; align-items: center; width: 100%; margin: 20px 0; }
+        .button { display: inline-block; background-color: #007bff; color: #ffffff; padding: 12px 30px; border-radius: 4px; text-decoration: none; font-weight: bold; margin: 20px 0; }
+        .button:hover { background-color: #0056b3; }
+        .button-container { text-align: center; }
         .footer { margin-top: 20px; font-size: 12px; color: #777; }
+        .divider { border-top: 1px solid #e0e0e0; margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Xin chào @Model.UserName!</h1>
-        <p>Cảm ơn bạn đã đăng ký tài khoản. Để kích hoạt tài khoản, vui lòng sử dụng mã kích hoạt dưới đây:</p>
+        <p>Cảm ơn bạn đã đăng ký tài khoản. Để kích hoạt tài khoản, vui lòng nhấn nút bên dưới hoặc sử dụng mã kích hoạt:</p>
+
+        <div class="button-container">
+            <a href="@(Model.ActivationLink)" class="button">Kích hoạt tài khoản</a>
+        </div>
+
+        <div class="divider"></div>
+
+        <p><strong>Hoặc nhập mã kích hoạt sau trong ứng dụng:</strong></p>
         <div class="code">@Model.ActivationCode</div>
+
         <p>Mã này sẽ hết hạn sau <strong>5 phút</strong>. Vui lòng nhập mã vào ứng dụng để hoàn tất quá trình kích hoạt.</p>
         <p>Nếu bạn không yêu cầu kích hoạt tài khoản này, vui lòng bỏ qua email này.</p>
+
         <div class="footer">
             <p>Trân trọng <b>Hanzi AnhVu</b></p>
         </div>

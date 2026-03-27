@@ -30,10 +30,14 @@ public class AuthIdentityDbContextSeed
             var defaultAdmin = new AuthApplicationUser
             {
                 UserName = adminUserName,
-                Email = "xuanvuaudi2002@gmail.com"
+                Email = "xuanvuaudi2002@gmail.com",
             };
             var adminResult = await userManager.CreateAsync(defaultAdmin, Constants.DEFAULT_PASSWORD);
             if (!adminResult.Succeeded) throw new Exception(string.Join(", ", adminResult.Errors.Select(e => e.Description)));
+
+            defaultAdmin.Activate(); // Call Activate() method instead of setting IsActive directly
+            await identityDbContext.SaveChangesAsync(); // Save the activation 
+
             await userManager.AddToRoleAsync(defaultAdmin, Constants.ADMINISTRATORS);
         }
 
@@ -48,6 +52,10 @@ public class AuthIdentityDbContextSeed
             };
             var userResult = await userManager.CreateAsync(defaultUser, Constants.DEFAULT_PASSWORD);
             if (!userResult.Succeeded) throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));
+
+            defaultUser.Activate(); // Call Activate() method instead of setting IsActive directly
+            await identityDbContext.SaveChangesAsync(); // Save the activation state
+
             await userManager.AddToRoleAsync(defaultUser, Constants.USERS);
         }
 

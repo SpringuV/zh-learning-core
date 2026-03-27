@@ -24,6 +24,8 @@ namespace HanziAnhVu.Shared.EventBus.InMemory
         {
             // Với InMemory — Subscribe được handle qua DI registration
             // Không cần làm gì ở đây
+            // DI registration sẽ đảm bảo rằng khi PublishAsync được gọi, tất cả các handler đã đăng ký sẽ được lấy ra và xử lý sự kiện
+            // Ví dụ: services.AddScoped<IIntegrationEventHandler<MyEvent>, MyEventHandler>();
         }
     }
 }

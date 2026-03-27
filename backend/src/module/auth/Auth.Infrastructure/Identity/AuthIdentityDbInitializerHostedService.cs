@@ -27,13 +27,12 @@ public sealed class AuthIdentityDbInitializerHostedService : IHostedService
             await using var scope = _scopeFactory.CreateAsyncScope();
 
             var identityDbContext = scope.ServiceProvider.GetRequiredService<AuthIdentityDbContext>();
-            var outboxDbContext = scope.ServiceProvider.GetRequiredService<Outbox.OutboxMessageDbContext>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AuthApplicationUser>>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            if (outboxDbContext.Database.IsNpgsql())
+            if (identityDbContext.Database.IsNpgsql())
             {
-                var migrated = await outboxDbContext.Database.MigrateWithRetryAsync(
+                var migrated = await identityDbContext.Database.MigrateWithRetryAsync(
                     _logger,
                     cancellationToken,
                     maxAttempts: 10,
@@ -44,7 +43,7 @@ public sealed class AuthIdentityDbInitializerHostedService : IHostedService
                     return;
                 }
 
-                await outboxDbContext.Database.EnsureOutboxNotifyTriggerAsync(
+                await identityDbContext.Database.EnsureOutboxNotifyTriggerAsync(
                     tableName: "OutboxMessages",
                     channelName: "outbox_channel",
                     cancellationToken: cancellationToken);

@@ -14,6 +14,9 @@
 
         public DateTime ExpireTimeActivateCode { get; private set; } = DateTime.UtcNow.AddMinutes(5);
         public string ActivateCode { get; private set; } = Random.Shared.Next(000000, 1000000).ToString("D6");
+        
+        public string EmailVerificationToken { get; private set; } = Guid.CreateVersion7().ToString("N");
+
         public AuthApplicationUser()
         {
             var now = DateTime.UtcNow;

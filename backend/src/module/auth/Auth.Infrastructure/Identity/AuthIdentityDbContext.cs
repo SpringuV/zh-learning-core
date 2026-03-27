@@ -1,4 +1,6 @@
-﻿namespace Auth.Infrastructure.Identity;
+﻿using Shared.Infrastructure.Outbox;
+
+namespace Auth.Infrastructure.Identity;
 
 public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
 {
@@ -7,12 +9,18 @@ public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
     }
 
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public DbSet<AuthOutboxMessage> OutboxMessages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         // Gọi base trước để IdentityDbContext tự cấu hình các bảng mặc định:
         // AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, v.v.
         base.OnModelCreating(builder);
+
+        builder.Entity<AuthOutboxMessage>(entity =>
+        {
+            entity.ConfigureOutboxMessage("OutboxMessages");
+        });
 
         // ── Quan hệ: ApplicationUser ←→ IdentityUserRole ──────────────
         // Đọc theo hướng: "ApplicationUser có NHIỀU UserRoles,

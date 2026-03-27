@@ -4,24 +4,25 @@ using HanziAnhVu.Shared.EventBus.Abstracts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Shared.Infrastructure.Outbox;
 
-namespace Auth.Infrastructure.Outbox;
+namespace Auth.Infrastructure.Identity;
 
 // BackgroundService chịu trách nhiệm lắng nghe NOTIFY từ PostgreSQL và đẩy event từ outbox lên event bus.
-public sealed class AuthOutboxDispatcherService : BackgroundService
+public sealed class AuthOutboxDispatcherServiceWorker : BackgroundService
 {
     // Tạo scope để resolve các service scoped khi xử lý từng event.
     private readonly IServiceScopeFactory _scopeFactory;
     // Đọc cấu hình, đặc biệt là chuỗi kết nối database.
     private readonly IConfiguration _config;
     // Ghi log phục vụ theo dõi và xử lý sự cố.
-    private readonly ILogger<AuthOutboxDispatcherService> _logger;
+    private readonly ILogger<AuthOutboxDispatcherServiceWorker> _logger;
 
     // Constructor inject các dependency cần thiết cho service.
-    public AuthOutboxDispatcherService(
+    public AuthOutboxDispatcherServiceWorker(
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
-        ILogger<AuthOutboxDispatcherService> logger)
+        ILogger<AuthOutboxDispatcherServiceWorker> logger)
     {
         // Lưu scope factory để tạo scope mới mỗi lần xử lý.
         _scopeFactory = scopeFactory;
@@ -75,7 +76,7 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
         // Đăng ký LISTEN trên channel đã cấu hình ở trigger/database.
         await using (var cmd = new NpgsqlCommand("LISTEN outbox_channel", conn))
         {
-            _logger.LogInformation("Executing LISTEN command on PostgreSQL for module {module}...", nameof(AuthOutboxDispatcherService));
+            _logger.LogInformation("Executing LISTEN command on PostgreSQL for module {module}...", nameof(AuthOutboxDispatcherServiceWorker));
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
@@ -102,7 +103,7 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
         try
         {
             // Ưu tiên deserialize payload đầy đủ của OutboxMessage (theo trigger row_to_json(NEW)).
-            var outboxMessage = JsonSerializer.Deserialize<OutboxMessage>(payload);
+            var outboxMessage = JsonSerializer.Deserialize<AuthOutboxMessage>(payload);
             if (outboxMessage is not null &&
                 outboxMessage.Id != Guid.Empty &&
                 !string.IsNullOrWhiteSpace(outboxMessage.Type))
@@ -132,12 +133,12 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
     }
 
     // Xử lý event trực tiếp từ payload NOTIFY đầy đủ (không cần query message theo Id).
-    private async Task ProcessEventAsync(OutboxMessage message, CancellationToken ct)
+    private async Task ProcessEventAsync(AuthOutboxMessage message, CancellationToken ct)
     {
         // Tạo scope mới để resolve DbContext và EventBus theo vòng đời scoped.
         await using var scope = _scopeFactory.CreateAsyncScope();
         // Resolve DbContext outbox.
-        var db = scope.ServiceProvider.GetRequiredService<OutboxMessageDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<AuthIdentityDbContext>();
         // Resolve event bus để publish integration event.
         var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
@@ -178,7 +179,7 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
         // Tạo scope mới để resolve DbContext và EventBus theo vòng đời scoped.
         await using var scope = _scopeFactory.CreateAsyncScope();
         // Resolve DbContext outbox.
-        var db = scope.ServiceProvider.GetRequiredService<OutboxMessageDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<AuthIdentityDbContext>();
         // Resolve event bus để publish integration event.
         var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
@@ -220,7 +221,7 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
         // Tạo scope để truy cập DbContext.
         await using var scope = _scopeFactory.CreateAsyncScope();
         // Resolve DbContext outbox.
-        var db = scope.ServiceProvider.GetRequiredService<OutboxMessageDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<AuthIdentityDbContext>();
 
         // Lấy danh sách event chưa xử lý và còn trong giới hạn retry.
         var missed = await db.OutboxMessages
@@ -240,14 +241,14 @@ public sealed class AuthOutboxDispatcherService : BackgroundService
     }
 
     // Publish một outbox message thông qua generic method của IEventBus.
-    private static async Task PublishAsync(IEventBus eventBus, OutboxMessage message, CancellationToken cancellationToken)
+    private static async Task PublishAsync(IEventBus eventBus, AuthOutboxMessage message, CancellationToken cancellationToken)
     {
         // Resolve Type từ tên type đã lưu trong outbox.
         var eventType = Type.GetType(message.Type, throwOnError: false)
             ?? throw new InvalidOperationException($"Unable to resolve outbox event type '{message.Type}'.");
 
         // Deserialize payload ra instance event đúng type.
-        var integrationEvent = OutboxMessageMapper.DeserializePayload(message, eventType)
+        var integrationEvent = OutboxMessageSerialization.DeserializePayload(message, eventType)
             ?? throw new InvalidOperationException($"Unable to deserialize outbox payload for '{message.Type}'.");
 
         // Lấy method PublishAsync<TEvent> từ interface IEventBus.

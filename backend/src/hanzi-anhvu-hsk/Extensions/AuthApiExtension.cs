@@ -17,9 +17,14 @@ public static class AuthApiExtension
             .Accepts<LoginRequest>("application/json");
 
         group.MapPost("/register", AuthApi.Register);
+        group.MapPost("/activate", AuthApi.ActiveAccount);
         group.MapPost("/refresh-token", AuthApi.RefreshToken);
         group.MapPost("/change-email", () => { });
         group.MapPost("/change-password", () => { });
+        group.MapPost("/logout", AuthApi.Logout);
+        group.MapPost("/forgot-password", () => { });
+        group.MapPost("/reset-password", () => { });
+        group.MapPost("/verify-email", () => { });
         return group;
     }
 }

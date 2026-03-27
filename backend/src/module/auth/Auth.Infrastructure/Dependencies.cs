@@ -1,5 +1,4 @@
 ﻿using Auth.Infrastructure.Services;
-using Auth.Infrastructure.Outbox;
 using HanziAnhVu.Shared.Infrastructure;
 using Auth.Contracts;
 
@@ -14,10 +13,6 @@ public static class Dependencies
             ?? throw new InvalidOperationException("Missing connection string for AuthIdentityDbConnection. Set it in appsettings.json or environment variables.");
 
         services.AddDbContextPool<AuthIdentityDbContext>(options =>
-            options.UseNpgsql(connectionString),
-            poolSize: 128);
-
-        services.AddDbContextPool<OutboxMessageDbContext>(options =>
             options.UseNpgsql(connectionString),
             poolSize: 128);
 
@@ -53,6 +48,6 @@ public static class Dependencies
 
         // Seed/migrate khi app start (dev/local)
         services.AddHostedService<AuthIdentityDbInitializerHostedService>();
-        services.AddHostedService<AuthOutboxDispatcherService>();
+        services.AddHostedService<AuthOutboxDispatcherServiceWorker>();
     }
 }
