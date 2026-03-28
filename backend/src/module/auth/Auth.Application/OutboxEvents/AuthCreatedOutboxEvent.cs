@@ -11,11 +11,11 @@
 // and then AuthUserCreatedDomainEventHandler will listen to this event
 // and handle it by publishing a UserRegisteredIntegrationEvent to the event bus,
 // any module subscribed to this event can react accordingly and can perform additional actions itself.
-public sealed class AuthUserCreatedIntegrationEvent(IOutboxWriter outboxWriter)
+public sealed class AuthCreatedOutboxEvent(IOutboxWriter outboxWriter)
     : INotificationHandler<AuthUserCreatedDomainEvent>
 {
     public Task Handle(AuthUserCreatedDomainEvent notify, CancellationToken cancellationToken)
         => outboxWriter.EnqueueAsync(
-            new UserRegisteredIntegrationEvent(notify.UserId, notify.Email, notify.UserName, notify.CreatedAt, notify.ActivateCode, notify.ActivationLink),
+            new UserRegisteredIntegrationEvent(notify.UserId, notify.Email, notify.UserName, notify.CreatedAt, notify.ActivateCode, notify.ActivationLink, notify.ResendLink),
             cancellationToken);
 }

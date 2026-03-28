@@ -1,0 +1,10 @@
+﻿using Auth.Application.DomainEventsInternal;
+namespace Auth.Application.DomainEventIntegration;
+
+public sealed class AuthMailResentOutboxEvent(IOutboxWriter outboxWriter) : INotificationHandler<AuthUserMailResentEvent>
+{
+    public Task Handle(AuthUserMailResentEvent notify, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new UserMailResentIntegrationEvent(notify.Email, notify.ActivationLink, notify.ResendLink, notify.ExpiredActivation),
+            cancellationToken);
+}

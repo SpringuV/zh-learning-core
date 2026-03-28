@@ -9,4 +9,5 @@ public interface IAuthService
     Task<UserRegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken);
     Task<UserLoggoutResponse> LogoutAsync(string refreshToken, CancellationToken cancellationToken);
     Task<bool> ActivateAccountAsync(ActivateAccountRequest request, CancellationToken cancellationToken);
+    Task<bool> ResendActivateAccountAsync(ResendActivationRequest request, CancellationToken cancellationToken);
 }

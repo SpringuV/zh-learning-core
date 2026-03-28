@@ -2,7 +2,7 @@ using Auth.Application.DomainEventsInternal;
 
 namespace Auth.Application.DomainEventHandlers;
 
-public sealed class AuthUserDeactivatedIntegrationEvent(IEventBus @eventBus) : INotificationHandler<UserDeactivatedDomainEvent>
+public sealed class AuthDeactivatedOutboxEvent(IEventBus @eventBus) : INotificationHandler<UserDeactivatedDomainEvent>
 {
     public Task Handle(UserDeactivatedDomainEvent notification, CancellationToken cancellationToken)
     {

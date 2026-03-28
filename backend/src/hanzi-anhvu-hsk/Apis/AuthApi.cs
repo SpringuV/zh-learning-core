@@ -21,6 +21,21 @@ public class AuthApi
         }
     }
 
+    public static async Task<IResult> ResendLinkActivation([FromBody] ResendActivationRequest request, HttpContext context, IAuthService authService , CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await authService.ResendActivateAccountAsync(request, cancellationToken);
+            return result 
+                ? Results.Ok(new { Message = "Đã gửi lại email kích hoạt. Vui lòng kiểm tra hộp thư của bạn." }) 
+                : Results.BadRequest(new { Message = "Email không tồn tại hoặc tài khoản đã được kích hoạt." });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Results.StatusCode(499); // Client Closed Request
+        }
+    }
+
     //public static async Task<IResult> VerifyEmail()
     public static async Task<IResult> Logout(HttpContext httpContext, IAuthService authService, CancellationToken ct)
     {
@@ -129,4 +144,6 @@ public class AuthApi
             Path = "/api/auth"
         });
     }
+
+    
 }

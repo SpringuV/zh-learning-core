@@ -30,7 +30,7 @@ public class AuthIdentityDbContextSeed
             var defaultAdmin = new AuthApplicationUser
             {
                 UserName = adminUserName,
-                Email = "xuanvuaudi2002@gmail.com",
+                Email = "test1@gmail.com",
             };
             var adminResult = await userManager.CreateAsync(defaultAdmin, Constants.DEFAULT_PASSWORD);
             if (!adminResult.Succeeded) throw new Exception(string.Join(", ", adminResult.Errors.Select(e => e.Description)));
@@ -48,7 +48,7 @@ public class AuthIdentityDbContextSeed
             var defaultUser = new AuthApplicationUser
             {
                 UserName = defaultUserUserName,
-                Email = "tranxuanvu0210@gmail.com"
+                Email = "test2@gmail.com"
             };
             var userResult = await userManager.CreateAsync(defaultUser, Constants.DEFAULT_PASSWORD);
             if (!userResult.Succeeded) throw new Exception(string.Join(", ", userResult.Errors.Select(e => e.Description)));

@@ -35,7 +35,7 @@
                 throw new AuthDomainException("Created user id is not a valid guid.");
             }
 
-            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode, string.Empty);
+            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode);
         }
 
         public async Task<bool> ActivateUserAsync(string email, string code, CancellationToken cancellationToken = default)
@@ -68,6 +68,7 @@
             return true;
         }
 
+        #region function ChangePasswordInternal
         private async Task<Guid?> ChangeUserPasswordInternalAsync(
             string? email,
             string? phoneNumber,
@@ -131,6 +132,7 @@
 
             return userId;
         }
+        #endregion
 
         private static void ThrowIfFailed(IdentityResult result, string message)
         {
@@ -143,6 +145,7 @@
             throw new AuthDomainException($"{message} {errors}");
         }
 
+        #region Validate Credential
         public async Task<ValidateUser?> ValidateCredentialsAsync(string Username, string Password, string LoginType)
         {
             if (string.IsNullOrEmpty(Username))
@@ -184,6 +187,27 @@
                 default:
                     throw new AuthDomainException("Invalid login type.");
             }
+        }
+        #endregion
+        public async Task<ResendMailActivationResponse> ResendMailActivateAsync(string email, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(email);
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+            {
+                throw new AuthDomainException("User not found.");
+            }
+
+            if (user.IsActive)
+            {
+                throw new AuthDomainException("User is already active.");
+            }
+
+            user.ActivateCode = Guid.CreateVersion7().ToString();
+            user.ExpireTimeActivateCode = DateTime.UtcNow.AddMinutes(5);
+            var result = await _userManager.UpdateAsync(user);
+            ThrowIfFailed(result, "Lỗi khi cập nhật thông tin người dùng - resend mail activate.");
+            return new ResendMailActivationResponse(user.Email!, user.ActivateCode, user.ExpireTimeActivateCode);
         }
     }
 }

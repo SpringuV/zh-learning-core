@@ -2,7 +2,7 @@
 
 namespace Auth.Application.DomainEventHandlers;
 
-public sealed class AuthUserActivatedIntegrationEvent(IEventBus @eventBus) : INotificationHandler<AuthUserActivatedDomainEvent>
+public sealed class AuthActivatedOutboxEvent(IEventBus @eventBus) : INotificationHandler<AuthUserActivatedDomainEvent>
 {
     public Task Handle(AuthUserActivatedDomainEvent notification, CancellationToken cancellationToken)
     {

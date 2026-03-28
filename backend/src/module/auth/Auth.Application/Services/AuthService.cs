@@ -1,23 +1,12 @@
-using Auth.Contracts;
-using Auth.Contracts.DTOs;
-using Auth.Application.Command.Login;
-using System.IdentityModel.Tokens.Jwt;
-using Auth.Application.Command.Refresh;
-using Auth.Application.Command.Register;
-using Auth.Application.Command.Logout;
-using Auth.Application.Command.ActivateAccount;
-
 namespace Auth.Application.Services;
 
 public class AuthService : IAuthService
 {
     private readonly IMediator _mediator;
-    private readonly IEventBus _eventBus;
 
-    public AuthService(IMediator mediator, IEventBus eventBus)
+    public AuthService(IMediator mediator)
     {
         _mediator = mediator;
-        _eventBus = eventBus;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -100,6 +89,12 @@ public class AuthService : IAuthService
     public async Task<bool> ActivateAccountAsync(ActivateAccountRequest request, CancellationToken cancellationToken)
     {
         var command = new ActivateAccountCommand(request.Email, request.Code);
+        return await _mediator.Send(command, cancellationToken);
+    }
+
+    public async Task<bool> ResendActivateAccountAsync(ResendActivationRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ResendMailActivateCommand(request.Email, cancellationToken);
         return await _mediator.Send(command, cancellationToken);
     }
 }
