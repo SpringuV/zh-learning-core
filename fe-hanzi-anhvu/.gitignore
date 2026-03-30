@@ -19,7 +19,10 @@
 
 # production
 /build
-
+.vscode/*
+.vscode/
+.agent-skill/
+.github/
 # misc
 .DS_Store
 *.pem

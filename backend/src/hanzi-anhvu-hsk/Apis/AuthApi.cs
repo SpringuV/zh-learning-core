@@ -1,5 +1,6 @@
 ﻿using Auth.Contracts;
 using Auth.Contracts.DTOs;
+using Auth.Domain.Exceptions;
 using HanziAnhVuHsk.Api.Config;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +8,22 @@ namespace HanziAnhVuHsk.Api.Apis;
 
 public class AuthApi
 {
+    public static async Task<IResult> ChangePassword([FromBody] ChangePasswordRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        try
+        {
+            var result = await authService.ChangePasswordAsync(request, ct);
+            return result ? Results.Ok(new { Message = "Đổi mật khẩu thành công." }) : Results.BadRequest(new { Message = "Mật khẩu cũ không đúng." });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
+        }
+    }
 
     public static async Task<IResult> ActiveAccount([FromBody] ActivateAccountRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
     {
@@ -18,6 +35,10 @@ public class AuthApi
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             return Results.StatusCode(499);
+        }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
         }
     }
 
@@ -33,6 +54,10 @@ public class AuthApi
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Results.StatusCode(499); // Client Closed Request
+        }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
         }
     }
 
@@ -59,6 +84,10 @@ public class AuthApi
         {
             return Results.StatusCode(499);
         }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
+        }
     }
 
     public static async Task<IResult> Register([FromBody] RegisterRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
@@ -71,7 +100,11 @@ public class AuthApi
         {
             return Results.StatusCode(499);
         }
-         
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
+        }
+
     }
 
     public static async Task<IResult> Login([FromBody] LoginRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
@@ -85,11 +118,15 @@ public class AuthApi
                 result.RefreshToken,
                 result.AccessTokenExpiresAt,
                 result.RefreshTokenExpiresAt);
-            return Results.Ok(new { result.Message });
+            return Results.Ok(new {UserId = result.UserId, UserName = result.UserName, Roles = result.Roles, Message = result.Message});
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             return Results.StatusCode(499);
+        }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { Message = ex.Message });
         }
     }
 
@@ -115,6 +152,10 @@ public class AuthApi
         {
             return Results.StatusCode(499);
         }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
+        }
     }
 
 
@@ -133,17 +174,15 @@ public class AuthApi
             Expires = accessTokenExpiresAt
         });
 
-        // Refresh token: dài hạn (7 ngày), chỉ gửi đến các endpoint trong /api/auth (refresh + logout)
-        // Path=/api/auth thay vì /api/auth/refresh để logout cũng nhận được cookie và revoke trong DB.
+        // Refresh token: dài hạn (7 ngày), gửi cho tất cả endpoints trên domain
+        // Path="/" để cookie được gửi với mọi request, không chỉ /api/auth
         httpResponse.Cookies.Append(ConfigureCookieSettings.RefreshTokenCookieName, refreshToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.Lax,
             Expires = refreshTokenExpiresAt,
-            Path = "/api/auth"
+            Path = "/"  // Changed from "/api/auth" to "/" to send cookie for all requests
         });
     }
-
-    
 }

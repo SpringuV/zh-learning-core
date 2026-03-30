@@ -1,3 +1,5 @@
+using Auth.Application.Command.ChangePassword;
+
 namespace Auth.Application.Services;
 
 public class AuthService : IAuthService
@@ -26,6 +28,9 @@ public class AuthService : IAuthService
         var refreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(AuthTokenConstants.RefreshTokenExpireDays);
 
         return new LoginResponse(
+            result.Users.Id,
+            result.Users.Username,
+            result.Users.Roles,
             "Đăng nhập thành công.",
             result.AccessToken,
             result.RefreshToken,
@@ -95,6 +100,12 @@ public class AuthService : IAuthService
     public async Task<bool> ResendActivateAccountAsync(ResendActivationRequest request, CancellationToken cancellationToken)
     {
         var command = new ResendMailActivateCommand(request.Email, cancellationToken);
+        return await _mediator.Send(command, cancellationToken);
+    }
+
+    public async Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ChangePasswordCommand(request.UserId, request.OldPassword, request.NewPassword);
         return await _mediator.Send(command, cancellationToken);
     }
 }

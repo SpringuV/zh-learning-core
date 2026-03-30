@@ -13,6 +13,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      indent: ["error", 4],
+      "@typescript-eslint/indent": ["error", 4],
+    },
+  },
 ]);
 
 export default eslintConfig;

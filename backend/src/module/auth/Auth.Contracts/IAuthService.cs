@@ -10,4 +10,5 @@ public interface IAuthService
     Task<UserLoggoutResponse> LogoutAsync(string refreshToken, CancellationToken cancellationToken);
     Task<bool> ActivateAccountAsync(ActivateAccountRequest request, CancellationToken cancellationToken);
     Task<bool> ResendActivateAccountAsync(ResendActivationRequest request, CancellationToken cancellationToken);
+    Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken);
 }

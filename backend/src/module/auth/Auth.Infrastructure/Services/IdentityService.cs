@@ -9,9 +9,9 @@
             _userManager = userManager;
         }
 
-        public Task<Guid?> ChangeUserPasswordAsync(string? email, string? phoneNumber, string? userName, string newPassword, CancellationToken cancellationToken = default)
+        public async Task<bool> ChangeUserPasswordAsync(string UserId, string newPassword, string oldPassword, CancellationToken cancellationToken = default)
         {
-            return ChangeUserPasswordInternalAsync(email, phoneNumber, userName, newPassword, cancellationToken);
+            return await ChangeUserPasswordInternalAsync(UserId, newPassword, oldPassword, cancellationToken);
         }
 
         public async Task<RegisterResponse?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default)
@@ -27,15 +27,17 @@
                 UserName = username,
             };
 
+
             var result = await _userManager.CreateAsync(user, password);
+            await _userManager.AddToRoleAsync(user, Constants.USERS);
             ThrowIfFailed(result, "Failed to register user.");
 
-            if (!Guid.TryParse(user.Id, out var userId))
+            if (Guid.TryParse(user.Id, result: out Guid userId))
             {
-                throw new AuthDomainException("Created user id is not a valid guid.");
+                return new RegisterResponse(userId, user.CreatedAt, user.ActivateCode);
             }
 
-            return new RegisterResponse(Guid.Parse(user.Id), user.CreatedAt, user.ActivateCode);
+            throw new AuthDomainException("Created user id is not a valid guid.");
         }
 
         public async Task<bool> ActivateUserAsync(string email, string code, CancellationToken cancellationToken = default)
@@ -69,39 +71,40 @@
         }
 
         #region function ChangePasswordInternal
-        private async Task<Guid?> ChangeUserPasswordInternalAsync(
-            string? email,
-            string? phoneNumber,
-            string? userName,
+        private async Task<bool> ChangeUserPasswordInternalAsync(
+            string userId,
             string newPassword,
+            string oldPassword,
             CancellationToken cancellationToken)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(newPassword);
 
-            if (string.IsNullOrWhiteSpace(email) &&
-                string.IsNullOrWhiteSpace(phoneNumber) &&
-                string.IsNullOrWhiteSpace(userName))
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                throw new AuthDomainException("At least one identifier (email, phone number or username) is required.");
+                throw new AuthDomainException("User id is required.");
             }
-
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                throw new AuthDomainException("New password is required.");
+            } 
+            if (string.IsNullOrWhiteSpace(oldPassword))
+            {
+                throw new AuthDomainException("Old password is required.");
+            }
+            if (!string.IsNullOrWhiteSpace(oldPassword))
+            {
+                if (newPassword == oldPassword)
+                {
+                    throw new AuthDomainException("New password cannot be the same as the old password.");
+                }
+            }
             AuthApplicationUser? user = null;
 
-            if (!string.IsNullOrWhiteSpace(email))
-            {
-                user = await _userManager.FindByEmailAsync(email);
-            }
-
-            if (user is null && !string.IsNullOrWhiteSpace(userName))
-            {
-                user = await _userManager.FindByNameAsync(userName);
-            }
-
-            if (user is null && !string.IsNullOrWhiteSpace(phoneNumber))
+            if (user is null && !string.IsNullOrWhiteSpace(newPassword) && !string.IsNullOrWhiteSpace(oldPassword))
             {
                 // n + 1 query, but UserManager does not provide method to find user by phone number,
                 // and this method is not used frequently, so it is acceptable
-                user = _userManager.Users.FirstOrDefault(x => x.PhoneNumber == phoneNumber);
+                user = _userManager.Users.FirstOrDefault(x => x.Id == userId);
             }
 
             if (user is null)
@@ -125,12 +128,7 @@
             var result = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
             ThrowIfFailed(result, "Failed to change user password.");
 
-            if (!Guid.TryParse(user.Id, out var userId))
-            {
-                throw new AuthDomainException("User id is not a valid guid.");
-            }
-
-            return userId;
+            return true;
         }
         #endregion
 
@@ -157,6 +155,7 @@
                 throw new AuthDomainException("Password is required.");
             }
             AuthApplicationUser? user;
+            IList<string> roles;
             switch (LoginType)
             {
                 case "Email":
@@ -166,8 +165,8 @@
                     {
                         return null;
                     }
-                    var roles = await _userManager.GetRolesAsync(user);
-                    return new ValidateUser (user.Id, user.UserName!, roles.ToList());
+                    roles = await _userManager.GetRolesAsync(user);
+                    return new ValidateUser (user.Id, user.UserName!, [.. roles]); // C# 14 collection expression
                 case "Phone":
                     // Handle phone login
                     user = await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == Username);
@@ -175,7 +174,8 @@
                     {
                         return null;
                     }
-                    return new ValidateUser (user.Id, user.UserName!, new List<string>());
+                    roles = await _userManager.GetRolesAsync(user);
+                    return new ValidateUser (user.Id, user.UserName!, [.. roles]);
                 case "Username":
                     // Handle username login
                     user = await _userManager.FindByNameAsync(Username);
@@ -183,7 +183,8 @@
                     {
                         return null;
                     }
-                    return new ValidateUser (user.Id, user.UserName!, new List<string>());
+                    roles = await _userManager.GetRolesAsync(user);
+                    return new ValidateUser (user.Id, user.UserName!, [.. roles]);
                 default:
                     throw new AuthDomainException("Invalid login type.");
             }

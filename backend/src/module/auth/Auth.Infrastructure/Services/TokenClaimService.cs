@@ -21,15 +21,15 @@ namespace Auth.Infrastructure.Services
 
             var accessToken = GenerateAccessTokenAsync(user.Id, user.Username, user.Roles);
             var refreshToken = await CreateRefreshTokenAsync(user.Id, cancellationToken);
-            return new TokenResult(accessToken, refreshToken);
+            return new TokenResult(user, accessToken, refreshToken);
         }
 
         public async Task<TokenResult?> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
         {
             // validate token
             var tokenStored = await _dbContext.RefreshTokens
-                .Include(t => t.AuthUser)
-                    .ThenInclude(u => u.UserRoles)
+                .Include(t => t.AuthUser) // include user để lấy userId, userName, roleIds , không n+1 query vì đã include user roles ở dưới rồi
+                    .ThenInclude(u => u.UserRoles) // include user roles để lấy roleIds → truy vấn role names // n+1 query nếu không include user roles ở trên, vì phải truy vấn roleIds rồi mới truy vấn role names được
                 .SingleOrDefaultAsync(t => t.Token == refreshToken, cancellationToken);
             if (tokenStored is null || tokenStored.IsRevoked || tokenStored.ExpiresAt < DateTime.UtcNow) 
             {
@@ -48,7 +48,7 @@ namespace Auth.Infrastructure.Services
             var newRefreshToken = await CreateRefreshTokenAsync(tokenStored.UserId, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return new TokenResult(newAccessToken, newRefreshToken);
+            return new TokenResult(new ValidateUser(tokenStored.AuthUser.Id, tokenStored.AuthUser.UserName!, roleNames.AsReadOnly()), newAccessToken, newRefreshToken);
         }
 
         public async Task<bool> RevokeAsync(string refreshToken, CancellationToken cancellationToken)

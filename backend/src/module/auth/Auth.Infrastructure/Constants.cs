@@ -14,7 +14,7 @@
         public const string USERS = "Users";
         public const string POLICY_USER_ONLY = "UserOnly";
         public const string POLICY_ADMIN_ONLY = "AdminOnly";
-        public const string POLICY_ADMIN_OR_USER = "AdminOrUser";
+        public const string POLICY_ADMIN_OR_MANAGER = "AdminOrManager";
         // TODO: Don't use this in production
         public const string DEFAULT_PASSWORD = "Admin@123";
         // TODO: Change this to an environment variable

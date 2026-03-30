@@ -1,6 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var redis = builder.AddRedis("redis");
+var redis = builder.AddRedis("redis-hanzi");
 var postgres = builder.AddPostgres("postgres")
     .WithPgWeb()
     .WithImage("postgres:17-alpine")

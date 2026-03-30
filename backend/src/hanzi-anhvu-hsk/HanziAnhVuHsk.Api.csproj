@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Elastic.Clients.Elasticsearch" Version="13.1.0" />
+    <PackageReference Include="Aspire.StackExchange.Redis" Version="13.2.0" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.3.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
@@ -28,5 +29,6 @@
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\module\search\Search.Infrastructure\Search.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

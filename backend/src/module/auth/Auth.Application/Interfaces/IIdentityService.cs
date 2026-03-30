@@ -12,7 +12,7 @@ public interface IIdentityService
     // để tận dụng các tính năng xịn sò của ASP.NET Core EF Identity.
     Task<ValidateUser?> ValidateCredentialsAsync(string Username, string Password, string LoginType);
     Task<RegisterResponse?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default);
-    Task<Guid?> ChangeUserPasswordAsync(string? email, string? phoneNumber, string? userName, string newPassword, CancellationToken cancellationToken = default);
+    Task<bool> ChangeUserPasswordAsync(string UserId, string newPassword, string oldPassword, CancellationToken cancellationToken = default);
     Task<bool> ActivateUserAsync(string email, string code, CancellationToken cancellationToken = default);
     Task<ResendMailActivationResponse> ResendMailActivateAsync(string email, CancellationToken cancellationToken = default);
 }

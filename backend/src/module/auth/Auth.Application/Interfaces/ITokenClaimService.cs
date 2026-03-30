@@ -1,6 +1,6 @@
 ﻿namespace Auth.Application.Interfaces;
 
-public record TokenResult(string AccessToken, string RefreshToken);
+public record TokenResult(ValidateUser Users, string AccessToken, string RefreshToken);
 public interface ITokenClaimService
 {
     Task<TokenResult> GetTokenAsync(ValidateUser user, CancellationToken cancellationToken);

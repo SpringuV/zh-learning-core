@@ -1,6 +1,5 @@
 using Aspire.Elastic.Clients.Elasticsearch;
 using Auth.Infrastructure;
-using Notification.Application.Config;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using HanziAnhVu.Shared.EventBus.InMemory;
 using HanziAnhvuHsk.Services;
@@ -9,8 +8,10 @@ using HanziAnhVuHsk.Api.Extensions;
 using HanziAnhVuHsk.Extensions;
 using Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.IdentityModel.Tokens;
 using Model;
+using Notification.Application.Config;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +38,9 @@ Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builde
 
 // notification dependency
 Notification.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
+
+// search dependency
+Search.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
 // add elasticsearch service
 builder.AddElasticsearchClient("elastic-hanzi");
@@ -113,12 +117,26 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
+    /*
+        var redisConnectionString = configuration["Redis:ConnectionString"];
+        services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "TodoListLegend:"; // instance name để phân biệt với các ứng dụng khác nếu cùng dùng Redis
+            });
+            services.AddSingleton(typeof(ICache<>), typeof(RedisCacheAdapter<>));
+     */
+// add redis client
+builder.AddRedisClient("redis-hanzi");
+
+
+
 var app = builder.Build();
 
 //if (app.Environment.IsDevelopment())
 //{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+app.UseSwagger();
+app.UseSwaggerUI();
 //}
 
 // add auth api trước để có thể sử dụng cookie authentication trong api sau (nếu có)
@@ -126,4 +144,5 @@ app.MapAuthApi();
 app.MapOcrApi();
 app.MapSearchApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "hanzi-anhvu-hsk-api" }));
+
 app.Run();

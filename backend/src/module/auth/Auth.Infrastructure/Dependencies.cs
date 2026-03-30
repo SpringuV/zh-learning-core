@@ -1,6 +1,8 @@
 ﻿using Auth.Infrastructure.Services;
 using HanziAnhVu.Shared.Infrastructure;
 using Auth.Contracts;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Auth.Infrastructure;
 
@@ -12,6 +14,7 @@ public static class Dependencies
         var connectionString = configuration.GetConnectionString("AuthIdentityDbConnection")
             ?? throw new InvalidOperationException("Missing connection string for AuthIdentityDbConnection. Set it in appsettings.json or environment variables.");
 
+        // Configure EF Core logging for detailed timing
         services.AddDbContextPool<AuthIdentityDbContext>(options =>
             options.UseNpgsql(connectionString),
             poolSize: 128);
@@ -38,6 +41,13 @@ public static class Dependencies
         // hoặc MediatR.INotificationHandler<> trong assembly đó và đăng ký chúng vào DI container
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(Auth.Application.Services.AuthService).Assembly));
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(Constants.POLICY_ADMIN_ONLY, policy => policy.RequireRole(Constants.ADMINISTRATORS));
+            options.AddPolicy(Constants.POLICY_USER_ONLY, policy => policy.RequireRole(Constants.USERS));
+            options.AddPolicy(Constants.POLICY_ADMIN_OR_MANAGER, policy => policy.RequireRole(Constants.ADMINISTRATORS, "Manager"));
+        });
 
         // Auth services
         services.AddScoped<IIdentityService, IdentityService>();

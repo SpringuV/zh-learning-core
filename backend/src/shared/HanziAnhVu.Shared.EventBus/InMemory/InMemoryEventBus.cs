@@ -10,8 +10,8 @@ namespace HanziAnhVu.Shared.EventBus.InMemory
         {
             // Get all handlers for the event type T and invoke them
             using var scope = serviceProvider.CreateScope();
-            var scopedProvider = scope.ServiceProvider;
-            IEnumerable<IIntegrationEventHandler<T>> handlers = scopedProvider.GetServices<IIntegrationEventHandler<T>>();
+            var scopedProvider = scope.ServiceProvider; // create a new scope to resolve handlers, ensuring that scoped dependencies are properly handled
+            IEnumerable<IIntegrationEventHandler<T>> handlers = scopedProvider.GetServices<IIntegrationEventHandler<T>>(); // get all handlers for the event type T
             var tasks = handlers.Select(handler => handler.HandleAsync(@event, ct));
             return Task.WhenAll(tasks); // wait for all handlers to complete
         }

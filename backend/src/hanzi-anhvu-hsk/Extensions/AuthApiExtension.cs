@@ -15,12 +15,14 @@ public static class AuthApiExtension
     {
         group.MapPost("/login", AuthApi.Login)
             .Accepts<LoginRequest>("application/json");
+        // .Accepts<LoginRequest>("application/json") // support for swagger
+        //.RequireAuthorization("AuthenticatedUser");
 
         group.MapPost("/register", AuthApi.Register);
         group.MapPost("/activate", AuthApi.ActiveAccount);
         group.MapPost("/refresh-token", AuthApi.RefreshToken);
         group.MapPost("/change-email", () => { });
-        group.MapPost("/change-password", () => { });
+        group.MapPost("/change-password", () => AuthApi.ChangePassword);
         group.MapPost("/logout", AuthApi.Logout);
         group.MapPost("/forgot-password", () => { });
         group.MapPost("/reset-password", () => { });
