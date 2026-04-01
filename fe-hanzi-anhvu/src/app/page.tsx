@@ -1,9 +1,9 @@
 import { Metadata } from "next";
-import { LandingFeatures } from "@/components/landing/landing-features";
-import { LandingHeader } from "@/components/landing/landing-header";
-import { LandingHero } from "@/components/landing/landing-hero";
-import { LandingReviewStats } from "@/components/landing/landing-review-stats";
-import { LandingZoomSection } from "@/components/landing/landing-zoom-section";
+import { LandingFeatures } from "@/shared/components/landing/landing-features";
+import { LandingHeader } from "@/shared/components/landing/landing-header";
+import { LandingHero } from "@/shared/components/landing/landing-hero";
+import { LandingReviewStats } from "@/shared/components/landing/landing-review-stats";
+import { LandingZoomSection } from "@/shared/components/landing/landing-zoom-section";
 
 export const metadata: Metadata = {
     title: "Landing Page - HanZi Live",

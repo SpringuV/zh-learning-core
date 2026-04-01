@@ -5,12 +5,70 @@ import Credentials from "next-auth/providers/credentials";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
 import { AxiosError } from "axios";
-import { parseAndSetCookie } from "@/lib/server-cookies";
-import { TypeLogin } from "@/types/auth.inteface";
+import { authApi } from "@/modules/auth/api/auth.api";
+import { TypeLogin } from "@/modules/auth/types/auth.inteface";
+
 class customError extends AuthError {
     constructor(message: string) {
         super();
         this.message = message;
+    }
+}
+
+// Server-side only: Parse and set cookies from Axios response
+// Must be called only from authorize callback (server-side)
+async function parseAndSetServerCookie(response: any): Promise<void> {
+    // Dynamic import - only loads on server
+    const { cookies } = await import("next/headers");
+
+    const setCookie = response?.headers?.["set-cookie"];
+    if (!setCookie) return;
+
+    const cookieStrings = Array.isArray(setCookie) ? setCookie : [setCookie];
+    const cookieStore = await cookies();
+
+    for (const cookieStr of cookieStrings) {
+        const parts = cookieStr.split(";").map((p: string) => p.trim());
+        const nameValue = parts[0];
+        const eq = nameValue.indexOf("=");
+        if (eq === -1) continue;
+
+        const name = nameValue.substring(0, eq).trim();
+        const value = nameValue.substring(eq + 1).trim();
+
+        const options: any = {};
+        for (let i = 1; i < parts.length; i++) {
+            const attr = parts[i];
+            const [k, ...vParts] = attr.split("=");
+            const key = k.trim().toLowerCase();
+            const val = vParts.join("=").trim();
+
+            if (key === "path") {
+                options.path = val || "/";
+            } else if (key === "expires") {
+                const t = Date.parse(val);
+                if (!Number.isNaN(t)) options.expires = new Date(t);
+            } else if (key === "secure") {
+                options.secure = true;
+            } else if (key === "httponly") {
+                options.httpOnly = true;
+            } else if (key === "samesite") {
+                const sameSite = val.toLowerCase();
+                if (
+                    sameSite === "none" ||
+                    sameSite === "lax" ||
+                    sameSite === "strict"
+                ) {
+                    options.sameSite = sameSite;
+                }
+            }
+        }
+
+        if (!options.path) {
+            options.path = "/";
+        }
+
+        cookieStore.set(name, value, options);
     }
 }
 
@@ -43,7 +101,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 // Call backend .NET login API
                 try {
-                    const { authApi } = await import("@/utils/auth.api");
                     // console.log("Attempting login with", nameAccount);
                     const res = await authApi.Login({
                         Username: nameAccount,
@@ -51,7 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         TypeLogin: typeLogin as TypeLogin,
                     });
 
-                    await parseAndSetCookie(res); // Parse and set cookies from backend response
+                    await parseAndSetServerCookie(res); // Parse and set cookies to Next.js server (persist across refreshes)
 
                     return {
                         id: res.data.userId,
@@ -84,7 +141,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientSecret: process.env.AUTH_GOOGLE_SECRET!,
         }),
     ],
-    session: { strategy: "jwt" },
     callbacks: {
         jwt({ token, user, account }) {
             if (user) {
@@ -99,8 +155,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             session.user.roles = token.roles;
-            session.user.userId = token.sub || "";
-            session.user.userName = token.name || "";
+            session.user.id = token.sub || "";
+            session.user.name = token.name || "";
             return session;
         },
     },

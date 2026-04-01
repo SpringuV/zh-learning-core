@@ -21,8 +21,8 @@
         ],
         "paths": {
             "@/*": ["./src/*"],
-            "@/components/*": ["./src/components/*"],
-            "@/types/*": ["./src/types/*"]
+            "@/components/*": ["./src/shared/components/*"],
+            "@/shared/*": ["./src/shared/*"]
         }
     },
     "include": [

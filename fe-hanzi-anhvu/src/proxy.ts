@@ -10,8 +10,7 @@ export default auth((req: any) => {
 // Read more: https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
 export const config = {
     matcher: [
-        "/((?!api|_next/static|_next/image|favicon.ico|auth).*)", // Exclude auth routes from middleware
-        "/admin/:path*",
-        "/client/:path*",
+        "/cms/:path*", // Only protect admin CMS routes
+        "/client/:path*", // Optional: protect client routes if needed
     ],
 };

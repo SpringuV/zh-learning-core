@@ -76,7 +76,7 @@ public class AuthApi
             httpContext.Response.Cookies.Delete(ConfigureCookieSettings.IdentifierCookieName);
             httpContext.Response.Cookies.Delete(ConfigureCookieSettings.RefreshTokenCookieName, new CookieOptions
             {
-                Path = "/api/auth" // Phải chỉ định path giống với lúc tạo cookie để xóa đúng cookie đó
+                Path = "/" // Phải chỉ định path giống với lúc tạo cookie để xóa đúng cookie đó
             });
             return Results.Ok(result);
         }
@@ -166,12 +166,18 @@ public class AuthApi
         DateTimeOffset accessTokenExpiresAt,
         DateTimeOffset refreshTokenExpiresAt)
     {
+        // Keep cookie policy consistent for both access and refresh tokens.
+        // If current request is HTTPS, use Secure + SameSite=None so cookies are sent in cross-site XHR.
+        bool isSecure = httpResponse.HttpContext.Request.IsHttps;
+        var sameSiteMode = isSecure ? SameSiteMode.None : SameSiteMode.Lax;
+        
         httpResponse.Cookies.Append(ConfigureCookieSettings.IdentifierCookieName, accessToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
-            Expires = accessTokenExpiresAt
+            Secure = isSecure,
+            SameSite = sameSiteMode,
+            Expires = accessTokenExpiresAt,
+            Path = "/"
         });
 
         // Refresh token: dài hạn (7 ngày), gửi cho tất cả endpoints trên domain
@@ -179,10 +185,10 @@ public class AuthApi
         httpResponse.Cookies.Append(ConfigureCookieSettings.RefreshTokenCookieName, refreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax,
+            Secure = isSecure,
+            SameSite = sameSiteMode,
             Expires = refreshTokenExpiresAt,
-            Path = "/"  // Changed from "/api/auth" to "/" to send cookie for all requests
+            Path = "/"
         });
     }
 }

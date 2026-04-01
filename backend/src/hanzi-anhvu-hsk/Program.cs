@@ -19,6 +19,23 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure CORS to allow frontend access
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://127.0.0.1:3000",
+                "https://127.0.0.1:3000") // Frontend URLs
+            .AllowCredentials() // Allow cookies/credentials
+            .AllowAnyMethod() // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+            .AllowAnyHeader(); // Allow all headers
+    });
+});
+
 builder.Services.Configure<OcrServiceOptions>(
     builder.Configuration.GetSection(OcrServiceOptions.SectionName));
 
@@ -138,6 +155,9 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 //}
+
+// Enable CORS before routing
+app.UseCors("AllowFrontend");
 
 // add auth api trước để có thể sử dụng cookie authentication trong api sau (nếu có)
 app.MapAuthApi();

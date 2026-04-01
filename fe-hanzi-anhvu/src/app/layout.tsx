@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { auth } from "@/auth";
-import NextAuthWrapper from "@/lib/next.auth.wrapper";
-import QueryClientProviderWrapper from "@/lib/query.client.provider";
+import NextAuthWrapper from "@/shared/lib/next.auth.wrapper";
+import QueryClientProviderWrapper from "@/shared/lib/query.client.provider";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -37,6 +38,7 @@ export default async function RootLayout({
             // Keep custom fields like roles, userId, userName if needed on client
         };
     }
+    // console.log("Session in RootLayout:", session);
 
     return (
         <html lang="en" className={cn("font-sans", inter.variable)}>
@@ -45,7 +47,7 @@ export default async function RootLayout({
             >
                 <NextAuthWrapper session={session}>
                     <QueryClientProviderWrapper>
-                        {children}
+                        <TooltipProvider>{children}</TooltipProvider>
                     </QueryClientProviderWrapper>
                 </NextAuthWrapper>
             </body>
