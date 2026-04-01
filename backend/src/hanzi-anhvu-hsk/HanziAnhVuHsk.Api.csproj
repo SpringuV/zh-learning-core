@@ -18,6 +18,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Apis\SearchApi\" />
     <Folder Include="Boostraping\" />
   </ItemGroup>
   <ItemGroup>
@@ -25,7 +26,6 @@
     <ProjectReference Include="..\module\auth\Auth.Infrastructure\Auth.Infrastructure.csproj" />
     <ProjectReference Include="..\module\notification\Notification.Infrastructure\Notification.Infrastructure.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
-    <ProjectReference Include="..\shared\HanziAnhVu.Shared.Contracts\HanziAnhVu.Shared.Contracts.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />

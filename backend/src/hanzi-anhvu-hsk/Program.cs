@@ -1,14 +1,14 @@
-using Aspire.Elastic.Clients.Elasticsearch;
 using Auth.Infrastructure;
+using HanziAnhVu.Shared.Application;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using HanziAnhVu.Shared.EventBus.InMemory;
+using HanziAnhVu.Shared.Infrastructure;
 using HanziAnhvuHsk.Services;
 using HanziAnhVuHsk.Api.Config;
 using HanziAnhVuHsk.Api.Extensions;
 using HanziAnhVuHsk.Extensions;
 using Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.IdentityModel.Tokens;
 using Model;
 using Notification.Application.Config;
@@ -19,10 +19,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure CORS to allow frontend access
+// Configure CORS to allow frontend
+var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
     {
         policy
             .WithOrigins(
@@ -73,6 +75,8 @@ builder.Services.AddHttpClient<IOcrClient, OcrClient>((serviceProvider, client) 
     client.BaseAddress = new Uri(options.BaseUrl);
     client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 });
+
+builder.Services.AddScoped(typeof(IAppLogger<>), typeof(LoggingAdapter<>));
 
 
 var key = Encoding.ASCII.GetBytes(Constants.JWT_SECRET_KEY);
@@ -157,7 +161,7 @@ app.UseSwaggerUI();
 //}
 
 // Enable CORS before routing
-app.UseCors("AllowFrontend");
+app.UseCors(MyAllowSpecificOrigins);
 
 // add auth api trước để có thể sử dụng cookie authentication trong api sau (nếu có)
 app.MapAuthApi();

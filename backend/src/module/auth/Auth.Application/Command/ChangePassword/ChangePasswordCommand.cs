@@ -1,3 +1,3 @@
 ﻿namespace Auth.Application.Command.ChangePassword;
 
-public record ChangePasswordCommand(string UserId, string OldPassword, string NewPassword): IRequest<bool>;
+public record ChangePasswordCommand(Guid UserId, string OldPassword, string NewPassword): IRequest<bool>;

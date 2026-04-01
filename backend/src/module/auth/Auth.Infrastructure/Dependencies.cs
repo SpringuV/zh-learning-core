@@ -1,6 +1,7 @@
 ﻿using Auth.Infrastructure.Services;
 using HanziAnhVu.Shared.Infrastructure;
 using Auth.Contracts;
+using Auth.Application.Command.Login;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -40,7 +41,7 @@ public static class Dependencies
         // assemble là sẽ tìm tất cả các class implement interface MediatR.IRequestHandler<,>
         // hoặc MediatR.INotificationHandler<> trong assembly đó và đăng ký chúng vào DI container
         services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(typeof(Auth.Application.Services.AuthService).Assembly));
+            cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly));
 
         services.AddAuthorization(options =>
         {
@@ -54,7 +55,6 @@ public static class Dependencies
         services.AddScoped<ITokenClaimService, TokenClaimService>();
         services.AddScoped<IOutboxWriter, OutboxMessageWriter>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork<AuthIdentityDbContext>>();
-        services.AddScoped<IAuthService, Application.Services.AuthService>();
 
         // Seed/migrate khi app start (dev/local)
         services.AddHostedService<AuthIdentityDbInitializerHostedService>();

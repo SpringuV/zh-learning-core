@@ -1,4 +1,4 @@
-using HanziAnhVuHsk.Api.Apis;
+using HanziAnhVuHsk.Api.Apis.SearchApi;
 
 namespace HanziAnhVuHsk.Extensions;
 
@@ -7,18 +7,22 @@ public static class SearchApiExtensions
     public static IEndpointRouteBuilder MapSearchApi(this IEndpointRouteBuilder builder)
     {
         builder.MapGroup("/api/search/v{version:int}")
-            .MapSearchApi()
+            .MapSearchUserApi()
+            .MapSearchLessonApi()
             .WithTags("Search Api");
 
         return builder;
     }
 
-    public static RouteGroupBuilder MapSearchApi(this RouteGroupBuilder group)
+    public static RouteGroupBuilder MapSearchLessonApi(this RouteGroupBuilder group)
     {
-        group.MapPost("/documents", SearchApi.IndexDocument)
-            .Accepts<SearchApi.IndexSearchDocumentRequest>("application/json");
+        group.MapGet("/lessons", LessonSearchApi.SearchLessons);
 
-        group.MapGet("/documents", SearchApi.SearchDocuments);
+        return group;
+    }
+    public static RouteGroupBuilder MapSearchUserApi(this RouteGroupBuilder group)
+    {
+        group.MapGet("/users", UserSearchApi.SearchUsers);
 
         return group;
     }

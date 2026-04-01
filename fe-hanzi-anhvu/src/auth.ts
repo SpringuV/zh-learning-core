@@ -75,7 +75,7 @@ async function parseAndSetServerCookie(response: any): Promise<void> {
 export const { handlers, auth, signIn, signOut } = NextAuth({
     trustHost: true,
     // debug: !!process.env.AUTH_DEBUG,
-    // basePath: "/api/auth", // Đảm bảo khớp với đường dẫn API của bạn
+    basePath: "/api/auth", // Keep client helpers aligned with app/api/auth/[...nextauth]
     providers: [
         Credentials({
             name: "credentials",
@@ -84,7 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
                 typeLogin: { label: "TypeLogin", type: "text" },
             },
-            async authorize(credentials) {
+            async authorize(credentials, req) {
                 // insure credentials exist
                 if (!credentials) return null;
 
@@ -101,12 +101,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 // Call backend .NET login API
                 try {
-                    // console.log("Attempting login with", nameAccount);
-                    const res = await authApi.Login({
+                    const payload = {
                         Username: nameAccount,
                         Password: password,
                         TypeLogin: typeLogin as TypeLogin,
-                    });
+                    };
+
+                    const res = await authApi.Login(payload);
 
                     await parseAndSetServerCookie(res); // Parse and set cookies to Next.js server (persist across refreshes)
 
@@ -159,6 +160,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             session.user.name = token.name || "";
             return session;
         },
+        authorized: async ({ auth }) => {
+            return !!(auth && auth.user?.id); // Only allow if user ID exists in session
+        },
+    },
+    pages: {
+        signIn: "/auth/login",
+        error: "/auth/login", // Redirect to login page on error, you can customize this
     },
     secret: process.env.NEXTAUTH_SECRET,
 });

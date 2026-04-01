@@ -3,6 +3,30 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+let tlsBypassInitialized = false;
+
+function enableDevSelfSignedTlsForLocalApi() {
+    // Only run in Node runtime (server actions, NextAuth callbacks).
+    if (typeof window !== "undefined" || tlsBypassInitialized) return;
+    if (process.env.NODE_ENV === "production" || !API_BASE_URL) return;
+
+    try {
+        const parsed = new URL(API_BASE_URL);
+        const isLocalHttps =
+            parsed.protocol === "https:" &&
+            (parsed.hostname === "localhost" ||
+                parsed.hostname === "127.0.0.1");
+
+        if (isLocalHttps) {
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+        }
+    } catch {
+        // Ignore invalid URL format, axios will surface actual request errors later.
+    }
+
+    tlsBypassInitialized = true;
+}
+
 // Extend InternalAxiosRequestConfig to include _retry property
 declare module "axios" {
     interface InternalAxiosRequestConfig {
@@ -23,6 +47,8 @@ class Http {
 
     // Constructor: Create axios instance and setup interceptors
     constructor() {
+        enableDevSelfSignedTlsForLocalApi();
+
         // Create axios instance with base config
         this.instance = axios.create({
             baseURL: API_BASE_URL, // Set base URL
@@ -103,7 +129,9 @@ class Http {
                         // Clear queue
                         this.failedQueue = [];
                         // Redirect to login page
-                        window.location.href = "/auth/login";
+                        if (typeof window !== "undefined") {
+                            window.location.href = "/auth/login";
+                        }
                         // Reject the error
                         return Promise.reject(refreshError);
                     } finally {

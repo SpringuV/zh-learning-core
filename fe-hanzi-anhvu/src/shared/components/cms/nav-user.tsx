@@ -1,5 +1,6 @@
 "use client";
 
+import LogoutComponent from "@/shared/components/logout";
 import {
     Avatar,
     AvatarFallback,
@@ -116,9 +117,9 @@ export function NavUser({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
+                        {/* LOGOUT */}
                         <DropdownMenuItem>
-                            <LogOutIcon />
-                            Đăng xuất
+                            <LogoutComponent />
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

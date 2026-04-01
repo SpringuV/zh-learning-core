@@ -9,7 +9,7 @@
         public DateTime UpdatedAt { get; private set; }
         public DateTime LastLogin { get; private set; } = DateTime.UtcNow;
         public DateTime LastTimeChangeEmail { get; private set; } = DateTime.UtcNow;
-        public DateTime LastTimeChangePassword { get; private set; } = DateTime.UtcNow;
+        public DateTime? LastTimeChangePassword { get; private set; } = null;
         public ICollection<IdentityUserRole<string>> UserRoles { get; private set; } = new List<IdentityUserRole<string>>();
         public DateTime ExpireTimeActivateCode { get; set; } = DateTime.UtcNow.AddMinutes(5);
         public string ActivateCode { get; set; } = Random.Shared.Next(000000, 1000000).ToString("D6");
@@ -33,14 +33,14 @@
 
             // việc new entity là ở chỗ handler của UserCreatedDomainEvent, khi mà sau khi tạo user mới thì sẽ tự động active user đó,
             // và việc này là hợp lý vì nó chỉ xảy ra một lần duy nhất khi tạo user mới
-            if (IsActive) throw new AuthDomainException("User is already active.");
+            if (IsActive) throw new AuthDomainException("Người dùng đã kích hoạt trước đó rồi.");
             IsActive = true;
             UpdatedAt = DateTime.UtcNow;
         }
 
         public void Deactivate()
         {
-            if (!IsActive) throw new AuthDomainException("User is already inactive.");
+            if (!IsActive) throw new AuthDomainException("Người dùng đã vô hiệu hóa trước đó rồi.");
             IsActive = false;
             UpdatedAt = DateTime.UtcNow;
         }
@@ -48,21 +48,21 @@
         public void ChangePassword(string newPasswordHash)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(newPasswordHash);
-            if (DateTime.UtcNow - LastTimeChangePassword < TimeSpan.FromDays(30))
-                throw new AuthDomainException("Password can only be changed once every 30 days.");
+            if (LastTimeChangePassword.HasValue && DateTime.UtcNow - LastTimeChangePassword.Value < TimeSpan.FromDays(30))
+                throw new AuthDomainException("Mật khẩu chỉ được đổi 1 lần mỗi 30 ngày.");
             if (newPasswordHash == PasswordHash)
-                throw new AuthDomainException("New password cannot be the same as the old password.");
+                throw new AuthDomainException("Mật khẩu cũ không được trùng với mật khẩu mới.");
             PasswordHash = newPasswordHash;
             LastTimeChangePassword = DateTime.UtcNow;
-            UpdatedAt = LastTimeChangePassword;
+            UpdatedAt = LastTimeChangePassword.Value;
         }
 
         public void ChangeEmail(string newEmail)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
             if (DateTime.UtcNow - LastTimeChangeEmail < TimeSpan.FromDays(30))
-                throw new AuthDomainException("Email can only be changed once every 30 days.");
-            if (newEmail.Equals(Email, StringComparison.OrdinalIgnoreCase)) throw new AuthDomainException("New email cannot be the same as the old email.");
+                throw new AuthDomainException("Email chỉ được đổi 1 lần mỗi 30 ngày.");
+            if (newEmail.Equals(Email, StringComparison.OrdinalIgnoreCase)) throw new AuthDomainException("Email mới không được trùng với Email cũ.");
             Email = newEmail;
             LastTimeChangeEmail = DateTime.UtcNow;
             UpdatedAt = LastTimeChangeEmail;

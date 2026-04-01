@@ -9,7 +9,7 @@
             _userManager = userManager;
         }
 
-        public async Task<bool> ChangeUserPasswordAsync(string UserId, string newPassword, string oldPassword, CancellationToken cancellationToken = default)
+        public async Task<bool> ChangeUserPasswordAsync(Guid UserId, string newPassword, string oldPassword, CancellationToken cancellationToken = default)
         {
             return await ChangeUserPasswordInternalAsync(UserId, newPassword, oldPassword, cancellationToken);
         }
@@ -72,14 +72,14 @@
 
         #region function ChangePasswordInternal
         private async Task<bool> ChangeUserPasswordInternalAsync(
-            string userId,
+            Guid userId,
             string newPassword,
             string oldPassword,
             CancellationToken cancellationToken)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(newPassword);
 
-            if (string.IsNullOrWhiteSpace(userId))
+            if (userId == Guid.Empty)
             {
                 throw new AuthDomainException("User id is required.");
             }
@@ -104,7 +104,7 @@
             {
                 // n + 1 query, but UserManager does not provide method to find user by phone number,
                 // and this method is not used frequently, so it is acceptable
-                user = _userManager.Users.FirstOrDefault(x => x.Id == userId);
+                user = _userManager.Users.FirstOrDefault(x => x.Id == userId.ToString());
             }
 
             if (user is null)

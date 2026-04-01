@@ -1,7 +1,4 @@
 ﻿using Auth.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Auth.Application.Command.ChangePassword
 {
@@ -15,11 +12,11 @@ namespace Auth.Application.Command.ChangePassword
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<bool> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(ChangePasswordCommand cmd, CancellationToken cancellationToken)
         {
             return await _unitOfWork.SaveChangeAsync(async ()=>
             {
-                var result = await _identityService.ChangeUserPasswordAsync(request.UserId, request.NewPassword, request.OldPassword, cancellationToken);
+                var result = await _identityService.ChangeUserPasswordAsync(cmd.UserId, cmd.NewPassword, cmd.OldPassword, cancellationToken);
                 if (!result)
                 {
                     throw new AuthDomainException("Change password failed");

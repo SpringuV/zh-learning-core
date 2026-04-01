@@ -13,7 +13,7 @@ export default function NextAuthWrapper({
             session={session}
             refetchInterval={0}
             refetchOnWindowFocus={false}
-            basePath="/auth"
+            basePath="/api/auth"
         >
             {children}
         </SessionProvider>

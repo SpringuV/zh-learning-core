@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useErrorStore } from "@/store";
 import { toast } from "sonner";
 import { LoginRequest } from "@/modules/auth/types/auth.inteface";
-import { authenticate } from "@/shared/utils/action.login";
+import { signIn } from "next-auth/react";
 
 // Determine login type based on input
 
@@ -88,22 +88,21 @@ export const LoginComponent = () => {
             TypeLogin: loginRequest.TypeLogin,
         };
 
-        try {
-            const result = await authenticate(value);
-            if (result.success) {
-                toast.success("Đăng nhập thành công! Đang chuyển hướng...");
-                setTimeout(() => {
-                    router.refresh(); // Force NextAuth to re-fetch session
-                    router.push(redirectUrl);
-                }, 600);
-            } else {
-                const errorMessage = result?.message || "Đăng nhập thất bại";
-                console.error("Login failed:", errorMessage);
-                toast.error(errorMessage);
-            }
-        } catch (err) {
-            console.error("Auth error:", err);
-            toast.error("Đăng nhập thất bại. Vui lòng thử lại.");
+        const result = await signIn("credentials", {
+            nameAccount: value.Username,
+            password: value.Password,
+            typeLogin: value.TypeLogin,
+            redirect: false,
+        });
+
+        if (!result?.error) {
+            toast.success("Đăng nhập thành công! Đang chuyển hướng...");
+            router.replace(redirectUrl);
+            router.refresh();
+        } else {
+            const errorMessage = result.error || "Đăng nhập thất bại";
+            console.error("Login failed:", errorMessage);
+            toast.error(errorMessage);
         }
     };
 
@@ -164,6 +163,7 @@ export const LoginComponent = () => {
                                     onClick={() =>
                                         onNavigate("forgot-password")
                                     }
+                                    tabIndex={-1} // Prevent focus on this button
                                     className="text-xs text-primary hover:underline"
                                 >
                                     Quên mật khẩu?

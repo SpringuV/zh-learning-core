@@ -26,15 +26,10 @@ import {
     DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
 import { useSession } from "next-auth/react";
-import { signOut } from "@/auth";
+import LogoutComponent from "@/shared/components/logout";
 
 export function LandingHeader() {
     const { data: session } = useSession();
-    console.log("Session data in LandingHeader:", session);
-    const handleLogout = async () => {
-        await signOut({ redirect: true, redirectTo: "/" });
-    };
-
     // Get user initials for avatar fallback
     const getInitials = (name: string) => {
         return name
@@ -164,9 +159,9 @@ export function LandingHeader() {
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout}>
-                                <LogOut className="size-4" />
-                                Đăng xuất
+                            {/* LOGOUT COMPONENT */}
+                            <DropdownMenuItem>
+                                <LogoutComponent />
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

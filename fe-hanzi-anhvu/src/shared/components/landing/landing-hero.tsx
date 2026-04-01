@@ -15,9 +15,9 @@ export function LandingHero() {
                 Speaking Skills
             </h1>
             <p className="mt-5 max-w-2xl text-base text-white/85 sm:text-lg">
-                Day la nen tang cho nguoi hoc muon tien bo thuc te: on tap moi
-                ngay, bam muc tieu ro rang, va tham gia lop Zoom truc tiep de
-                sua phan xa giao tiep.
+                Đây là nền tảng cho người học muốn tiến bộ thực tế: ôn tập mỗi
+                ngày, bám mục tiêu rõ ràng, và tham gia lớp Zoom trực tiếp để
+                sửa phần xa giao tiếp.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
                 <Button
@@ -27,7 +27,7 @@ export function LandingHero() {
                 >
                     <Link href="#review">
                         <BookOpen className="size-4" />
-                        Bat dau on tap
+                        Bắt đầu ôn tập
                     </Link>
                 </Button>
                 <Button
@@ -38,7 +38,7 @@ export function LandingHero() {
                 >
                     <Link href="#zoom">
                         <Video className="size-4" />
-                        Xem lich Zoom
+                        Xem lịch Zoom
                     </Link>
                 </Button>
             </div>
