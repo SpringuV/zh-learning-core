@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthLogout } from "@/modules/auth/hooks/use-auth";
+import { useAuthLogout } from "@/modules/auth/hooks/use-auth-query";
 import { LogOutIcon } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";

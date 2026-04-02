@@ -19,12 +19,12 @@ namespace Search.Infrastructure.Services;
         rồi dùng alias hanzi_users trỏ sang version active để reindex zero-downtime.
  */
 
-public class UserSearchService : IUserSearchProjector, IUserSearchQueries
+public class UserSearchQueriesServices : IUserSearchProjector, IUserSearchQueriesServices
 {
     private readonly ElasticsearchClient _client;
-    private readonly ILogger<UserSearchService> _logger;
+    private readonly ILogger<UserSearchQueriesServices> _logger;
 
-    public UserSearchService(ElasticsearchClient client, ILogger<UserSearchService> logger)
+    public UserSearchQueriesServices(ElasticsearchClient client, ILogger<UserSearchQueriesServices> logger)
     {
         _client = client;
         _logger = logger;

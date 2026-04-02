@@ -55,6 +55,7 @@ public static class Dependencies
         services.AddScoped<ITokenClaimService, TokenClaimService>();
         services.AddScoped<IOutboxWriter, OutboxMessageWriter>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork<AuthIdentityDbContext>>();
+        services.AddScoped<IAuthService, Application.Services.AuthService>();
 
         // Seed/migrate khi app start (dev/local)
         services.AddHostedService<AuthIdentityDbInitializerHostedService>();

@@ -15,7 +15,7 @@ using Notification.Application.Config;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// builder.AddElasticOpenTelemetry();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

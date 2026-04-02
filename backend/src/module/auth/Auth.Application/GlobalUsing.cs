@@ -15,3 +15,5 @@ global using Auth.Application.Command.Register;
 global using Auth.Application.Command.Logout;
 global using Auth.Application.Command.ActivateAccount;
 global using Auth.Application.Command.ResendMail;
+global using Auth.Application.Command.ChangePassword;
+

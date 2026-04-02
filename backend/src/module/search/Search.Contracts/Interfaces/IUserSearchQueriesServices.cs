@@ -5,7 +5,7 @@ using Search.Domain.Entities;
 
 namespace Search.Contracts.Interfaces;
 
-public interface IUserSearchQueries
+public interface IUserSearchQueriesServices
 {
 	Task<SearchQueryResult<UserSearchItem>> SearchUsersAsync(UserSearchQueryRequest request, CancellationToken cancellationToken = default);
     Task<UserSearch?> GetAsync(string id, CancellationToken cancellationToken = default);

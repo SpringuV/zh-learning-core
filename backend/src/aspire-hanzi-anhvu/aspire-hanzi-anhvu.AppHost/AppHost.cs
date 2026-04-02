@@ -1,4 +1,8 @@
+using AspireHanziAnhVu.AppHost;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+var elasticPassword = builder.AddParameter("elastic-password", "6jg0KCgRXSZa!eTjZz}{6u", secret: true);
 
 var redis = builder.AddRedis("redis-hanzi");
 var postgres = builder.AddPostgres("postgres")
@@ -7,14 +11,21 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
 
 var authDb = postgres.AddDatabase("identity-hanzi");
-
-var elasticsearch = builder.AddElasticsearch("elastic-hanzi");
+var elasticsearch = builder
+    .AddElasticsearchWithKibana("elastic-hanzi", elasticPassword)
+    .WithElasticsearchSetup();
+// var kibana = builder
+//     .AddContainer("kibana", "docker.elastic.co/kibana/kibana", "8.17.0")
+//     .WithEnvironment("ELASTICSEARCH_HOSTS", elasticsearch.GetEndpoint("http"))
+//     .WithEnvironment("ELASTICSEARCH_USERNAME", "kibana_system")
+//     .WithEnvironment("ELASTICSEARCH_PASSWORD", elasticPassword);
 
 // add project api vào
 builder.AddProject<Projects.HanziAnhVuHsk_Api>("hanzi-anhvu-hsk-api")
     .WithReference(redis) // add redis
     .WithReference(authDb) // add db auth/identity
     .WithReference(elasticsearch)
+
     .WithEnvironment("ConnectionStrings__AuthIdentityDbConnection", authDb)
     .WithEnvironment("ASPNETCORE_URLS", "https://localhost:1907;http://localhost:1908")
     .WaitFor(authDb);

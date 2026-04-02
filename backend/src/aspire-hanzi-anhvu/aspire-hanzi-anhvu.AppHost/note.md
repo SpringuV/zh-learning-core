@@ -13,3 +13,11 @@ dotnet ef migrations add InitialOutbox `  --context OutboxMessageDbContext`
 Build project: dotnet build hanzi-anhvu.slnx (hoặc chỉ dotnet build nếu trong thư mục có file .slnx).
 Run project: dotnet watch run --project aspire-hanzi-anhvu.AppHost (vì đây là Aspire AppHost, cần chỉ định project cụ thể).
 Publish: dotnet publish hanzi-anhvu.slnx --configuration Release.
+
+// user secrets, Trên Windows, user-secrets nằm ở:
+%APPDATA%\Microsoft\UserSecrets<UserSecretsId>\secrets.json
+
+Với project AppHost của bạn, UserSecretsId hiện là:
+dotnet user-secrets set "Elastic:KibanaServiceToken" "<TOKEN_VALUE>" --project .\backend\src\aspire-hanzi-anhvu\aspire-hanzi-anhvu.AppHost\AspireHanziAnhVu.AppHost.csproj
+
+dotnet user-secrets list --project .\src\aspire-hanzi-anhvu\aspire-hanzi-anhvu.AppHost\AspireHanziAnhVu.AppHost.csproj

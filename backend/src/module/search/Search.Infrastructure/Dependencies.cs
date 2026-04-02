@@ -15,8 +15,8 @@ public static class Dependencies
         // services.AddElasticsearchClient("elastic-hanzi"); // If not in API, add here
 
         // Register user-specific search service
-        services.AddScoped<IUserSearchProjector, UserSearchService>();
-        services.AddScoped<IUserSearchQueries, UserSearchService>();
+        services.AddScoped<IUserSearchProjector, UserSearchQueriesServices>();
+        services.AddScoped<IUserSearchQueriesServices, UserSearchQueriesServices>();
 
         // Register event handlers
         services.AddScoped<IIntegrationEventHandler<Auth.Contracts.IntegrationEvents.UserRegisteredIntegrationEvent>, UserRegisteredEventHandler>();

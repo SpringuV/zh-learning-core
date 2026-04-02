@@ -1,10 +1,14 @@
 // Base URL for API, fallback to localhost if env not set
 
 import {
+    ActivateAccountRequest,
+    ActivateAccountResponse,
     LoginRequest,
     LoginResponse,
     RegisterRequest,
     RegisterResponse,
+    ResendActivationRequest,
+    ResendActivationResponse,
 } from "@/modules/auth/types/auth.inteface";
 import http from "@/shared/utils/http";
 
@@ -33,5 +37,18 @@ export const authApi = {
     },
     async Refresh() {
         return await http.post(endpoints.refresh);
+    },
+
+    async Activate(payload: ActivateAccountRequest) {
+        return await http.post<ActivateAccountResponse>(
+            endpoints.activate,
+            payload,
+        );
+    },
+    async ResendActivation(payload: ResendActivationRequest) {
+        return await http.post<ResendActivationResponse>(
+            endpoints.resendEmailActivation,
+            payload,
+        );
     },
 };

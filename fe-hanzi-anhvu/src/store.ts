@@ -1,4 +1,9 @@
-import { ErrorState, LoadingState } from "@/shared/types/store.type";
+import {
+    AuthStatusState,
+    ErrorState,
+    LoadingState,
+    MessageState,
+} from "@/shared/types/store.type";
 import { create } from "zustand";
 
 export const useErrorStore = create<ErrorState>((set) => ({
@@ -10,4 +15,38 @@ export const useErrorStore = create<ErrorState>((set) => ({
 export const useLoadingStore = create<LoadingState>((set) => ({
     loading: false,
     setLoading: (state: boolean) => set({ loading: state }),
+}));
+
+export const useMessageStore = create<MessageState>((set) => ({
+    message: null,
+    setMessage: (state: string | null) => set({ message: state }),
+}));
+
+export const useAuthStatusStore = create<AuthStatusState>((set) => ({
+    status: "idle",
+    message: "",
+    loading: false,
+    setStatus: (status) =>
+        set({
+            status,
+            loading: status === "loading",
+        }),
+    setMessage: (message) => set({ message }),
+    setLoading: (loading) =>
+        set((state) => ({
+            loading,
+            status: loading ? "loading" : state.status,
+        })),
+    setStatusMessage: (status, message) =>
+        set({
+            status,
+            message,
+            loading: status === "loading",
+        }),
+    reset: () =>
+        set({
+            status: "idle",
+            message: "",
+            loading: false,
+        }),
 }));

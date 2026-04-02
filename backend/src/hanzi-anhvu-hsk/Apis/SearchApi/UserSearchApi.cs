@@ -4,7 +4,7 @@ using Search.Contracts.Interfaces;
 namespace HanziAnhVuHsk.Api.Apis.SearchApi;
 public static class UserSearchApi
 {
-    public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, IUserSearchQueries userSearchQueries, CancellationToken ct)
+    public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
     {
         try
         {

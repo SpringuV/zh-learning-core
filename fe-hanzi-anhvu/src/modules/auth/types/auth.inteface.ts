@@ -21,3 +21,20 @@ export interface RegisterRequest {
 export interface RegisterResponse {
     message: string;
 }
+
+export interface ActivateAccountRequest {
+    Email: string;
+    Code: string;
+}
+
+export interface ActivateAccountResponse {
+    message?: string;
+}
+
+export interface ResendActivationRequest {
+    Email: string;
+}
+
+export interface ResendActivationResponse {
+    message?: string;
+}
