@@ -6,18 +6,6 @@
     <Project Path="src/hanzi-anhvu-hsk/HanziAnhVuHsk.Api.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
-  <Folder Name="/src/Modules/Achievement/">
-    <Project Path="src/module/achievement/Achievement.Application/Achievement.Application.csproj" />
-    <Project Path="src/module/achievement/Achievement.Contracts/Achievement.Contracts.csproj" />
-    <Project Path="src/module/achievement/Achievement.Domain/Achievement.Domain.csproj" />
-    <Project Path="src/module/achievement/Achievement.Infrastructure/Achievement.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Modules/Assessment/">
-    <Project Path="src/module/assessment/Assessment.Application/Assessment.Application.csproj" />
-    <Project Path="src/module/assessment/Assessment.Contracts/Assessment.Contracts.csproj" />
-    <Project Path="src/module/assessment/Assessment.Domain/Assessment.Domain.csproj" />
-    <Project Path="src/module/assessment/Assessment.Infrastructure/Assessment.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Modules/Auth/">
     <Project Path="src/module/auth/Auth.Application/Auth.Application.csproj" />
     <Project Path="src/module/auth/Auth.Contracts/Auth.Contracts.csproj" />
@@ -46,30 +34,12 @@
     <Project Path="src/module/payment/Payment.Domain/Payment.Domain.csproj" />
     <Project Path="src/module/payment/Payment.Infrastructure/Payment.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/Progress/">
-    <Project Path="src/module/progress/Progress.Application/Progress.Application.csproj" />
-    <Project Path="src/module/progress/Progress.Contracts/Progress.Contracts.csproj" />
-    <Project Path="src/module/progress/Progress.Domain/Progress.Domain.csproj" />
-    <Project Path="src/module/progress/Progress.Infrastructure/Progress.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Modules/Review/">
-    <Project Path="src/module/review/Review.Application/Review.Application.csproj" />
-    <Project Path="src/module/review/Review.Contracts/Review.Contracts.csproj" />
-    <Project Path="src/module/review/Review.Domain/Review.Domain.csproj" />
-    <Project Path="src/module/review/Review.Infrastructure/Review.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Modules/Search/">
     <File Path="note.md" />
     <Project Path="src/module/search/Search.Application/Search.Application.csproj" />
     <Project Path="src/module/search/Search.Contracts/Search.Contracts.csproj" />
     <Project Path="src/module/search/Search.Domain/Search.Domain.csproj" />
     <Project Path="src/module/search/Search.Infrastructure/Search.Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/src/Modules/Speaking/">
-    <Project Path="src/module/speaking/Speaking.Application/Speaking.Application.csproj" />
-    <Project Path="src/module/speaking/Speaking.Contracts/Speaking.Contracts.csproj" />
-    <Project Path="src/module/speaking/Speaking.Domain/Speaking.Domain.csproj" />
-    <Project Path="src/module/speaking/Speaking.Infrastructure/Speaking.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Users/">
     <Project Path="src/module/users/Users.Application/Users.Application.csproj" />

@@ -1,0 +1,758 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+//
+// ══════════════════════════════════════════════════════
+//  MODULE BOUNDARY — Quy tắc FK:
+//  ✅ FK trong cùng module  → GIỮ constraint
+//  ❌ FK khác module        → BỎ constraint, chỉ lưu ID
+//  Consistency cross-module → Outbox + Domain Event lo
+//
+//  MODULES:
+//  auth | user | lesson | classroom
+//  flashcard | payment | ai
+//  notification | search
+// ══════════════════════════════════════════════════════
+
+// ─── MODULE: Auth ─────────────────────────────────────
+// Xử lý hiện tại: ASP.NET Identity (AuthApplicationUser) + RefreshToken + OutboxMessages
+
+Table users {
+  // NOTE: Hiện tại map vật lý vào bảng AspNetUsers (IdentityUser)
+  // user id là GUID (uuid)
+  id uuid [pk, note: "physical table: AspNetUsers.Id"]
+  username varchar
+  normalized_user_name varchar [null]
+  email varchar [null]
+  normalized_email varchar [null]
+  phone_number varchar [null]
+  email_confirmed boolean [default: false]
+  phone_number_confirmed boolean [default: false]
+  is_active boolean [default: false]
+  activate_code varchar
+  expire_time_activate_code datetime
+  last_login datetime
+  last_time_change_email datetime
+  last_time_change_password datetime [null]
+  created_at datetime
+  updated_at datetime
+}
+
+Table roles {
+  // NOTE: map vật lý vào bảng AspNetRoles
+  id varchar [pk]
+  name varchar [null]
+  normalized_name varchar [null]
+}
+
+Table user_roles {
+  // NOTE: map vật lý vào bảng AspNetUserRoles
+  user_id uuid [not null, note: "same-module ref → users.id"]
+  role_id varchar [not null, note: "same-module ref → roles.id"]
+
+  indexes {
+    (user_id, role_id) [pk]
+    user_id
+    role_id
+  }
+}
+
+Table refresh_tokens {
+  // NOTE: map vật lý vào bảng RefreshTokens
+  id int [pk, increment]
+  user_id uuid [not null, note: "same-module ref → users.id"]
+  token varchar [unique]
+  expires_at datetime
+  is_revoked boolean [default: false]
+  created_at datetime
+
+  indexes {
+    token
+    user_id
+  }
+}
+
+Table outbox_messages {
+  // NOTE: map vật lý vào bảng OutboxMessages (AuthOutboxMessage : OutboxMessageBase)
+  id uuid [pk]
+  type varchar [not null]
+  payload json [not null]
+  occurred_on_utc datetime [not null]
+  processed_on_utc datetime [null]
+  error text [null]
+  retry_count int [default: 0]
+
+  indexes {
+    occurred_on_utc
+    processed_on_utc
+  }
+}
+
+// ─── MODULE: User ─────────────────────────────────────
+// Xử lý: profile mở rộng ngoài Identity (future/optional)
+// NOTE: users (Identity) đang nằm trong MODULE Auth ở trên
+
+Table user_ai_usage {
+  // -- Kiểm tra quota realtime — tần suất đọc rất cao
+  id uuid [pk]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  usage_date date
+  ai_messages_used int [default: 0]
+  reset_at datetime
+
+  indexes {
+    (user_id, usage_date) [unique]
+  }
+}
+
+// ─── MODULE: Lesson ────────────────────────────────────
+// Xử lý: nội dung khóa học (course/lesson/phrase/exercise)
+// Cấu trúc: Course → Topic → Exercise
+// Tất cả lưu trong DB — không dùng static file
+// Không có lý thuyết — học qua bài tập trực tiếp
+// Topic đóng vai trò category/catalog (có thể là chủ đề học hoặc bộ đề thi)
+// Aggregates: Course, Topic, Exercise
+
+Table course {
+  id uuid [pk]
+  created_by uuid [note: "soft ref → users.id (cross-module) — admin hoặc teacher tạo"]
+  title varchar
+  hsk_level int [null, note: "Null nếu không gắn với HSK level cụ thể"]
+  description text [null]
+  thumbnail_url text [null]
+  course_type enum("video","live_practice") [note: "video = self-paced | live_practice = luyện thi trực tiếp"]
+  is_published boolean [default: false]
+  order_index int
+  created_at datetime
+  updated_at datetime
+}
+
+Table topic {
+  id uuid [pk]
+  course_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  title varchar [note: "VD: Gia đình, Công việc, Mua sắm..."]
+  topic_type enum("learning","exam") [default: "learning", note: "learning = topic học | exam = bộ đề thi (VD: HSK1-2020)"]
+  description text [null]
+  estimated_minutes int [null, note: "Ước tính thời gian luyện/ôn tập cho topic"]
+  exam_year int [null, note: "Dùng cho topic_type=exam, ví dụ 2019, 2020"]
+  exam_code varchar [null, note: "Dùng cho topic_type=exam, ví dụ HSK1-2020-01"]
+  order_index int
+  is_published boolean [default: false]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    course_id
+    exam_code
+    (course_id, order_index)
+  }
+}
+
+Table exercise {
+  id uuid [pk]
+  topic_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  created_by uuid [null, note: "soft ref → users.id. Null = system, có giá trị = teacher tạo"]
+  title text
+  type enum(
+    "listen_dialogue_choice",
+    "listen_sentence_judge",
+    "listen_fill_blank",
+    "read_fill_blank",
+    "read_comprehension",
+    "read_sentence_order",
+    "read_match",
+    "write_hanzi",
+    "write_sentence",
+    "write_pinyin"
+  )
+  skill enum("listen","read","write") [note: "Kỹ năng tương ứng"]
+  question text
+  options json [null, note: "Cho dạng choice — [{id, text}]"]
+  audio_url varchar [null, note: "Cho listening exercises"]
+  correct_answer text [null, note: "Null nếu AI chấm (write_sentence)"]
+  explanation text [null]
+  difficulty enum("easy","medium","hard") [default: "medium", note: "Độ khó — dùng để recommend và thống kê"]
+  order_index int
+  is_published boolean [default: false]
+  created_at datetime
+
+  indexes {
+    topic_id
+    (topic_id, order_index)
+  }
+}
+
+Table exercise_attempt {
+  id uuid [pk]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  exercise_id uuid [note: "soft ref → exercise.id (cross-module)"]
+  answer text
+  score float(8,2)
+  ai_feedback text [null, note: "Chỉ cho write_sentence"]
+  is_correct boolean
+  time_spent_seconds int
+  created_at datetime
+
+  indexes {
+    user_id
+    exercise_id
+  }
+}
+
+// ─── MODULE: Classroom ─────────────────────────────────
+// Xử lý: lớp học trực tiếp và không gian làm việc
+// Live Class: Admin/Teacher tạo → student đăng ký → tạo Classroom
+// Classroom: Teacher add student → giao bài tập (assignment)
+// Aggregates: LiveClass, LiveClassEnrollment, Classroom, ClassroomStudent, Assignment, AssignmentSubmission
+
+Table live_class {
+  id uuid [pk]
+  teacher_id uuid [note: "soft ref → users.id (cross-module)"]
+  title varchar [note: "VD: Lớp ôn luyện HSK1 T3-T5 2025"]
+  description text
+  hsk_level int [null]
+  thumbnail_url text
+
+  // -- Cửa sổ đăng ký
+  registration_start datetime [note: "Thời điểm mở đăng ký"]
+  registration_end datetime [note: "Thời điểm đóng đăng ký"]
+  max_students int [null, note: "Null = không giới hạn"]
+
+  // -- Lịch học
+  class_start datetime [note: "Ngày khai giảng"]
+  class_end datetime [note: "Ngày kết thúc"]
+  schedule_description varchar [note: "VD: T3-T5, 19h-21h (8 tuần)"]
+
+  price decimal(8,2)
+  currency enum("VND","USD") [default: "VND"]
+  status enum("upcoming","registration_open","registration_closed","ongoing","completed","cancelled")
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    teacher_id
+    status
+  }
+}
+
+Table live_class_enrollment {
+  // -- ✅ live_class_id cùng module → GIỮ FK
+  // -- ❌ student_id, payment_id cross-module → soft ref
+  id uuid [pk]
+  live_class_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  status enum("pending","confirmed","cancelled")
+  enrolled_at datetime
+  confirmed_at datetime [null]
+  payment_id uuid [null, note: "soft ref → payment.id (cross-module)"]
+
+  indexes {
+    (live_class_id, student_id) [unique]
+    live_class_id
+    student_id
+  }
+}
+
+Table classroom {
+  // -- Tạo tương ứng với live_class sau khi enrollment confirmed
+  // -- Hoặc teacher tạo độc lập không gắn live_class
+  id uuid [pk]
+  teacher_id uuid [note: "soft ref → users.id (cross-module)"]
+  live_class_id uuid [null, note: "soft ref → live_class.id (cross-module). Null nếu tạo độc lập"]
+  name varchar
+  description text
+  is_active boolean [default: true]
+  created_at datetime
+
+  indexes {
+    teacher_id
+  }
+}
+
+Table classroom_student {
+  // -- Teacher add student thẳng, không cần invite code
+  // -- ✅ classroom_id cùng module → GIỮ FK
+  // -- ❌ student_id cross-module → soft ref
+  id uuid [pk]
+  classroom_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  added_by uuid [note: "soft ref → users.id — teacher nào add"]
+  status enum("active","removed")
+  added_at datetime
+
+  indexes {
+    (classroom_id, student_id) [unique]
+    classroom_id
+    student_id
+  }
+}
+
+Table assignment {
+  // -- Bài tập giảng viên giao, tái dùng exercise questions
+  // -- assignment_type: class = cả lớp, individual = chỉ định đích danh
+  id uuid [pk]
+  classroom_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  teacher_id uuid [note: "soft ref → users.id (cross-module)"]
+  title varchar
+  description text
+  skill_focus enum("listen","read","write","mixed") [note: "Kỹ năng trọng tâm"]
+  assignment_type enum("class","individual") [default: "class", note: "class = cả lớp | individual = chỉ định đích danh. Cả 2 nộp riêng từng người"]
+  due_date datetime [null]
+  is_published boolean [default: false]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    classroom_id
+    teacher_id
+  }
+}
+
+Table assignment_exercise {
+  // -- ✅ assignment_id cùng module → GIỮ FK
+  // -- ❌ exercise_id cross-module → soft ref
+  assignment_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  exercise_id uuid [not null, note: "soft ref → exercise.id (cross-module)"]
+  order_index int [not null]
+
+  indexes {
+    (assignment_id, exercise_id) [pk]
+    assignment_id
+  }
+}
+
+Table assignment_recipient {
+  // -- Chỉ dùng khi assignment_type = "individual"
+  // -- ✅ assignment_id cùng module → GIỮ FK
+  assignment_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+
+  indexes {
+    (assignment_id, student_id) [pk]
+    assignment_id
+  }
+}
+
+Table assignment_submission {
+  // -- Luôn nộp riêng từng người
+  // -- assignment_id là soft ref dù cùng module
+  //    vì AssignmentSubmission là Aggregate Root riêng
+  //    Assignment xóa → submission vẫn giữ (lịch sử chấm điểm)
+  id uuid [pk]
+  assignment_id uuid [not null, note: "❌ soft ref — khác Aggregate Root, không GIỮ FK dù cùng module"]
+  student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  status enum("not_started","in_progress","submitted","graded")
+  submitted_at datetime [null]
+  total_score float [null]
+  teacher_feedback text [null]
+  graded_at datetime [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (assignment_id, student_id) [unique]
+    assignment_id
+    student_id
+  }
+}
+
+Table submission_answer {
+  // -- ✅ submission_id cùng module → GIỮ FK
+  // -- ❌ exercise_id cross-module → soft ref
+  id uuid [pk]
+  submission_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  exercise_id uuid [not null, note: "soft ref → exercise.id (cross-module)"]
+  answer text
+  is_correct boolean [null]
+  score float [null]
+  ai_feedback text [null, note: "Chỉ dùng cho writing"]
+  created_at datetime
+
+  indexes {
+    submission_id
+    (submission_id, exercise_id)
+  }
+}
+
+
+// ─── MODULE: Flashcard ─────────────────────────────────
+// Xử lý: SRS, lịch ôn tập từ vựng
+// Tự động tạo khi: học xong lesson, hoặc user chọn ôn tập (cần subscription)
+// Aggregates: FlashcardSchedule
+
+Table flashcard {
+  id uuid [pk]
+  text_cn text [note: "Nội dung tiếng Trung — 你好 hoặc 你好，我叫小明"]
+  pinyin text [note: "nǐ hǎo hoặc nǐ hǎo, wǒ jiào..."]
+  meaning_vi text
+  meaning_en text [null]
+  audio_url varchar [null]
+  hsk_level int [null, note: "1-6 theo chuẩn HSK. Null nếu không thuộc HSK"]
+  is_hsk_core boolean [default: false, note: "true = nằm trong danh sách HSK chuẩn"]
+  phrase_type enum("word","phrase","sentence") [note: "word = từ đơn | phrase = cụm từ | sentence = câu hoàn chỉnh"]
+  // -- Fields chỉ dùng cho word (phrase_type = word)
+  stroke_order_json json [null, note: "SVG path data cho Hanzi Writer — chỉ dùng cho word"]
+  radical varchar [null, note: "Bộ thủ — chỉ dùng cho word"]
+  stroke_count int [null, note: "Số nét — chỉ dùng cho word"]
+  is_traditional boolean [default: false]
+  course_id uuid [null, note: "soft ref → course.id (cross-module). Gắn flashcard vào khóa học"]
+  topic_id uuid [null, note: "soft ref → topic.id (cross-module). Gắn flashcard vào topic cụ thể (optional)"]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (course_id, topic_id)
+  }
+}
+
+// ─── MODULE: Payment ───────────────────────────────────
+// Xử lý: thanh toán, subscription, course access
+// 2 chính sách: mua course 1 lần (1 năm), subscription theo tháng
+// Aggregates: Payment, UserSubscription, CourseAccess
+
+Table subscription_plan {
+  id uuid [pk]
+  currency enum("VND","USD")
+  name text [note: "VD: Gói tháng cơ bản, Gói tháng premium"]
+  price decimal
+  duration_days int [note: "30 = 1 tháng"]
+  ai_messages_per_day int
+  max_hsk_level_access int
+  is_active boolean [default: true]
+  created_at datetime
+}
+
+Table user_subscription {
+  id uuid [pk]
+  plan_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  status enum("active","expired","cancelled","pending")
+  started_at datetime
+  expires_at datetime
+  cancelled_at datetime [null]
+  auto_renew boolean [default: false]
+  created_at datetime
+  updated_at datetime
+}
+
+Table payment {
+  id uuid [pk]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  amount decimal(8,2)
+  currency enum("VND","USD")
+  status enum("pending","success","failed")
+  payment_method enum("momo","vnpay","stripe","bank_transfer")
+  transaction_id varchar [unique]
+  gateway_response_json json [null]
+  paid_at datetime [null]
+  created_at datetime
+
+  indexes {
+    user_id
+    transaction_id
+  }
+}
+
+Table payment_item {
+  id uuid [pk]
+  payment_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  item_type enum("course","subscription","live_class") [note: "Polymorphic"]
+  item_id uuid [not null, note: "soft ref polymorphic (cross-module)"]
+  amount decimal(8,2)
+  created_at datetime
+
+  indexes {
+    payment_id
+    (item_type, item_id)
+  }
+}
+
+Table course_access {
+  // -- Thay lesson_access — kiểm soát quyền truy cập khóa học
+  // -- Mua course: expires_at = purchased_at + 1 năm
+  // -- Subscription: expires_at = subscription.expires_at
+  // -- Hết hạn → is_expired = true → reset progress (qua Outbox)
+  id uuid [pk]
+  user_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  course_id uuid [not null, note: "soft ref → course.id (cross-module)"]
+  access_type enum("purchased","subscription") [note: "purchased = mua 1 lần 1 năm | subscription = theo tháng"]
+  payment_id uuid [null, note: "✅ cùng module → GIỮ FK"]
+  subscription_id uuid [null, note: "✅ cùng module → GIỮ FK"]
+  expires_at datetime [note: "purchased: +1 năm | subscription: subscription.expires_at"]
+  is_expired boolean [default: false, note: "true khi hết hạn — trigger reset progress qua Outbox"]
+  granted_at datetime
+
+  indexes {
+    (user_id, course_id) [unique]
+    user_id
+    expires_at
+  }
+}
+
+Table payment_webhook_log {
+  id uuid [pk]
+  provider enum("momo","vnpay","stripe")
+  event_type varchar
+  payload_json json
+  is_processed boolean [default: false]
+  is_duplicate boolean [default: false]
+  payment_id uuid [null, note: "✅ cùng module → GIỮ FK"]
+  error_message text [null]
+  received_at datetime
+  processed_at datetime [null]
+}
+
+// ─── MODULE: AI ────────────────────────────────────────
+// Xử lý: async AI job, usage tracking
+// Job types: ASR (speech-to-text), TTS (text-to-speech), PRONUNCIATION (phát âm feedback),
+// WRITING_FEEDBACK (viết bài feedback), CONTENT_GENERATION (tạo nội dung tự động)
+// Aggregates: AiJob
+
+Table ai_job {
+  id uuid [pk]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  job_type enum("ASR","TTS","PRONUNCIATION","WRITING_FEEDBACK","CONTENT_GENERATION")
+  model_provider varchar
+  model_version varchar
+  idempotency_key varchar [unique]
+  input_payload json
+  status enum("pending","processing","done","failed")
+  finished_at datetime [null]
+  result_payload json [null]
+  error_message text [null]
+  retry_count int [default: 0]
+  max_retries int [default: 3]
+  priority int [default: 0]
+  created_at datetime
+  updated_at datetime
+}
+
+Table ai_usage_log {
+  id uuid [pk]
+  user_id uuid [note: "soft ref → users.id (cross-module)"]
+  job_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  model_name varchar
+  usage_type enum("tts","pronunciation","asr","writing_feedback","content_generation")
+  related_entity_type varchar [null]
+  related_entity_id uuid [null]
+  tokens_used int
+  cost_usd decimal(10,6)
+  created_at datetime
+}
+
+// ─── MODULE: Search ───────────────────────────────────
+// Xử lý: full-text search qua Elasticsearch
+// NOTE: Không dùng bảng quan hệ trong DBML này; dữ liệu search nằm trong Elasticsearch index.
+
+// ─── MODULE: Notification ──────────────────────────────
+// Xử lý: thông báo cho user về các sự kiện quan trọng
+// Trigger qua Outbox từ các module khác
+// Aggregates: Notification (inbox) + Announcement (broadcast)
+
+Table announcement {
+  id uuid [pk]
+  created_by uuid [not null, note: "soft ref → users.id (cross-module)"]
+  title varchar
+  body text
+  type enum(
+    "assignment_due",
+    "assignment_graded",
+    "live_class_reminder",
+    "live_class_start",
+    "course_expiring",
+    "flashcard_due",
+    "enrollment_confirmed",
+    "system"
+  ) [note: "Loại thông báo hiển thị"]
+  target_type enum("all_users","role","manual") [default: "all_users"]
+  target_roles json [null, note: "Dùng khi target_type=role, ví dụ [student,teacher]"]
+  status enum("draft","scheduled","published","cancelled") [default: "draft"]
+  scheduled_at datetime [null]
+  published_at datetime [null]
+  expires_at datetime [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    status
+    created_by
+    (status, scheduled_at)
+  }
+}
+
+Table announcement_recipient {
+  id uuid [pk]
+  announcement_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  user_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  status enum("pending","delivered","read","failed") [default: "pending"]
+  delivered_at datetime [null]
+  read_at datetime [null]
+  error_message text [null]
+  created_at datetime
+
+  indexes {
+    (announcement_id, user_id) [unique]
+    user_id
+    (user_id, status)
+  }
+}
+
+Table notification {
+  id uuid [pk]
+  user_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  announcement_id uuid [null, note: "✅ cùng module (notification) → GIỮ FK khi là thông báo broadcast"]
+  type enum(
+    "assignment_due",
+    "assignment_graded",
+    "live_class_reminder",
+    "live_class_start",
+    "course_expiring",
+    "flashcard_due",
+    "enrollment_confirmed",
+    "system"
+  ) [note: "Loại thông báo — dùng để hiển thị icon và màu sắc phù hợp"]
+  title varchar
+  body text
+  is_read boolean [default: false]
+  read_at datetime [null]
+  expires_at datetime [null]
+  dedupe_key varchar [null, note: "Idempotency key (ví dụ outbox event id) để chống duplicate"]
+  payload_json json [null, note: "Dữ liệu bổ sung để render deep-link/UI"]
+  ref_type varchar [null, note: "Entity liên quan — assignment | live_class | course..."]
+  ref_id uuid [null, note: "ID của entity liên quan"]
+  created_at datetime
+
+  indexes {
+    dedupe_key [unique]
+    announcement_id
+    user_id
+    (user_id, is_read)
+    (user_id, created_at)
+  }
+}
+
+// ─── MODULE: Outbox (shared infrastructure) ────────────
+// NOTE: Mỗi module có thể có outbox riêng.
+// Khuyến nghị thống nhất shape bảng outbox: (id,type,payload,occurred_on_utc,processed_on_utc,error,retry_count)
+
+// ============ REFS ============
+
+// ── Auth module (internal FKs) ──
+Ref: user_roles.user_id      > users.id
+Ref: user_roles.role_id      > roles.id
+Ref: refresh_tokens.user_id  > users.id
+
+// ── Lesson module (internal FKs) ──
+Ref: topic.course_id        > course.id
+Ref: exercise.topic_id      > topic.id
+
+// ── Classroom module (internal FKs) ──
+Ref: live_class_enrollment.live_class_id > live_class.id
+
+// ── Classroom Aggregate (internal FKs) ──
+Ref: classroom_student.classroom_id          > classroom.id
+
+// ── Assignment Aggregate (internal FKs) ──
+Ref: assignment.classroom_id                 > classroom.id
+Ref: assignment_exercise.assignment_id       > assignment.id
+Ref: assignment_recipient.assignment_id      > assignment.id
+
+// ── AssignmentSubmission Aggregate (internal FKs) ──
+// Note: assignment_submission.assignment_id → NO FK (different Aggregate Root)
+Ref: submission_answer.submission_id         > assignment_submission.id
+
+// ── Payment module (internal FKs) ──
+Ref: user_subscription.plan_id      > subscription_plan.id
+Ref: payment_item.payment_id        > payment.id
+Ref: course_access.payment_id       > payment.id
+Ref: course_access.subscription_id  > user_subscription.id
+Ref: payment_webhook_log.payment_id > payment.id
+
+// ── AI module (internal FKs) ──
+Ref: ai_usage_log.job_id > ai_job.id
+
+// ── Search module ──
+// Search dùng Elasticsearch index, không có FK trong relational DB.
+
+// ── Notification module (internal FKs) ──
+Ref: announcement_recipient.announcement_id > announcement.id
+Ref: notification.announcement_id > announcement.id
+
+// ── Cross-module soft references (no FK constraint) ──
+// Auth:       refresh_tokens.user_id                → users.id (Identity uuid)
+// User:       user_ai_usage.user_id                 → users.id
+// Live Class: live_class.teacher_id                 → users.id
+//             live_class_enrollment.student_id      → users.id
+//             live_class_enrollment.payment_id      → payment.id
+// Classroom:  classroom.teacher_id                  → users.id
+//             classroom.live_class_id               → live_class.id
+//             classroom_student.student_id          → users.id
+//             classroom_student.added_by            → users.id
+//             assignment.teacher_id                 → users.id
+//             assignment_exercise.exercise_id       → exercise.id
+//             assignment_recipient.student_id       → users.id
+//             assignment_submission.student_id      → users.id
+//             submission_answer.exercise_id         → exercise.id
+// Lesson:     course.created_by                     → users.id
+//             topic.course_id                       → course.id
+// Exercise:   exercise.topic_id                     → topic.id
+//             exercise.created_by                   → users.id
+//             exercise_attempt.user_id              → users.id
+//             exercise_attempt.exercise_id          → exercise.id
+// Flashcard:  flashcard.course_id          → course.id
+//             flashcard.topic_id           → topic.id
+// Payment:    payment.user_id                       → users.id
+//             user_subscription.user_id             → users.id
+//             course_access.user_id                 → users.id
+//             course_access.course_id               → course.id
+// AI:         ai_job.user_id                        → users.id
+//             ai_usage_log.user_id                  → users.id
+// Notification: announcement.created_by            → users.id
+//               announcement_recipient.user_id     → users.id
+//               notification.user_id               → users.id
+
+/*
+─── Ghi chú quan trọng ──────────────────────────────────
+
+Content Strategy:
+  Tất cả lưu trong DB — không dùng static file
+  Không có lý thuyết — học qua bài tập trực tiếp
+  Không có XP/score system
+  Cấu trúc nội dung: Course -> Topic -> Exercise
+  Topic đóng vai trò category/catalog tổng quát:
+    - learning topic: giao tiếp công sở, làm việc, du lịch...
+    - exam topic: HSK1-2019, HSK1-2020...
+
+  Topic flow:
+    1. Hiện flashcard list (qua flashcard.topic_id) → user xem qua từ vựng ~30s
+    2. Làm exercise liên tiếp → main activity
+    3. Sai → hiện exercise.explanation ngắn
+    4. Xong → tạo flashcard tự động
+
+  Flashcard:
+    1 flashcard thuộc 1 topic cụ thể (optional)
+    flashcard không bị duplicate
+
+  Score policy:
+    exercise_attempt.score → feedback ngay khi làm bài
+
+Kỹ năng:
+  Nghe (Listen): listen_dialogue_choice, listen_sentence_judge, listen_fill_blank
+  Đọc (Read):    read_fill_blank, read_comprehension, read_sentence_order, read_match
+  Viết (Write):  write_hanzi, write_sentence, write_pinyin
+
+Classroom flow:
+  Live Class: Admin/Teacher tạo live_class → status: upcoming
+  → registration_open → student đăng ký + thanh toán
+  → registration_closed → teacher xác nhận danh sách
+  → Teacher tạo classroom, add confirmed students
+  → ongoing: giao bài tập trong classroom
+  → completed
+
+  Standalone Classroom: Teacher tạo classroom độc lập → add students → giao bài
+
+Assignment giao bài:
+  class:      giao cả lớp → check quyền qua classroom_student
+  individual: chỉ định đích danh → check qua assignment_recipient
+  Cả 2 đều nộp riêng từng người
+  Tự chấm điểm trừ write_sentence (AI feedback)
+*/
