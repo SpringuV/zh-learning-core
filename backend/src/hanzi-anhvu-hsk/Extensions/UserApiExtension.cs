@@ -15,7 +15,7 @@ public static class UserApiExtension
     }
     public static RouteGroupBuilder MapUserApi(this RouteGroupBuilder group)
     {
-        group.MapGet("/users", UserSearchApi.SearchUsers);
+        group.MapGet("/", UserSearchApi.SearchUsers);
 
         return group;
     }

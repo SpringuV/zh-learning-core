@@ -45,8 +45,8 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, G
             var activationBaseUrl = _configuration["AppSettings:ActivationBaseUrl"];
             // đường link này sẽ có mã active và email của người dùng luôn
             // escape data string sẽ làm rối
-            var activationLink = $"{activationBaseUrl}?email={Uri.EscapeDataString(request.Email)}&code={registerResponse.ActivateCode}";
-            var resendLink = $"{activationBaseUrl}/resend?email={Uri.EscapeDataString(request.Email)}";
+            var activationLink = $"{activationBaseUrl}?account={Uri.EscapeDataString(request.Email)}&code={registerResponse.ActivateCode}";
+            var resendLink = $"{activationBaseUrl}/resend?account={Uri.EscapeDataString(request.Email)}";
             // publish domain event để các service khác có thể subscribe
             // và thực hiện các logic liên quan đến user mới được tạo,
             // ví dụ như gửi email chào mừng, tạo profile mặc định, v.v.

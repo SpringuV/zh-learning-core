@@ -1,6 +1,6 @@
 "use client";
 
-import LogoutComponent from "@/shared/components/logout";
+import LogoutComponent from "@/modules/auth/components/logout";
 import {
     Avatar,
     AvatarFallback,

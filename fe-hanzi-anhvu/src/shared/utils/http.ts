@@ -1,5 +1,6 @@
 // Client-side HTTP utility class for API calls with automatic token refresh
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
+import { sendAuthSessionEvent } from "@/modules/auth/machines/auth-session/auth.session.runtime";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -97,6 +98,7 @@ class Http {
                     originalRequest._retry = true;
                     // Set refreshing flag
                     this.isRefreshing = true;
+                    sendAuthSessionEvent({ type: "TOKEN_REFRESH_STARTED" });
 
                     try {
                         // Call backend refresh endpoint
@@ -118,6 +120,9 @@ class Http {
                         });
                         // Clear queue
                         this.failedQueue = [];
+                        sendAuthSessionEvent({
+                            type: "TOKEN_REFRESH_SUCCEEDED",
+                        });
 
                         // Retry the original failed request
                         return this.instance(originalRequest);
@@ -128,10 +133,13 @@ class Http {
                         });
                         // Clear queue
                         this.failedQueue = [];
-                        // Redirect to login page
-                        if (typeof window !== "undefined") {
-                            window.location.href = "/auth/login";
-                        }
+                        sendAuthSessionEvent({
+                            type: "TOKEN_REFRESH_FAILED",
+                            reason:
+                                refreshError instanceof Error
+                                    ? refreshError.message
+                                    : "Refresh token failed",
+                        });
                         // Reject the error
                         return Promise.reject(refreshError);
                     } finally {

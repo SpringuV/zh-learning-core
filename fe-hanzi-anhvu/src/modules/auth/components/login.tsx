@@ -2,14 +2,16 @@
 import { AlertCircle, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Button } from "@/shared/components/ui/button";
-import React, { ChangeEvent } from "react";
+import React, { ChangeEvent, useEffect } from "react";
 import { Input } from "@/shared/components/ui/input";
 import zod, * as z from "zod";
 import { useRouter } from "next/navigation";
-import { useErrorStore } from "@/store";
 import { toast } from "sonner";
 import { LoginRequest } from "@/modules/auth/types/auth.inteface";
-import { signIn } from "next-auth/react";
+import { useMachine } from "@xstate/react";
+import { authLoginMachine } from "@/modules/auth/machines/login.machine";
+import { useAuthCredentialSignIn } from "@/modules/auth/hooks/use-auth-query";
+import { fromPromise } from "xstate";
 
 // Determine login type based on input
 
@@ -43,6 +45,23 @@ export const LoginComponent = () => {
     const redirectUrl = "/"; // URL to redirect after successful login
     const urlRegister = "/auth/register";
     const router = useRouter();
+    const loginMutation = useAuthCredentialSignIn();
+    const machine = React.useMemo(
+        () =>
+            authLoginMachine.provide({
+                actors: {
+                    loginWithCredentials: fromPromise(
+                        async ({ input }: { input: LoginRequest }) =>
+                            await loginMutation.mutateAsync(input),
+                    ),
+                },
+            }),
+        [loginMutation],
+    );
+    const [state, send] = useMachine(machine);
+    // useEffect(() => {
+    //     console.log("Login machine state:", state.value, state.context);
+    // }, [state]);
     const [loginRequest, setLoginRequest] = React.useState<LoginRequest>({
         Username: "",
         Password: "",
@@ -50,14 +69,43 @@ export const LoginComponent = () => {
     });
     const [showPwd, setShowPwd] = React.useState(false);
 
-    // zustand store for error handling
-    const error = useErrorStore((state) => state.error);
-    const setError = useErrorStore((state) => state.setError);
+    const [error, setErrorMessage] = React.useState<string | null>(null);
+    const setError = (value: string | null) => {
+        if (!value) {
+            setErrorMessage(null);
+            return;
+        }
 
-    const onNavigate = (path: string) => {
-        window.dispatchEvent(new CustomEvent("navigate", { detail: path }));
+        setErrorMessage(value);
     };
     const onAuth = () => {};
+
+    // dùng useEffect để lắng nghe thay đổi trạng thái của machine và
+    // cập nhật lỗi hoặc chuyển hướng khi cần thiết
+    React.useEffect(() => {
+        if (
+            (state.matches("failure") || state.matches("unactive")) &&
+            state.context.errorMessage
+        ) {
+            setError(state.context.errorMessage);
+            toast.error(state.context.errorMessage);
+            if (state.matches("unactive")) {
+                router.push(
+                    "/auth/resend?account=" +
+                        encodeURIComponent(loginRequest.Username),
+                );
+            }
+        }
+    }, [state, state.context.errorMessage]);
+
+    React.useEffect(() => {
+        if (state.matches("success")) {
+            router.replace(redirectUrl);
+            router.refresh();
+            send({ type: "RESET" });
+        }
+    }, [state, router, redirectUrl, send]);
+
     const handleSubmit = async (e: ChangeEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
@@ -74,36 +122,19 @@ export const LoginComponent = () => {
             setError(fieldErrors?.[0] || "Vui lòng kiểm tra lại thông tin");
             return;
         }
-        if (loginRequest.Username.includes("@gmail.com")) {
-            loginRequest.TypeLogin = "Email";
-        } else if (/^\d+$/.test(loginRequest.Username)) {
-            loginRequest.TypeLogin = "Phone";
-        } else {
-            loginRequest.TypeLogin = "Username";
-        }
+        const typeLogin = loginRequest.Username.includes("@gmail.com")
+            ? "Email"
+            : /^\d+$/.test(loginRequest.Username)
+              ? "Phone"
+              : "Username";
 
         const value: LoginRequest = {
             Username: validated.data.Username,
             Password: validated.data.Password,
-            TypeLogin: loginRequest.TypeLogin,
+            TypeLogin: typeLogin,
         };
 
-        const result = await signIn("credentials", {
-            nameAccount: value.Username,
-            password: value.Password,
-            typeLogin: value.TypeLogin,
-            redirect: false,
-        });
-
-        if (!result?.error) {
-            toast.success("Đăng nhập thành công! Đang chuyển hướng...");
-            router.replace(redirectUrl);
-            router.refresh();
-        } else {
-            const errorMessage = result.error || "Đăng nhập thất bại";
-            console.error("Login failed:", errorMessage);
-            toast.error(errorMessage);
-        }
+        send({ type: "SUBMIT", input: value });
     };
 
     return (
@@ -123,14 +154,12 @@ export const LoginComponent = () => {
                             </p>
                         </div>
                     </div>
-
                     {error && (
-                        <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary rounded-lg p-3 mb-4 text-sm">
-                            <AlertCircle className="size-4 shrink-0" />
+                        <div className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
+                            <AlertCircle className="size-4" />
                             {error}
                         </div>
                     )}
-
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">
@@ -161,7 +190,7 @@ export const LoginComponent = () => {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        onNavigate("forgot-password")
+                                        router.push("/auth/forgot-password")
                                     }
                                     tabIndex={-1} // Prevent focus on this button
                                     className="text-xs text-primary hover:underline"
@@ -197,8 +226,19 @@ export const LoginComponent = () => {
                                 </button>
                             </div>
                         </div>
-                        <Button type="submit" className="w-full" size="lg">
-                            Đăng nhập
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            size="lg"
+                            disabled={
+                                state.matches("submitting") ||
+                                loginMutation.isPending
+                            }
+                        >
+                            {state.matches("submitting") ||
+                            loginMutation.isPending
+                                ? "Đang đăng nhập..."
+                                : "Đăng nhập"}
                         </Button>
                     </form>
 

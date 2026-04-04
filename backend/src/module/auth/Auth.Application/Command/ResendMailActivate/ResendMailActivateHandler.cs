@@ -21,19 +21,42 @@ public class ResendMailActivateHandler : IRequestHandler<ResendMailActivateComma
     {
         return await _unitOfWork.SaveChangeAsync(async ()=>
         {
-            var result = await _identityService.ResendMailActivateAsync(request.Email, cancellationToken);
-
-            if (result is null)
+            ResendMailActivationResponse result;
+            switch (request.TypeUsername)
             {
-                // có thể log lại thông tin này để theo dõi
-                return false; // hoặc throw new NotFoundException("User not found") nếu muốn rõ ràng hơn
+                case "Email":
+                    // có thể validate email ở đây nếu muốn
+                    result = await _identityService.ResendMailActivateAsync(request.Account, cancellationToken);
+                    break;
+                case "Phone":
+                    // có thể validate phone ở đây nếu muốn
+                    var response = await _identityService.GetEmailUserByPhoneAsync(request.Account, cancellationToken);
+                    if (response is null || string.IsNullOrEmpty(response.Email))
+                    {
+                        return false;
+                    }
+                    result = await _identityService.ResendMailActivateAsync(response.Email, cancellationToken);
+                    break;
+                case "Username":
+                    // có thể validate username ở đây nếu muốn
+                    var emailResponse = await _identityService.GetEmailUserByUsernameAsync(request.Account, cancellationToken);
+                    if (emailResponse is null || string.IsNullOrEmpty(emailResponse.Email))
+                    {
+                        return false;
+                    }
+                    result = await _identityService.ResendMailActivateAsync(emailResponse.Email, cancellationToken);
+                    break;
+                default:
+                    throw new ArgumentException("Invalid type username");
             }
+        
+            if (result is null) return false;
 
             var activationBaseUrl = _configuration["AppSettings:ActivationBaseUrl"];
             // đường link này sẽ có mã active và email của người dùng luôn
             // escape data string sẽ làm rối
-            var activationLink = $"{activationBaseUrl}?email={Uri.EscapeDataString(request.Email)}&code={result.ActivationCode}";
-            var resendLink = $"{activationBaseUrl}/resend?email={Uri.EscapeDataString(request.Email)}";
+            var activationLink = $"{activationBaseUrl}?account={Uri.EscapeDataString(result.Email)}&code={result.ActivationCode}";
+            var resendLink = $"{activationBaseUrl}/resend?account={Uri.EscapeDataString(result.Email)}";
             // publish domain event để các service khác có thể subscribe
             // và thực hiện các logic liên quan đến user mới được tạo,
             // ví dụ như gửi email chào mừng, tạo profile mặc định, v.v.

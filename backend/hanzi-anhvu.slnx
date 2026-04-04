@@ -6,6 +6,12 @@
     <Project Path="src/hanzi-anhvu-hsk/HanziAnhVuHsk.Api.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/AI/">
+    <Project Path="src/module/ai/Ai.Application/Ai.Application.csproj" />
+    <Project Path="src/module/ai/Ai.Contracts/Ai.Contracts.csproj" />
+    <Project Path="src/module/ai/Ai.Domain/Ai.Domain.csproj" />
+    <Project Path="src/module/ai/Ai.Infrastructure/Ai.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Auth/">
     <Project Path="src/module/auth/Auth.Application/Auth.Application.csproj" />
     <Project Path="src/module/auth/Auth.Contracts/Auth.Contracts.csproj" />
@@ -16,6 +22,12 @@
     <Project Path="src/module/classroom/Classroom.Contracts/Classroom.Contracts.csproj" />
     <Project Path="src/module/classroom/Classroom.Domain/Classroom.Domain.csproj" />
     <Project Path="src/module/classroom/Classroom.Infrastructure/Classroom.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/FlashCard/">
+    <Project Path="src/module/flashcard/Flashcard.Application/Flashcard.Application.csproj" />
+    <Project Path="src/module/flashcard/Flashcard.Contracts/Flashcard.Contracts.csproj" />
+    <Project Path="src/module/flashcard/Flashcard.Domain/Flashcard.Domain.csproj" />
+    <Project Path="src/module/flashcard/Flashcard.Infrastructure/Flashcard.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Lesson/">
     <Project Path="src/module/lesson/Lesson.Application/Lesson.Application.csproj" />

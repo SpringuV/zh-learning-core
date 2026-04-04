@@ -1,91 +1,26 @@
-"use client";
+import { ResendClient } from "@/app/(client)/auth/resend/resend-client";
+import { Metadata } from "next";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Loader2, Mail, RefreshCcw } from "lucide-react";
-import { AuthStatusPanel } from "@/modules/auth/components/auth-status-panel";
-import { Button } from "@/shared/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/shared/components/ui/card";
-import { Input } from "@/shared/components/ui/input";
-import { useAuthActivationOrchestrator } from "@/modules/auth/hooks/use-auth-activation-orchestrator";
+type ResendActivationPageProps = {
+    searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-export default function ResendActivationPage() {
-    const searchParams = useSearchParams();
-    const queryEmail = (searchParams.get("email") || "").trim();
-    const [email, setEmail] = useState(queryEmail);
-    const { status, message, isLoading, resend, resetToIdle } =
-        useAuthActivationOrchestrator({
-            mode: "resend",
-            email: queryEmail,
-        });
+export const metadata: Metadata = {
+    title: "Gửi lại email kích hoạt",
+    description: "Gửi lại email kích hoạt tài khoản",
+};
 
-    return (
-        <div className="mx-auto flex h-full w-full max-w-md items-center justify-center">
-            <Card className="w-full border-border bg-card">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-center text-2xl">
-                        Gửi lại email kích hoạt
-                    </CardTitle>
-                </CardHeader>
+export default async function ResendActivationPage({
+    searchParams,
+}: ResendActivationPageProps) {
+    const params = (await searchParams) ?? {};
+    const accountParam = params.account;
+    const initialAccount =
+        typeof accountParam === "string"
+            ? accountParam.trim()
+            : Array.isArray(accountParam)
+              ? (accountParam[0] ?? "").trim()
+              : "";
 
-                <CardContent className="space-y-5 px-6 pb-8 pt-2 lg:px-8">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                type="email"
-                                placeholder="ban@vidu.com"
-                                className="pl-10"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <AuthStatusPanel status={status} message={message} />
-
-                    <div className="grid grid-cols-1 gap-3">
-                        <Button
-                            onClick={() => resend(email)}
-                            disabled={isLoading}
-                            className="w-full"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 size-4 animate-spin" />
-                                    Đang gửi...
-                                </>
-                            ) : (
-                                <>
-                                    <RefreshCcw className="mr-2 size-4" />
-                                    Gửi lại email kích hoạt
-                                </>
-                            )}
-                        </Button>
-
-                        {status === "success" && (
-                            <Button
-                                variant="secondary"
-                                className="w-full"
-                                onClick={resetToIdle}
-                            >
-                                Gửi email khác
-                            </Button>
-                        )}
-
-                        <Button asChild variant="outline" className="w-full">
-                            <Link href="/auth/login">Quay về đăng nhập</Link>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
+    return <ResendClient initialAccount={initialAccount} />;
 }

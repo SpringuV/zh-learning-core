@@ -13,9 +13,7 @@ public sealed record UserSearchPatchDocument(
     string? PhoneNumber = null,
     bool? IsActive = null,
     DateTime? LastLogin = null,
-    int? StreakCount = null,
     int? CurrentLevel = null,
-    int? TotalExperience = null,
     DateTime? LastActivityAt = null,
     string? AvatarUrl = null,
     DateTime? UpdatedAt = null);

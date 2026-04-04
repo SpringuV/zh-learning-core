@@ -198,6 +198,28 @@ Table exercise_attempt {
   }
 }
 
+Table user_topic_progress {
+  // -- Bảng tổng hợp tiến độ luyện tập theo topic cho từng user
+  id uuid [pk]
+  user_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  topic_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  total_attempts int [default: 0, note: "Tổng số lần làm/luyện"]
+  total_answered int [default: 0, note: "Tổng số câu đã trả lời"]
+  total_correct int [default: 0, note: "Tổng số câu trả lời đúng"]
+  total_wrong int [default: 0, note: "Tổng số câu trả lời sai"]
+  total_score float [default: 0, note: "Điểm tích lũy từ các lần luyện"]
+  accuracy_rate float(5,2) [null, note: "Tỉ lệ đúng (%), có thể tính từ total_correct/total_answered"]
+  last_practiced_at datetime [null]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (user_id, topic_id) [unique]
+    user_id
+    topic_id
+  }
+}
+
 // ─── MODULE: Classroom ─────────────────────────────────
 // Xử lý: lớp học trực tiếp và không gian làm việc
 // Live Class: Admin/Teacher tạo → student đăng ký → tạo Classroom
@@ -644,6 +666,7 @@ Ref: refresh_tokens.user_id  > users.id
 // ── Lesson module (internal FKs) ──
 Ref: topic.course_id        > course.id
 Ref: exercise.topic_id      > topic.id
+Ref: user_topic_progress.topic_id > topic.id
 
 // ── Classroom module (internal FKs) ──
 Ref: live_class_enrollment.live_class_id > live_class.id
@@ -698,6 +721,8 @@ Ref: notification.announcement_id > announcement.id
 //             exercise.created_by                   → users.id
 //             exercise_attempt.user_id              → users.id
 //             exercise_attempt.exercise_id          → exercise.id
+//             user_topic_progress.user_id           → users.id
+//             user_topic_progress.topic_id          → topic.id
 // Flashcard:  flashcard.course_id          → course.id
 //             flashcard.topic_id           → topic.id
 // Payment:    payment.user_id                       → users.id
@@ -734,6 +759,7 @@ Content Strategy:
 
   Score policy:
     exercise_attempt.score → feedback ngay khi làm bài
+    user_topic_progress    → tổng hợp số lần luyện, đúng/sai, accuracy theo topic
 
 Kỹ năng:
   Nghe (Listen): listen_dialogue_choice, listen_sentence_judge, listen_fill_blank

@@ -17,7 +17,7 @@ Muc tieu: tao migration theo thu tu giam xung dot, uu tien module nen va module 
 - [ ] Users
   - user_ai_usage
 - [ ] Lesson
-  - course, topic, exercise, exercise_attempt
+  - course, topic, exercise, exercise_attempt, user_topic_progress
 - [ ] Classroom
   - live_class, live_class_enrollment
   - classroom, classroom_student

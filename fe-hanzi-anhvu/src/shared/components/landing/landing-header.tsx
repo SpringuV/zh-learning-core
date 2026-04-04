@@ -26,7 +26,7 @@ import {
     DropdownMenuItem,
 } from "@/shared/components/ui/dropdown-menu";
 import { useSession } from "next-auth/react";
-import LogoutComponent from "@/shared/components/logout";
+import LogoutComponent from "@/modules/auth/components/logout";
 
 export function LandingHeader() {
     const { data: session } = useSession();

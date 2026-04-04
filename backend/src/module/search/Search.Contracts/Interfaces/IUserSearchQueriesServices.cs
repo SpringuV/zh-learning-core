@@ -15,8 +15,6 @@ public enum UserSortBy
     CreatedAt,
     UpdatedAt,
     CurrentLevel,
-    TotalExperience,
-    StreakCount
 }
 public sealed record UserSearchItem(
 	string Id,
@@ -26,7 +24,5 @@ public sealed record UserSearchItem(
 	bool IsActive,
 	DateTime CreatedAt,
 	DateTime UpdatedAt,
-	int CurrentLevel,
-	int TotalExperience,
-	int StreakCount);
+	int CurrentLevel);
 

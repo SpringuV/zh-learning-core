@@ -4,29 +4,54 @@ public record UserSearchDoumentDTOs(Guid Id, string Email, string Username, Date
 public record UpdateMailUserSearchDTOs(Guid Id, string NewEmail, DateTime UpdatedAt);
 public record UpdateAvatarUserSearchDTOs(Guid Id, string? AvatarUrl, DateTime UpdatedAt);
 public record UpdatePhoneNumberSearchDTOs(Guid Id, string? PhoneNumber, DateTime UpdatedAt);
-public record UpdateUserProgressSearchDTOs(Guid Id, int StreakCount, int CurrentLevel, int TotalExperience, DateTime LastActivityAt, DateTime UpdatedAt);
+public record UpdateUserProgressSearchDTOs(Guid Id, int CurrentLevel, int TotalExperience, DateTime LastActivityAt, DateTime UpdatedAt);
 public record UpdateLastLoginSearchDTOs(Guid Id, DateTime LastLogin, DateTime UpdatedAt);
 public class UserSearch
 {
     // auth user
-    public string Id { get; private set; } = string.Empty;
-    public string Email { get; private set; } = string.Empty;
-    public string Username { get; private set; } = string.Empty;
-    public string? PhoneNumber { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
-    public bool IsActive { get; private set; }
-    public DateTime? LastLogin { get; private set; }
+    public string Id { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? LastLogin { get; set; }
 
     // === Users Domain ===
-    public int StreakCount { get; private set; } = 0;
-    public int CurrentLevel { get; private set; } = 0;
-    public int TotalExperience { get; private set; } = 0;
-    public DateTime LastActivityAt { get; private set; }
-    public string? AvatarUrl { get; private set; } = null;
+    public int CurrentLevel { get; set; } = 0;
+    public DateTime LastActivityAt { get; set; }
+    public string? AvatarUrl { get; set; } = null;
 
 
-    private UserSearch() { }
+    public UserSearch() { }
+
+    public UserSearch(
+        string Id,
+        string Email,
+        string Username,
+        string? PhoneNumber,
+        DateTime CreatedAt,
+        DateTime UpdatedAt,
+        bool IsActive,
+        DateTime? LastLogin = null,
+        int CurrentLevel = 0,
+        DateTime? LastActivityAt = null,
+        string? AvatarUrl = null)
+    {
+        this.Id = Id;
+        this.Email = Email;
+        this.Username = Username;
+        this.PhoneNumber = PhoneNumber;
+        this.CreatedAt = CreatedAt;
+        this.UpdatedAt = UpdatedAt;
+        this.IsActive = IsActive;
+        this.LastLogin = LastLogin;
+        this.CurrentLevel = CurrentLevel;
+        this.LastActivityAt = LastActivityAt ?? DateTime.MinValue;
+        this.AvatarUrl = AvatarUrl;
+    }
+
     public static UserSearch FromUser(UserSearchDoumentDTOs dto)
     {
         return new UserSearch
@@ -40,8 +65,6 @@ public class UserSearch
             IsActive = dto.IsActive
         };
     }   
-
-
 
     public void UpdateEmail(UpdateMailUserSearchDTOs dto)
     {
@@ -70,13 +93,9 @@ public class UserSearch
 
     public void UpdateUserProgress(UpdateUserProgressSearchDTOs dto)
     {
-        if (dto.StreakCount < 0) throw new ArgumentException("Streak count cannot be negative");
         if (dto.CurrentLevel < 0) throw new ArgumentException("Current level cannot be negative");
-        if (dto.TotalExperience < 0) throw new ArgumentException("Total experience cannot be negative");
         
-        StreakCount = dto.StreakCount;
         CurrentLevel = dto.CurrentLevel;
-        TotalExperience = dto.TotalExperience;
         LastActivityAt = dto.LastActivityAt;
         UpdatedAt = dto.UpdatedAt;
     }

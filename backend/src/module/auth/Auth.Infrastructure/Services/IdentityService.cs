@@ -144,6 +144,19 @@
         }
 
         #region Validate Credential
+        private async Task<ValidateUser> GetUsers(AuthApplicationUser user, string password)
+        {
+            if (user == null || !await _userManager.CheckPasswordAsync(user, password))
+            {
+                throw new AuthDomainException("Tên đăng nhập hoặc mật khẩu không đúng.");
+            }
+            if (!user.IsActive)                    {
+                throw new AuthDomainException("Người dùng chưa được kích hoạt hoặc đã bị khóa.");
+            }
+            IList<string> roles = await _userManager.GetRolesAsync(user);
+            return new ValidateUser (user.Id, user.UserName!, [.. roles]);
+        }
+
         public async Task<ValidateUser?> ValidateCredentialsAsync(string Username, string Password, string LoginType)
         {
             if (string.IsNullOrEmpty(Username))
@@ -155,36 +168,20 @@
                 throw new AuthDomainException("Password is required.");
             }
             AuthApplicationUser? user;
-            IList<string> roles;
             switch (LoginType)
             {
                 case "Email":
                     // Handle email login
-                    user = await _userManager.FindByEmailAsync(Username);
-                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
-                    {
-                        return null;
-                    }
-                    roles = await _userManager.GetRolesAsync(user);
-                    return new ValidateUser (user.Id, user.UserName!, [.. roles]); // C# 14 collection expression
+                    user = await _userManager.FindByEmailAsync(Username) ?? throw new AuthDomainException("Không tìm thấy người dùng.");
+                    return await GetUsers(user, Password);
                 case "Phone":
                     // Handle phone login
-                    user = await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == Username);
-                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
-                    {
-                        return null;
-                    }
-                    roles = await _userManager.GetRolesAsync(user);
-                    return new ValidateUser (user.Id, user.UserName!, [.. roles]);
+                    user = await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == Username) ?? throw new AuthDomainException("Không tìm thấy người dùng.");
+                    return await GetUsers(user, Password);
                 case "Username":
                     // Handle username login
-                    user = await _userManager.FindByNameAsync(Username);
-                    if (user == null || !await _userManager.CheckPasswordAsync(user, Password))
-                    {
-                        return null;
-                    }
-                    roles = await _userManager.GetRolesAsync(user);
-                    return new ValidateUser (user.Id, user.UserName!, [.. roles]);
+                    user = await _userManager.FindByNameAsync(Username) ?? throw new AuthDomainException("Không tìm thấy người dùng.");
+                    return await GetUsers(user, Password);
                 default:
                     throw new AuthDomainException("Invalid login type.");
             }
@@ -209,6 +206,18 @@
             var result = await _userManager.UpdateAsync(user);
             ThrowIfFailed(result, "Lỗi khi cập nhật thông tin người dùng - resend mail activate.");
             return new ResendMailActivationResponse(user.Email!, user.ActivateCode, user.ExpireTimeActivateCode);
+        }
+
+        public async Task<GetEmailUserByPhoneResponse?> GetEmailUserByPhoneAsync(string phone, CancellationToken cancellationToken = default)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phone, cancellationToken) ?? throw new AuthDomainException($"Không tìm thấy người dùng với số điện thoại {phone}.");
+            return  new GetEmailUserByPhoneResponse(user.Email!);
+        }
+
+        public async Task<GetEmailUserByUsernameResponse?> GetEmailUserByUsernameAsync(string username, CancellationToken cancellationToken = default)
+        {
+            var user = await _userManager.FindByNameAsync(username) ?? throw new AuthDomainException($"Không tìm thấy người dùng với tên đăng nhập {username}.");
+            return new GetEmailUserByUsernameResponse(user.Email!);
         }
     }
 }

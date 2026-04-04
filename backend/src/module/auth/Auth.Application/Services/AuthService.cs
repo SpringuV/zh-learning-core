@@ -79,7 +79,7 @@ public class AuthService : IAuthService
 
     public async Task<bool> ResendActivateAccountAsync(ResendActivationRequest request, CancellationToken cancellationToken)
     {
-        var command = new ResendMailActivateCommand(request.Email, cancellationToken);
+        var command = new ResendMailActivateCommand(request.Account, request.TypeUsername, cancellationToken);
         return await _mediator.Send(command, cancellationToken);
     }
 

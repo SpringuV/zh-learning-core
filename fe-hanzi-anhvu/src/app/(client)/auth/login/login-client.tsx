@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useLoadingStore } from "@/store";
 
 interface LoginPageClientProps {
     isAuthenticated: boolean;
@@ -10,14 +9,12 @@ interface LoginPageClientProps {
 
 export function LoginPageClient({ isAuthenticated }: LoginPageClientProps) {
     const router = useRouter();
-    const setLoading = useLoadingStore((state) => state.setLoading);
 
     useEffect(() => {
         if (isAuthenticated) {
-            setLoading(true);
             router.push("/");
         }
-    }, [isAuthenticated, router, setLoading]);
+    }, [isAuthenticated, router]);
 
     return (
         <div className="flex h-screen flex-col items-center justify-center gap-6 bg-linear-to-br from-white to-slate-50">

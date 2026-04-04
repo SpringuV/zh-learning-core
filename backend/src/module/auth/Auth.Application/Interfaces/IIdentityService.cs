@@ -6,6 +6,9 @@ namespace Auth.Application.Interfaces;
 public record ValidateUser(string Id, string Username, IReadOnlyList<string> Roles);
 public record RegisterResponse(Guid UserId, DateTime CreatedAt, string ActivateCode);
 public record ResendMailActivationResponse(string Email, string ActivationCode, DateTime ExpiredActivation);
+
+public record GetEmailUserByPhoneResponse(string Email);
+public record GetEmailUserByUsernameResponse(string Email);
 public interface IIdentityService
 {
     // Interface này sẽ được Infrastructure implement bằng UserManager<ApplicationUser>
@@ -14,5 +17,8 @@ public interface IIdentityService
     Task<RegisterResponse?> RegisterUserAsync(string email, string username, string password, CancellationToken cancellationToken = default);
     Task<bool> ChangeUserPasswordAsync(Guid UserId, string newPassword, string oldPassword, CancellationToken cancellationToken = default);
     Task<bool> ActivateUserAsync(string email, string code, CancellationToken cancellationToken = default);
-    Task<ResendMailActivationResponse> ResendMailActivateAsync(string email, CancellationToken cancellationToken = default);
+    Task<ResendMailActivationResponse> ResendMailActivateAsync(string Account, CancellationToken cancellationToken = default);
+
+    Task<GetEmailUserByPhoneResponse?> GetEmailUserByPhoneAsync(string phone, CancellationToken cancellationToken = default);
+    Task<GetEmailUserByUsernameResponse?> GetEmailUserByUsernameAsync(string username, CancellationToken cancellationToken = default);
 }

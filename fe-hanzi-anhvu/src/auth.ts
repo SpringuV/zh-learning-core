@@ -1,17 +1,17 @@
-import NextAuth, { AuthError } from "next-auth";
 import "next-auth/jwt";
 
 import Credentials from "next-auth/providers/credentials";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { AxiosError } from "axios";
 import { authApi } from "@/modules/auth/api/auth.api";
 import { TypeLogin } from "@/modules/auth/types/auth.inteface";
 
-class customError extends AuthError {
+class BackendCredentialsError extends CredentialsSignin {
     constructor(message: string) {
-        super();
-        this.message = message;
+        super(message);
+        this.code = encodeURIComponent(message);
     }
 }
 
@@ -84,8 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 password: { label: "Password", type: "password" },
                 typeLogin: { label: "TypeLogin", type: "text" },
             },
-            async authorize(credentials, req) {
-                // insure credentials exist
+            async authorize(credentials) {
                 if (!credentials) return null;
 
                 const nameAccount = credentials.nameAccount;
@@ -96,10 +95,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     typeof nameAccount !== "string" ||
                     typeof password !== "string" ||
                     typeof typeLogin !== "string"
-                )
+                ) {
                     return null;
+                }
 
-                // Call backend .NET login API
                 try {
                     const payload = {
                         Username: nameAccount,
@@ -108,8 +107,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     };
 
                     const res = await authApi.Login(payload);
-
-                    await parseAndSetServerCookie(res); // Parse and set cookies to Next.js server (persist across refreshes)
+                    await parseAndSetServerCookie(res);
 
                     return {
                         id: res.data.userId,
@@ -117,20 +115,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         roles: res.data.roles,
                     };
                 } catch (err) {
-                    console.error("Login error:", err);
                     if (err instanceof AxiosError) {
-                        console.error("Login API error:", {
-                            status: err.response?.status,
-                            statusText: err.response?.statusText,
-                            data: err.response?.data,
-                        });
-                        throw new customError(
-                            err.response?.data?.message || "Đăng nhập thất bại",
-                        );
+                        if (
+                            err.response?.status === 400 ||
+                            err.response?.status === 401
+                        ) {
+                            throw new BackendCredentialsError(
+                                err.response?.data?.message ||
+                                    "Đăng nhập thất bại",
+                            );
+                        }
                     }
+                    throw err;
                 }
-
-                return null; // Login failed
             },
         }),
         Facebook({
@@ -148,7 +145,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.roles = user.roles;
                 token.sub = user.id;
             }
-            // For OAuth providers, use account.access_token as accessToken
             if (account?.access_token) {
                 token.accessToken = account.access_token;
             }
@@ -161,39 +157,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return session;
         },
         authorized: async ({ auth }) => {
-            return !!(auth && auth.user?.id); // Only allow if user ID exists in session
+            return !!(auth && auth.user?.id);
         },
     },
     pages: {
         signIn: "/auth/login",
-        error: "/auth/login", // Redirect to login page on error, you can customize this
+        error: "/auth/login",
     },
     secret: process.env.NEXTAUTH_SECRET,
 });
-
-/*
-1. httpOnly
-Ý nghĩa: Cookie chỉ có thể được truy cập bởi server (backend), không thể đọc hoặc sửa đổi qua JavaScript trên client-side.
-Bảo mật: Ngăn chặn tấn công XSS (Cross-Site Scripting) vì attacker không thể steal cookie qua script.
-Khi nào set true: Luôn set true cho authentication cookies để bảo mật. Backend thường set HttpOnly cho JWT cookies.
-2. secure
-Ý nghĩa: Cookie chỉ được gửi qua kết nối HTTPS an toàn, không gửi qua HTTP.
-Bảo mật: Ngăn chặn man-in-the-middle attacks có thể intercept cookie trên HTTP.
-Khi nào set true:
-Trong production (khi NODE_ENV === "production")
-Khi backend set attribute Secure trong Set-Cookie header
-Nếu API dùng HTTPS (như https://localhost:1907/api)
-Trong code hiện tại, secure được set true nếu backend có attribute Secure, hoặc có thể thêm logic để luôn true trong production.
-
-3. sameSite
-Ý nghĩa: Kiểm soát khi cookie được gửi trong cross-site requests.
-Các giá trị:
-"strict": Chỉ gửi cookie trong same-site requests (an toàn nhất, nhưng có thể block một số legitimate requests)
-"lax": Gửi cookie trong top-level navigation (như click link từ site khác) và same-site requests
-"none": Luôn gửi cookie, nhưng phải có secure: true (cho third-party cookies)
-Khi nào dùng gì:
-"lax" là mặc định an toàn cho authentication
-"strict" nếu muốn cực kỳ bảo mật
-"none" hiếm khi dùng, chỉ cho cross-site needs
-Trong code, sameSite được parse từ backend, mặc định "lax" nếu không có.
-*/
+// "lax": Gửi cookie trong top-level navigation (như click link từ site khác) và same-site requests
+// "none": Luôn gửi cookie, nhưng phải có secure: true (cho third-party cookies)
+// Khi nào dùng gì:
+// "lax" là mặc định an toàn cho authentication
+// "strict" nếu muốn cực kỳ bảo mật
+// "none" hiếm khi dùng, chỉ cho cross-site needs
+// Trong code, sameSite được parse từ backend, mặc định "lax" nếu không có.
+// */

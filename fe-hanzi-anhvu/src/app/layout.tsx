@@ -7,6 +7,7 @@ import NextAuthWrapper from "@/shared/lib/next.auth.wrapper";
 import QueryClientProviderWrapper from "@/shared/lib/query.client.provider";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { Toaster } from "@/shared/components/ui/sonner";
+import { AuthSessionListener } from "@/modules/auth/components/auth-session-listener";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -48,6 +49,7 @@ export default async function RootLayout({
             >
                 <NextAuthWrapper session={session}>
                     <QueryClientProviderWrapper>
+                        <AuthSessionListener />
                         <TooltipProvider>
                             {children}
                             <Toaster richColors position="top-right" />

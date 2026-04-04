@@ -1,3 +1,3 @@
 ﻿namespace Auth.Application.Command.ResendMail;
 
-public record ResendMailActivateCommand(string Email, CancellationToken ct) : IRequest<bool>;
+public record ResendMailActivateCommand(string Account, string TypeUsername, CancellationToken ct) : IRequest<bool>;

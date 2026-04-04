@@ -482,3 +482,6 @@ $RECYCLE.BIN/
 *.swp
 
 /fe-test/
+/xstate/
+.ai-context/
+/agent-skill/

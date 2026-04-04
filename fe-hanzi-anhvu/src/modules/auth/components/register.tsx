@@ -4,14 +4,14 @@ import React, { ChangeEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import * as z from "zod";
-import { AxiosError } from "axios";
+import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import { RegisterRequest } from "@/modules/auth/types/auth.inteface";
-import { authApi } from "@/modules/auth/api/auth.api";
+import { useAuthRegister } from "@/modules/auth/hooks/use-auth-query";
 
 const registerSchema = z
     .object({
@@ -38,7 +38,7 @@ export const RegisterComponent = () => {
     const router = useRouter();
     const [showPwd, setShowPwd] = React.useState(false);
     const [showConfirmPwd, setShowConfirmPwd] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(false);
+    const registerMutation = useAuthRegister();
     const [confirmPassword, setConfirmPassword] = React.useState("");
     const [payload, setPayload] = React.useState<RegisterRequest>({
         Email: "",
@@ -61,9 +61,8 @@ export const RegisterComponent = () => {
             return;
         }
 
-        setIsLoading(true);
         try {
-            await authApi.Register({
+            await registerMutation.mutateAsync({
                 Email: validated.data.Email,
                 Username: validated.data.Username,
                 Password: validated.data.Password,
@@ -73,7 +72,7 @@ export const RegisterComponent = () => {
                 router.push("/auth/login");
             }, 3000);
         } catch (error) {
-            if (error instanceof AxiosError) {
+            if (isAxiosError(error)) {
                 const message =
                     error.response?.data?.message ||
                     error.response?.data?.error ||
@@ -82,8 +81,6 @@ export const RegisterComponent = () => {
             } else {
                 toast.error("Đăng ký thất bại");
             }
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -213,9 +210,11 @@ export const RegisterComponent = () => {
                             type="submit"
                             className="w-full"
                             size="lg"
-                            disabled={isLoading}
+                            disabled={registerMutation.isPending}
                         >
-                            {isLoading ? "Đang xử lý..." : "Đăng ký"}
+                            {registerMutation.isPending
+                                ? "Đang xử lý..."
+                                : "Đăng ký"}
                         </Button>
                     </form>
 

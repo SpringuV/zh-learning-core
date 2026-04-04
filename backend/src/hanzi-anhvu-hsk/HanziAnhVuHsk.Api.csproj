@@ -22,7 +22,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Apis\SearchApi\" />
-    <Folder Include="Boostraping\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\module\auth\Auth.Contracts\Auth.Contracts.csproj" />

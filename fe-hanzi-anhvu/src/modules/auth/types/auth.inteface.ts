@@ -32,7 +32,8 @@ export interface ActivateAccountResponse {
 }
 
 export interface ResendActivationRequest {
-    Email: string;
+    Account: string;
+    TypeUsername: "Email" | "Phone" | "Username";
 }
 
 export interface ResendActivationResponse {
