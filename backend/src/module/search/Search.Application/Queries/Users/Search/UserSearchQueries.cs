@@ -1,8 +1,9 @@
 ﻿using HanziAnhVu.Shared.Application;
 using MediatR;
+using Search.Contracts.DTOs;
 using Search.Contracts.Interfaces;
 
-namespace Search.Application.Queries.Users;
+namespace Search.Application.Queries.Users.Search;
 
 public record UserSearchQueries(
     string? Email = null,
@@ -15,4 +16,4 @@ public record UserSearchQueries(
     UserSortBy SortBy = UserSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
-    DateTime? EndCreatedAt = null) : IRequest<SearchQueryResult<UserSearchItem>>;
+    DateTime? EndCreatedAt = null) : IRequest<SearchQueryResult<UserSearchItemResponse>>;

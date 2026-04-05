@@ -35,12 +35,7 @@ public class AuthService : IAuthService
     public async Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
         var command = new RefreshTokenCommand(refreshToken);
-        var result = await _mediator.Send(command, cancellationToken);
-        if (result is null)
-        {
-            throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
-        }
-
+        var result = await _mediator.Send(command, cancellationToken) ?? throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
         var accessTokenExpiresAt = GetAccessTokenExpiresAt(result.AccessToken);
         var refreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(AuthTokenConstants.RefreshTokenExpireDays);
 

@@ -1,4 +1,4 @@
-﻿namespace Search.Infrastructure;
+﻿namespace Search.Application;
 
 public class ConstantIndexElastic
 {

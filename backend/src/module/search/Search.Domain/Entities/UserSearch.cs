@@ -1,11 +1,5 @@
 namespace Search.Domain.Entities;
 
-public record UserSearchDoumentDTOs(Guid Id, string Email, string Username, DateTime CreatedAt, DateTime UpdatedAt, bool IsActive, string? PhoneNumber);
-public record UpdateMailUserSearchDTOs(Guid Id, string NewEmail, DateTime UpdatedAt);
-public record UpdateAvatarUserSearchDTOs(Guid Id, string? AvatarUrl, DateTime UpdatedAt);
-public record UpdatePhoneNumberSearchDTOs(Guid Id, string? PhoneNumber, DateTime UpdatedAt);
-public record UpdateUserProgressSearchDTOs(Guid Id, int CurrentLevel, int TotalExperience, DateTime LastActivityAt, DateTime UpdatedAt);
-public record UpdateLastLoginSearchDTOs(Guid Id, DateTime LastLogin, DateTime UpdatedAt);
 public class UserSearch
 {
     // auth user
@@ -52,57 +46,77 @@ public class UserSearch
         this.AvatarUrl = AvatarUrl;
     }
 
-    public static UserSearch FromUser(UserSearchDoumentDTOs dto)
+    public static UserSearch FromUser(
+        Guid id,
+        string email,
+        string username,
+        string? phoneNumber,
+        DateTime createdAt,
+        DateTime updatedAt,
+        bool isActive)
     {
+        ValidateEmail(email);
+        
         return new UserSearch
         {
-            Id = dto.Id.ToString(),
-            Email = dto.Email,
-            Username = dto.Username,
-            PhoneNumber = dto.PhoneNumber,
-            CreatedAt = dto.CreatedAt,
-            UpdatedAt = dto.UpdatedAt,
-            IsActive = dto.IsActive
+            Id = id.ToString(),
+            Email = email,
+            Username = username,
+            PhoneNumber = phoneNumber,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            IsActive = isActive
         };
     }   
 
-    public void UpdateEmail(UpdateMailUserSearchDTOs dto)
+    public void UpdateEmail(string newEmail, DateTime updatedAt)
     {
-        if (string.IsNullOrWhiteSpace(dto.NewEmail)) 
-            throw new ArgumentException("Email cannot be empty");
-        if (!dto.NewEmail.Contains("@")) 
-            throw new ArgumentException("Invalid email format");
-        Email = dto.NewEmail;
-        UpdatedAt = dto.UpdatedAt;
+        ValidateEmail(newEmail);
+        Email = newEmail;
+        UpdatedAt = updatedAt;
     }
 
 
-    public void UpdateAvatarUrl(UpdateAvatarUserSearchDTOs dto)
+    public void UpdateAvatarUrl(string? avatarUrl, DateTime updatedAt)
     {
-        AvatarUrl = dto.AvatarUrl;
-        UpdatedAt = dto.UpdatedAt;
+        AvatarUrl = avatarUrl;
+        UpdatedAt = updatedAt;
     }
 
-    public void UpdatePhoneNumber(UpdatePhoneNumberSearchDTOs dto)
+    public void UpdatePhoneNumber(string? phoneNumber, DateTime updatedAt)
     {
-        if (!string.IsNullOrEmpty(dto.PhoneNumber) && dto.PhoneNumber.Length < 10)
-            throw new ArgumentException("Invalid phone number");
-        PhoneNumber = dto.PhoneNumber;
-        UpdatedAt = dto.UpdatedAt;
-    }
-
-    public void UpdateUserProgress(UpdateUserProgressSearchDTOs dto)
-    {
-        if (dto.CurrentLevel < 0) throw new ArgumentException("Current level cannot be negative");
+        if (!string.IsNullOrEmpty(phoneNumber) && phoneNumber.Length < 10)
+            throw new ArgumentException("Số điện thoại không hợp lệ. Số điện thoại phải có ít nhất 10 ký tự.", nameof(phoneNumber));
         
-        CurrentLevel = dto.CurrentLevel;
-        LastActivityAt = dto.LastActivityAt;
-        UpdatedAt = dto.UpdatedAt;
+        PhoneNumber = phoneNumber;
+        UpdatedAt = updatedAt;
     }
 
-    public void UpdateLastLogin(UpdateLastLoginSearchDTOs dto)
+    public void UpdateUserProgress(int currentLevel, DateTime lastActivityAt, DateTime updatedAt)
     {
-        LastLogin = dto.LastLogin;
-        UpdatedAt = dto.UpdatedAt;
+        if (currentLevel < 0)
+            throw new ArgumentException("Cấp độ hiện tại không thể là số âm.", nameof(currentLevel));
+        
+        CurrentLevel = currentLevel;
+        LastActivityAt = lastActivityAt;
+        UpdatedAt = updatedAt;
+    }
+
+    public void UpdateLastLogin(DateTime lastLogin, DateTime updatedAt)
+    {
+        LastLogin = lastLogin;
+        UpdatedAt = updatedAt;
+    }
+
+    /// <summary>
+    /// Validates email format
+    /// </summary>
+    private static void ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email không thể để trống.", nameof(email));
+        
+        if (!email.Contains("@"))
+            throw new ArgumentException("Định dạng email không hợp lệ.", nameof(email));
     }
 }

@@ -1,10 +1,13 @@
-"use client";
-import { useUserList } from "@/modules/users/hooks/use.user.query";
+import UserManagementComponent from "@/modules/users/components/user.management";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Quản lý người dùng",
+    description: "Quản lý danh sách người dùng trong hệ thống",
+};
 
 const UserManagementPage = () => {
-    const userManagementData = useUserList();
-    console.log("User list data:", userManagementData.data);
-    return <div>User Management Page</div>;
+    return <UserManagementComponent />;
 };
 
 export default UserManagementPage;

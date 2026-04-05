@@ -1,0 +1,18 @@
+[33mb0239b5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m dev module search user base
+[33m45d2870[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Refactor authentication hooks and state management
+[33m276afe6[m modify module
+[33m99f91bd[m dev fe: mediator dev be: fix elastic search
+[33me0a6900[m feat(search): implement user search functionality with MediatR integration
+[33m72506ee[m dev frontend
+[33m668102c[m feat: add UI components for dialog, input, textarea, switch, table, and input group
+[33m85c8564[m Add resend activation email feature and improve UX
+[33m36c0cf2[m Implement account activation, logout, and outbox refactor
+[33m9dafeaa[m feat(auth): add ExpireTimeActivateCode field to AspNetUsers table
+[33m25417b4[m login ok, doing outbox pattern 80%
+[33m79be639[m agent instruction
+[33m57440ae[m delete redundant class1.cs, add base auth v2
+[33mee0a800[m dev base auth module
+[33m43b49ab[m add ocr service
+[33me18fbf2[m add skill
+[33m2359f1a[m init project
+[33m159deef[m first commit

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Search.Contracts.DTOs;
 using Search.Contracts.Interfaces;
 
@@ -6,6 +7,16 @@ public static class UserSearchApi
 {
     public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
     {
+        /*
+        [Controller/API] 
+            → SearchUsersAsync(UserSearchQueryRequest)
+                → _mediator.Send(UserSearchQueries)
+                    → UserSearchQueriesHandler.Handle()
+                        → SearchInternalAsync() [Elasticsearch logic]
+                        → Map to UserSearchItemResponse
+                        → Return result
+                → Return result
+        */
         try
         {
             if (request.Take <= 0)
@@ -24,4 +35,26 @@ public static class UserSearchApi
             return Results.Problem(ex.Message);
         }
     }
+
+    public static async Task<IResult> GetUser([FromRoute] string id, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
+    {
+        try
+        {
+            var result = await userSearchQueries.GetAsync(id, ct);
+            if (result == null)
+            {
+                return Results.NotFound(new { message = $"User with ID {id} not found." });
+            }
+            return Results.Ok(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    
 }
