@@ -3,4 +3,4 @@ using Search.Domain.Entities;
 
 namespace Search.Application.Queries.Users.Get;
 
-public record UserGetQueries(string Id) : IRequest<UserSearch?>;
+public record UserGetQueries(Guid Id) : IRequest<UserSearch?>;

@@ -6,15 +6,11 @@ using Search.Domain.Entities;
 
 namespace Search.Application.Queries.Users.Patch;
 
-public class UserPatchQueriesHandler : IRequestHandler<UserPatchQueries, UserSearchPatchDocumentResponse>
+public class UserPatchQueriesHandler(ElasticsearchClient client, ILogger<UserPatchQueriesHandler> logger) : IRequestHandler<UserPatchQueries, UserSearchPatchDocumentResponse>
 {
-    private readonly ElasticsearchClient _client;
-    private readonly ILogger<UserPatchQueriesHandler> _logger;
-    public UserPatchQueriesHandler(ElasticsearchClient client, ILogger<UserPatchQueriesHandler> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
+    private readonly ElasticsearchClient _client = client;
+    private readonly ILogger<UserPatchQueriesHandler> _logger = logger;
+
     public async Task<UserSearchPatchDocumentResponse> Handle(UserPatchQueries request, CancellationToken cancellationToken)
     {
         var partialDocument = new Dictionary<string, object>();
@@ -26,10 +22,11 @@ public class UserPatchQueriesHandler : IRequestHandler<UserPatchQueries, UserSea
         if (request.CurrentLevel.HasValue) partialDocument["currentLevel"] = request.CurrentLevel.Value;
         if (request.LastActivityAt.HasValue) partialDocument["lastActivityAt"] = request.LastActivityAt.Value;
         if (request.AvatarUrl is not null) partialDocument["avatarUrl"] = request.AvatarUrl;
+        if (request.UpdatedAt.HasValue) partialDocument["updatedAt"] = request.UpdatedAt.Value;
 
         if (partialDocument.Count == 0)
         {
-            throw new ArgumentException("At least one field must be provided for patch.", nameof(request));
+            throw new ArgumentException("Cần ít nhất một trường để cập nhật", nameof(request));
         }
 
         var response = await _client.UpdateAsync<UserSearch, Dictionary<string, object>>(ConstantIndexElastic.UserIndex, request.Id, u => u
@@ -43,7 +40,7 @@ public class UserPatchQueriesHandler : IRequestHandler<UserPatchQueries, UserSea
         }
 
         return new UserSearchPatchDocumentResponse(
-            Id: Guid.Parse(request.Id),
+            Id: request.Id,
             Email: request.Email,
             Username: request.Username,
             PhoneNumber: request.PhoneNumber,
@@ -52,7 +49,7 @@ public class UserPatchQueriesHandler : IRequestHandler<UserPatchQueries, UserSea
             CurrentLevel: request.CurrentLevel,
             LastActivityAt: request.LastActivityAt,
             AvatarUrl: request.AvatarUrl,
-            UpdatedAt: DateTime.UtcNow
+            UpdatedAt: request.UpdatedAt
         );
     }
 }

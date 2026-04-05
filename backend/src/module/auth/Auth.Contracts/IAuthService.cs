@@ -4,6 +4,7 @@ namespace Auth.Contracts;
 
 public interface IAuthService
 {
+    Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken);
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     Task<RefreshTokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken);
     Task<UserRegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken);

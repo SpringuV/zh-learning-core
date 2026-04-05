@@ -190,12 +190,7 @@
         public async Task<ResendMailActivationResponse> ResendMailActivateAsync(string email, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(email);
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user is null)
-            {
-                throw new AuthDomainException("User not found.");
-            }
-
+            var user = await _userManager.FindByEmailAsync(email) ?? throw new AuthDomainException("User not found.");
             if (user.IsActive)
             {
                 throw new AuthDomainException("User is already active.");
@@ -218,6 +213,48 @@
         {
             var user = await _userManager.FindByNameAsync(username) ?? throw new AuthDomainException($"Không tìm thấy người dùng với tên đăng nhập {username}.");
             return new GetEmailUserByUsernameResponse(user.Email!);
+        }
+
+        public async Task<UserProfileUpdatedResponse?> UpdateProfileAsync(Guid userId, string? newPhoneNumber, string? newAvatarUrl)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new AuthDomainException("Không tìm thấy người dùng.");
+            
+            // Chỉ update nếu có value
+            if (newAvatarUrl != null)
+                user.UpdateAvatarUrl(newAvatarUrl);
+            
+            if (newPhoneNumber != null)
+                user.UpdatePhoneNumber(newPhoneNumber);
+            
+            try
+            {
+                var result = await _userManager.UpdateAsync(user);
+                ThrowIfFailed(result, "Lỗi khi cập nhật thông tin người dùng.");
+                
+                // Return data từ user object (đã được update và validate)
+                return new UserProfileUpdatedResponse(Guid.Parse(user.Id), user.PhoneNumber, user.AvatarUrl, user.UpdatedAt);
+            }
+            catch (Exception ex)
+            {
+                throw new AuthDomainException("Lỗi khi cập nhật thông tin người dùng.", ex);
+            }
+        }
+
+        public async Task UpdateLastLogoutTimeAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId.ToString()) ?? throw new AuthDomainException("Không tìm thấy người dùng.");
+                user.UpdateLastLogin();
+                var result = await _userManager.UpdateAsync(user);
+                ThrowIfFailed(result, "Lỗi khi cập nhật thời gian đăng xuất cuối cùng của người dùng.");
+                // Cập nhật thành công, không cần trả về gì
+                return;
+            }
+            catch (Exception ex)
+            {
+                throw new AuthDomainException("Lỗi khi cập nhật thời gian đăng xuất cuối cùng của người dùng.", ex);
+            }
         }
     }
 }

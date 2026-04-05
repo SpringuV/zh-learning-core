@@ -1,17 +1,12 @@
-using Auth.Contracts.IntegrationEvents;
+using Auth.Contracts;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using Notification.Application.Interfaces;
 
 namespace Notification.Application.EventHandlers;
 
-public class UserRegisteredEventHandler : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
+public class UserRegisteredEventHandler(IEmailService emailService) : IIntegrationEventHandler<UserRegisteredIntegrationEvent>
 {
-    private readonly IEmailService _emailService;
-
-    public UserRegisteredEventHandler(IEmailService emailService)
-    {
-        _emailService = emailService;
-    }
+    private readonly IEmailService _emailService = emailService;
 
     public async Task HandleAsync(UserRegisteredIntegrationEvent @event, CancellationToken ct = default!)
     {

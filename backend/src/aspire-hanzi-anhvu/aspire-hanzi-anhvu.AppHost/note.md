@@ -1,3 +1,4 @@
+cd backend
 dotnet ef migrations add InitialIdentity --project src/module/auth/Auth.Infrastructure --startup-project src/hanzi-anhvu-hsk --context AuthIdentityDbContext
 
 dotnet ef database update \

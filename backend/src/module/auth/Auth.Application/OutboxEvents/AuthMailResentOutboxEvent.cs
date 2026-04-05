@@ -1,5 +1,4 @@
-﻿using Auth.Application.DomainEventsInternal;
-namespace Auth.Application.DomainEventIntegration;
+﻿namespace Auth.Application.DomainEventIntegration;
 
 public sealed class AuthMailResentOutboxEvent(IOutboxWriter outboxWriter) : INotificationHandler<AuthUserMailResentEvent>
 {

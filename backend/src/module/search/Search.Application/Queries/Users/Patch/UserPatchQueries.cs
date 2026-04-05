@@ -1,12 +1,10 @@
-using HanziAnhVu.Shared.Application;
 using MediatR;
 using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
 
 namespace Search.Application.Queries.Users.Patch;
 
 public record UserPatchQueries(
-    string Id,
+    Guid Id,
     string? Email = null,
     string? Username = null,
     string? PhoneNumber = null,

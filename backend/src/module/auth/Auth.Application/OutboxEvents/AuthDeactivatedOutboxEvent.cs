@@ -1,5 +1,3 @@
-using Auth.Application.DomainEventsInternal;
-
 namespace Auth.Application.DomainEventHandlers;
 
 public sealed class AuthDeactivatedOutboxEvent(IEventBus @eventBus) : INotificationHandler<UserDeactivatedDomainEvent>

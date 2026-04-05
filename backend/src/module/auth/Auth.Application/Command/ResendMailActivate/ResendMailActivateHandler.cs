@@ -1,5 +1,4 @@
-﻿using Auth.Application.DomainEventsInternal;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 namespace Auth.Application.Command.ResendMailActivate;
 
 public class ResendMailActivateHandler : IRequestHandler<ResendMailActivateCommand, bool>

@@ -1,3 +1,4 @@
+using Auth.Contracts;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,10 +21,9 @@ public static class Dependencies
         // services.AddElasticsearchClient("elastic-hanzi"); // If not in API, add here
 
         // Register user-specific search service
-        services.AddScoped<IUserSearchProjector, UserSearchQueriesServices>();
         services.AddScoped<IUserSearchQueriesServices, UserSearchQueriesServices>();
 
         // Register event handlers
-        services.AddScoped<IIntegrationEventHandler<Auth.Contracts.IntegrationEvents.UserRegisteredIntegrationEvent>, UserRegisteredEventHandler>();
+        services.AddScoped<IIntegrationEventHandler<UserRegisteredIntegrationEvent>, UserRegisteredEventHandler>();
     }
 }

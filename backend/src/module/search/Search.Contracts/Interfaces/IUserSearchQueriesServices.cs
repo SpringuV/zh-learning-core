@@ -20,11 +20,11 @@ namespace Search.Contracts.Interfaces;
 public interface IUserSearchQueriesServices
 {
 	Task<SearchQueryResult<UserSearchItemResponse>> SearchUsersAsync(UserSearchQueryRequest request, CancellationToken cancellationToken = default);
-    Task<UserSearch?> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<UserSearch?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<UserIndexResponse> IndexAsync(UserSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
-    Task<UserSearchPatchDocumentResponse?> PatchAsync(string id, UserSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default);
-    Task DeleteAsync(string id, CancellationToken cancellationToken = default);
+    Task<UserSearchPatchDocumentResponse?> PatchAsync(Guid id, UserSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
 public enum UserSortBy
 {

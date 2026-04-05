@@ -1,16 +1,3 @@
-using HanziAnhVu.Shared.Application;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using Search.Application.Queries.Users.Delete;
-using Search.Application.Queries.Users.Get;
-using Search.Application.Queries.Users.Indexs;
-using Search.Application.Queries.Users.Patch;
-using Search.Application.Queries.Users.Search;
-using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
-using Search.Domain.Entities;
-
-
 namespace Search.Infrastructure.Services;
 
 /*
@@ -23,7 +10,6 @@ namespace Search.Infrastructure.Services;
         hanzi_users_v2
         rồi dùng alias hanzi_users trỏ sang version active để reindex zero-downtime.
  */
-
 public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger, IMediator mediator) : IUserSearchQueriesServices
 {
     private readonly IMediator _mediator = mediator;
@@ -43,32 +29,32 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
         return result;
     }
 
-    public async Task<UserSearchPatchDocumentResponse?> PatchAsync(string id, UserSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default)
+    public async Task<UserSearchPatchDocumentResponse?> PatchAsync(Guid id, UserSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(id))
+        if (string.IsNullOrWhiteSpace(id.ToString()))
         {
-            throw new ArgumentException("Document id cannot be empty.", nameof(id));
+            throw new ArgumentException("UserId không được để trống.", nameof(id));
         }
         ArgumentNullException.ThrowIfNull(patch); // Nếu patch có thể null thì bỏ dòng này và handle null trong code tiếp theo
         var command = new UserPatchQueries(
              Id: id,
-             Email: patch.Email,
-             Username: patch.Username,
-             IsActive: patch.IsActive,
-             PhoneNumber: patch.PhoneNumber,
-             LastLogin: patch.LastLogin,
-             CurrentLevel: patch.CurrentLevel,
-             LastActivityAt: patch.LastActivityAt,
-             AvatarUrl: patch.AvatarUrl);
+             Email: patch?.Email,
+             Username: patch?.Username,
+             IsActive: patch?.IsActive,
+             PhoneNumber: patch?.PhoneNumber,
+             LastLogin: patch?.LastLogin,
+             CurrentLevel: patch?.CurrentLevel,
+             LastActivityAt: patch?.LastActivityAt,
+             AvatarUrl: patch?.AvatarUrl);
 
         var result = await _mediator.Send(command, cancellationToken);
         return result;
     }
 
-    public async Task<UserSearch?> GetAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<UserSearch?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(id))
-            throw new ArgumentException("User ID cannot be empty.", nameof(id));
+        if (string.IsNullOrWhiteSpace(id.ToString()))
+            throw new ArgumentException("UserId không được để trống.", nameof(id));
 
         _logger.LogDebug("Getting user {UserId}", id);
 
@@ -78,10 +64,10 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
         return result;
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(id))
-            throw new ArgumentException("User ID cannot be empty.", nameof(id));
+        if (string.IsNullOrWhiteSpace(id.ToString()))
+            throw new ArgumentException("UserId không được để trống.", nameof(id));
 
         _logger.LogDebug("Deleting user {UserId}", id);
 
@@ -116,4 +102,5 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
 
         return result;
     }
+
 }

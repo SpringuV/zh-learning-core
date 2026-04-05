@@ -7,18 +7,12 @@ namespace Auth.Infrastructure.Identity;
 // IHostedService để chạy code khởi tạo database và seed dữ liệu khi ứng dụng khởi động
 // dùng cho AppHost trong aspire, sẽ tự động chạy StartAsync khi ứng dụng bắt đầu và StopAsync khi ứng dụng dừng
 // trên production, thì không nên dùng cách này để seed dữ liệu, mà nên dùng migration hoặc script SQL để đảm bảo an toàn và kiểm soát tốt hơn
-public sealed class AuthIdentityDbInitializerHostedService : IHostedService
+public sealed class AuthIdentityDbInitializerHostedService(
+    IServiceScopeFactory scopeFactory,
+    ILogger<AuthIdentityDbInitializerHostedService> logger) : IHostedService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<AuthIdentityDbInitializerHostedService> _logger;
-
-    public AuthIdentityDbInitializerHostedService(
-        IServiceScopeFactory scopeFactory,
-        ILogger<AuthIdentityDbInitializerHostedService> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-    }
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly ILogger<AuthIdentityDbInitializerHostedService> _logger = logger;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

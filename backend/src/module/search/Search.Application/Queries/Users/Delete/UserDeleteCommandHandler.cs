@@ -42,7 +42,7 @@ public class UserDeleteCommandHandler(
 
     private static void ValidateRequest(UserDeleteCommand request)
     {
-        if (string.IsNullOrWhiteSpace(request.Id))
-            throw new ArgumentException("User ID cannot be empty", nameof(request.Id));
+        if (string.IsNullOrWhiteSpace(request.Id.ToString()))
+            throw new ArgumentException("UserId không được để trống.", nameof(request.Id));
     }
 }

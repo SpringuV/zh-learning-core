@@ -1,16 +1,39 @@
 ﻿using HanziAnhVu.Shared.Domain;
 
 namespace Users.Domain;
+
+public enum SubscriptionStatusEnum
+{
+    Pending = 0,
+    Active = 1,
+    Expired = 2,
+    Cancelled = 3
+}
+
+public enum SubscriptionTierEnum
+{
+    Free = 0,
+    Pro = 1,
+    Premium = 2
+}
+
 // Auth.Domain (Sạch, không dính dáng framework)
 public class UserAggregate : BaseAggregateRoot
 {
     public Guid Id { get; private set; } // soft reference đến user trong auth service, tránh việc phải reference đến project auth
-    public int LongestStreak { get; private set; } = 0; // private set để tránh việc thay đổi username sau khi đã tạo user
-    public int TotalXp { get; private set; } = 0;
     public int CurrentHskLevel { get; private set; } = 0;
-    public int StreakCount { get; private set; } = 0;
     public string? AvatarUrl { get; private set; } = null;
 
+    // Ai usage tracking - info cho ngày hôm nay
+    public int AiMessagesUsedToday { get; private set; } = 0;
+    public DateTime AiMessagesUsedTodayDate { get; private set; } = DateTime.UtcNow.Date;
+    public SubscriptionTierEnum CurrentTier { get; private set; } = SubscriptionTierEnum.Free;
+    public DateTime AiUsageResetAt { get; private set; }
+
+    // Subscription
+    public SubscriptionStatusEnum SubscriptionStatus { get; private set; } = SubscriptionStatusEnum.Pending;
+
+    public int AiMessagesLimitPerDay => GetAiMessagesLimitByTier(CurrentTier);
 
     protected UserAggregate() { } // constructor protected để chỉ cho phép tạo user thông qua factory method
 
@@ -37,21 +60,45 @@ public class UserAggregate : BaseAggregateRoot
         //user.AddDomainEvent(new UserProfileUpdatedDomainEvent(user.Id, user.Email));
     }
 
-    public void UpdateStreak(int newStreak)
+    public void UpdateSubscription(SubscriptionStatusEnum status, SubscriptionTierEnum tier, DateTime resetAt)
     {
-        if (newStreak < 0) throw new ArgumentException("Streak cannot be negative", nameof(newStreak));
-        StreakCount = newStreak;
-        if (newStreak > LongestStreak)
-        {
-            LongestStreak = newStreak;
-        }
+        SubscriptionStatus = status;
+        CurrentTier = tier;
+        AiUsageResetAt = resetAt;
     }
 
-    public void AddXp(int xp)
+    public void RecordAiMessageUsage()
     {
-        if (xp < 0) throw new ArgumentException("XP cannot be negative", nameof(xp));
-        TotalXp += xp;
-        // Cập nhật HSK level dựa trên XP, ví dụ: mỗi 1000 XP tăng 1 level
-        CurrentHskLevel = TotalXp / 1000;
+        // Check if need to reset
+        if (DateTime.UtcNow >= AiUsageResetAt)
+        {
+            AiMessagesUsedToday = 0;
+            AiMessagesUsedTodayDate = DateTime.UtcNow.Date;
+            AiUsageResetAt = DateTime.UtcNow.AddDays(1);
+        }
+
+        AiMessagesUsedToday++;
     }
+
+    public bool CanUseAiMessage()
+    {
+        // Check if need to reset
+        if (DateTime.UtcNow >= AiUsageResetAt)
+        {
+            AiMessagesUsedToday = 0;
+            AiMessagesUsedTodayDate = DateTime.UtcNow.Date;
+            AiUsageResetAt = DateTime.UtcNow.AddDays(1);
+        }
+
+        return SubscriptionStatus == SubscriptionStatusEnum.Active && AiMessagesUsedToday < AiMessagesLimitPerDay;
+    }
+
+    private static int GetAiMessagesLimitByTier(SubscriptionTierEnum tier) => tier switch
+    {
+        SubscriptionTierEnum.Free => 3,
+        SubscriptionTierEnum.Pro => 15,
+        SubscriptionTierEnum.Premium => 30,
+        _ => 3
+    };
+
 }

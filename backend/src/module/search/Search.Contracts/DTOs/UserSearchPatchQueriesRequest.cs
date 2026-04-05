@@ -8,4 +8,5 @@ public sealed record UserSearchPatchDocumentRequest(
     DateTime? LastLogin = null,
     int? CurrentLevel = null,
     DateTime? LastActivityAt = null,
-    string? AvatarUrl = null);
+    string? AvatarUrl = null,
+    DateTime? UpdatedAt = null);

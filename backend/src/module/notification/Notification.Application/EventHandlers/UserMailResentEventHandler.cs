@@ -1,4 +1,4 @@
-﻿using Auth.Contracts.IntegrationEvents;
+﻿using Auth.Contracts;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using Notification.Application.Interfaces;
 

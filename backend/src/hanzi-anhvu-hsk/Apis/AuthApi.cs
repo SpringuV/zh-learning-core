@@ -8,6 +8,27 @@ namespace HanziAnhVuHsk.Api.Apis;
 
 public class AuthApi
 {
+    public static async Task<IResult> UpdateProfile([FromBody] UpdateProfileRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    {
+        try
+        {
+            // lấy userId từ token (đã được middleware xác thực và gắn vào HttpContext.User)
+        var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub");
+        if (userIdClaim is null) { 
+            return Results.BadRequest(new { Message = "User ID not found in token." });
+        }
+        var result = await authService.UpdateProfileAsync(Guid.Parse(userIdClaim.Value), request, ct);
+        return result ? Results.Ok(new { Message = "Cập nhật hồ sơ thành công." }) : Results.BadRequest(new { Message = "Cập nhật hồ sơ thất bại." });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex) when (ex is AuthDomainException || ex is UnauthorizedAccessException)
+        {
+            return Results.BadRequest(new { ex.Message });
+        }
+    }
     public static async Task<IResult> ChangePassword([FromBody] ChangePasswordRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
     {
         try
@@ -31,7 +52,7 @@ public class AuthApi
         }
     }
 
-    public static async Task<IResult> ActiveAccount([FromBody] ActivateAccountRequest request, HttpContext httpContext, IAuthService authService, CancellationToken ct)
+    public static async Task<IResult> ActiveAccount([FromBody] ActivateAccountRequest request, IAuthService authService, CancellationToken ct)
     {
         try
         {

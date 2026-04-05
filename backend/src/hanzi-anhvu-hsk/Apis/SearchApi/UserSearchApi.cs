@@ -40,7 +40,7 @@ public static class UserSearchApi
     {
         try
         {
-            var result = await userSearchQueries.GetAsync(id, ct);
+            var result = await userSearchQueries.GetAsync(Guid.Parse(id), ct);
             if (result == null)
             {
                 return Results.NotFound(new { message = $"User with ID {id} not found." });

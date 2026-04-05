@@ -45,7 +45,7 @@ public class UserGetQueriesHandler(
 
     private static void ValidateRequest(UserGetQueries request)
     {
-        if (string.IsNullOrWhiteSpace(request.Id))
-            throw new ArgumentException("User ID cannot be empty", nameof(request.Id));
+        if (string.IsNullOrWhiteSpace(request.Id.ToString()))
+            throw new ArgumentException("User ID không được để trống.", nameof(request.Id));
     }
 }

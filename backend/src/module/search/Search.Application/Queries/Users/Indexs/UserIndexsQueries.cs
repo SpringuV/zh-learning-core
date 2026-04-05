@@ -1,4 +1,5 @@
 using MediatR;
+using Search.Contracts.DTOs;
 
 namespace Search.Application.Queries.Users.Indexs;
 

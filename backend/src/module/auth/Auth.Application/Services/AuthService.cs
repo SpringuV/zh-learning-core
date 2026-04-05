@@ -1,13 +1,10 @@
+using Auth.Application.Command.UpdateProfile;
+
 namespace Auth.Application.Services;
 
-public class AuthService : IAuthService
+public class AuthService(IMediator mediator) : IAuthService
 {
-    private readonly IMediator _mediator;
-
-    public AuthService(IMediator mediator)
-    {
-        _mediator = mediator;
-    }
+    private readonly IMediator _mediator = mediator;
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -50,19 +47,14 @@ public class AuthService : IAuthService
     public async Task<UserRegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
         var command = new RegisterUserCommand(request.Email, request.Username, request.Password);
-        var result = await _mediator.Send(command, cancellationToken);
-        if (result is null)
-        {
-            throw new UnauthorizedAccessException("Đăng ký thất bại.");
-        }
-
+        var result = await _mediator.Send(command, cancellationToken) ?? throw new UnauthorizedAccessException("Đăng ký thất bại.");
         return new UserRegisterResponse("Đăng ký thành công.", result);
     }
 
     public async Task<UserLoggoutResponse> LogoutAsync(string refreshToken, CancellationToken cancellationToken)
     {
         var command = new LogoutCommand(refreshToken);
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _mediator.Send(command, cancellationToken) ?? throw new UnauthorizedAccessException("Đăng xuất thất bại.");
         return result;
     }
 
@@ -94,5 +86,11 @@ public class AuthService : IAuthService
 
         var token = handler.ReadJwtToken(accessToken);
         return new DateTimeOffset(DateTime.SpecifyKind(token.ValidTo, DateTimeKind.Utc));
+    }
+
+    public Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var command = new UpdateProfileCommand(userId, request.PhoneNumber, request.AvatarUrl);
+        return _mediator.Send(command, cancellationToken);
     }
 }

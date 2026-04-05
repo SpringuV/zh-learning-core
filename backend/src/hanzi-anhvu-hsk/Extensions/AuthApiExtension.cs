@@ -28,6 +28,7 @@ public static class AuthApiExtension
         group.MapPost("/reset-password", () => { });
         group.MapPost("/verify-email", () => { });
         group.MapPost("/activate/resend", AuthApi.ResendLinkActivation);
+        group.MapPost("/profile/update", AuthApi.UpdateProfile);
         return group;
     }
 }

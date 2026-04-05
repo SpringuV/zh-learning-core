@@ -11,11 +11,11 @@ public class UserSearch
     public DateTime UpdatedAt { get; set; }
     public bool IsActive { get; set; }
     public DateTime? LastLogin { get; set; }
-
+    public string? AvatarUrl { get; set; } = null;
+    
     // === Users Domain ===
     public int CurrentLevel { get; set; } = 0;
-    public DateTime LastActivityAt { get; set; }
-    public string? AvatarUrl { get; set; } = null;
+    
 
 
     public UserSearch() { }
@@ -30,7 +30,6 @@ public class UserSearch
         bool IsActive,
         DateTime? LastLogin = null,
         int CurrentLevel = 0,
-        DateTime? LastActivityAt = null,
         string? AvatarUrl = null)
     {
         this.Id = Id;
@@ -42,7 +41,6 @@ public class UserSearch
         this.IsActive = IsActive;
         this.LastLogin = LastLogin;
         this.CurrentLevel = CurrentLevel;
-        this.LastActivityAt = LastActivityAt ?? DateTime.MinValue;
         this.AvatarUrl = AvatarUrl;
     }
 
@@ -98,7 +96,6 @@ public class UserSearch
             throw new ArgumentException("Cấp độ hiện tại không thể là số âm.", nameof(currentLevel));
         
         CurrentLevel = currentLevel;
-        LastActivityAt = lastActivityAt;
         UpdatedAt = updatedAt;
     }
 

@@ -51,17 +51,17 @@ namespace Auth.Infrastructure.Services
             return new TokenResult(new ValidateUser(tokenStored.AuthUser.Id, tokenStored.AuthUser.UserName!, roleNames.AsReadOnly()), newAccessToken, newRefreshToken);
         }
 
-        public async Task<bool> RevokeAsync(string refreshToken, CancellationToken cancellationToken)
+        public async Task<Guid?> RevokeAsync(string refreshToken, CancellationToken cancellationToken)
         {
             var tokenStored = _dbContext.RefreshTokens.SingleOrDefault(t => t.Token == refreshToken);
             if (tokenStored is null || tokenStored.IsRevoked)
             {
-                return false;
+                return null;
             }
 
             tokenStored.IsRevoked = true;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            return Guid.Parse(tokenStored.UserId);
         }
 
         public async Task<bool> ValidateAccessToken(string accessToken)

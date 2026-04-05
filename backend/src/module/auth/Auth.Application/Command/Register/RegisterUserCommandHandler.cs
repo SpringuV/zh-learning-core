@@ -3,26 +3,18 @@
 namespace Auth.Application.Command.Register;
 
 // logic thuc thi khi register user, sẽ được gọi bởi controller, thực thi và trả về cho api
-public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Guid?>
+public class RegisterUserCommandHandler(
+    IIdentityService identityService,
+    IPublisher publisher,   // in process, dùng cho domain event nội bộ, không giao tiếp với các service,
+                            // dùng trong cùng bounded context để publish domain event,
+                            // còn outbox sẽ dùng để giao tiếp với các service khác thông qua integration event
+    IUnitOfWork unitOfWork,
+    IConfiguration configuration) : IRequestHandler<RegisterUserCommand, Guid?>
 {
-    private readonly IIdentityService _identityService;
-    private readonly IPublisher _publisher; 
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IConfiguration _configuration;
-
-    public RegisterUserCommandHandler(
-        IIdentityService identityService,
-        IPublisher publisher,
-        IUnitOfWork unitOfWork,
-        IConfiguration configuration)
-    {
-        _identityService = identityService;
-        _publisher = publisher; // in process, dùng cho domain event nội bộ, không giao tiếp với các service,
-                                // dùng trong cùng bounded context để publish domain event,
-                                // còn outbox sẽ dùng để giao tiếp với các service khác thông qua integration event
-        _unitOfWork = unitOfWork;
-        _configuration = configuration;
-    }
+    private readonly IIdentityService _identityService = identityService;
+    private readonly IPublisher _publisher = publisher; 
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task<Guid?> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {

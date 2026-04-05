@@ -13,7 +13,7 @@
         public ICollection<IdentityUserRole<string>> UserRoles { get; private set; } = new List<IdentityUserRole<string>>();
         public DateTime ExpireTimeActivateCode { get; set; } = DateTime.UtcNow.AddMinutes(5);
         public string ActivateCode { get; set; } = Random.Shared.Next(000000, 1000000).ToString("D6");
-
+        public string? AvatarUrl { get; private set; } = null;
         public AuthApplicationUser()
         {
             var now = DateTime.UtcNow;
@@ -70,7 +70,21 @@
         public void UpdateLastLogin()
         {
             LastLogin = DateTime.UtcNow;
-            UpdatedAt = LastLogin;
+        }
+
+        public void UpdateAvatarUrl(string? avatarUrl)
+        {
+            AvatarUrl = avatarUrl;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void UpdatePhoneNumber(string? phoneNumber)
+        {
+            if (!string.IsNullOrEmpty(phoneNumber) && phoneNumber.Length < 10)
+                throw new ArgumentException("Số điện thoại không hợp lệ. Số điện thoại phải có ít nhất 10 ký tự.", nameof(phoneNumber));
+            
+            PhoneNumber = phoneNumber;
+            UpdatedAt = DateTime.UtcNow;
         }
     }
 }
