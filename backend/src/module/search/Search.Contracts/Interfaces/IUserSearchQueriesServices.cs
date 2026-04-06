@@ -31,6 +31,8 @@ public enum UserSortBy
     CreatedAt,
     UpdatedAt,
     CurrentLevel,
+    Email,
+    Username,
 }
 
 

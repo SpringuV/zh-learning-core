@@ -22,13 +22,16 @@ public static class AuthApiExtension
         group.MapPost("/activate", AuthApi.ActiveAccount);
         group.MapPost("/refresh-token", AuthApi.RefreshToken);
         group.MapPost("/change-email", () => { });
-        group.MapPost("/change-password", AuthApi.ChangePassword);
-        group.MapPost("/logout", AuthApi.Logout);
+        group.MapPost("/change-password", AuthApi.ChangePassword)
+            .RequireAuthorization();
+        group.MapPost("/logout", AuthApi.Logout)
+            .RequireAuthorization();
         group.MapPost("/forgot-password", () => { });
         group.MapPost("/reset-password", () => { });
         group.MapPost("/verify-email", () => { });
         group.MapPost("/activate/resend", AuthApi.ResendLinkActivation);
-        group.MapPost("/profile/update", AuthApi.UpdateProfile);
+        group.MapPost("/profile/update", AuthApi.UpdateProfile)
+            .RequireAuthorization();
         return group;
     }
 }

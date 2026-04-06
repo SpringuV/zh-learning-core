@@ -33,8 +33,6 @@ export default async function RootLayout({
 }>) {
     const session = await auth();
     if (session?.user) {
-        // TODO: Look into https://react.dev/reference/react/experimental_taintObjectReference
-        // filter out sensitive data before passing to client.
         session.user = {
             ...session.user,
             // Keep custom fields like roles, userId, userName if needed on client
@@ -47,15 +45,15 @@ export default async function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
-                <NextAuthWrapper session={session}>
-                    <QueryClientProviderWrapper>
+                <QueryClientProviderWrapper>
+                    <NextAuthWrapper session={session}>
                         <AuthSessionListener />
                         <TooltipProvider>
                             {children}
                             <Toaster richColors position="top-right" />
                         </TooltipProvider>
-                    </QueryClientProviderWrapper>
-                </NextAuthWrapper>
+                    </NextAuthWrapper>
+                </QueryClientProviderWrapper>
             </body>
         </html>
     );

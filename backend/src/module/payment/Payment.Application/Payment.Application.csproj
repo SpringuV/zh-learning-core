@@ -6,4 +6,18 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
+    <ProjectReference Include="..\..\ai\Ai.Contracts\Ai.Contracts.csproj" />
+    <ProjectReference Include="..\..\auth\Auth.Contracts\Auth.Contracts.csproj" />
+    <ProjectReference Include="..\..\classroom\Classroom.Contracts\Classroom.Contracts.csproj" />
+    <ProjectReference Include="..\..\flashcard\Flashcard.Contracts\Flashcard.Contracts.csproj" />
+    <ProjectReference Include="..\..\lesson\Lesson.Contracts\Lesson.Contracts.csproj" />
+    <ProjectReference Include="..\..\notification\Notification.Contracts\Notification.Contracts.csproj" />
+    <ProjectReference Include="..\..\search\Search.Contracts\Search.Contracts.csproj" />
+    <ProjectReference Include="..\..\users\Users.Contracts\Users.Contracts.csproj" />
+    <ProjectReference Include="..\Payment.Contracts\Payment.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

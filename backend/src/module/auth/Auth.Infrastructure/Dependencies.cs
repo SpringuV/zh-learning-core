@@ -2,8 +2,7 @@
 using HanziAnhVu.Shared.Infrastructure;
 using Auth.Contracts;
 using Auth.Application.Command.Login;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using HanziAnhVu.Shared.Application;
 
 namespace Auth.Infrastructure;
 

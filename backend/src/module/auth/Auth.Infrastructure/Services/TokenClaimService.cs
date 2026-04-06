@@ -21,7 +21,11 @@ namespace Auth.Infrastructure.Services
 
             var accessToken = GenerateAccessTokenAsync(user.Id, user.Username, user.Roles);
             var refreshToken = await CreateRefreshTokenAsync(user.Id, cancellationToken);
-            return new TokenResult(user, accessToken, refreshToken);
+            return new TokenResult(
+                user,
+                accessToken,
+                refreshToken.Token,
+                refreshToken.ExpiresAt);
         }
 
         public async Task<TokenResult?> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
@@ -35,9 +39,7 @@ namespace Auth.Infrastructure.Services
             {
                 return null;
             }
-            tokenStored.IsRevoked = true; // revoke token cũ
-
-            // tạo token mới
+            // Chỉ tạo access token mới từ refresh token hiện có (không rotate refresh token)
             var roleIds = tokenStored.AuthUser.UserRoles.Select(ur => ur.RoleId).ToList();
             var roleNames = await _dbContext.Roles
                 .Where(r => roleIds.Contains(r.Id))
@@ -45,10 +47,11 @@ namespace Auth.Infrastructure.Services
                 .ToListAsync(cancellationToken);
 
             var newAccessToken = GenerateAccessTokenAsync(tokenStored.UserId, tokenStored.AuthUser.UserName!, roleNames.AsReadOnly());
-            var newRefreshToken = await CreateRefreshTokenAsync(tokenStored.UserId, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return new TokenResult(new ValidateUser(tokenStored.AuthUser.Id, tokenStored.AuthUser.UserName!, roleNames.AsReadOnly()), newAccessToken, newRefreshToken);
+            return new TokenResult(
+                new ValidateUser(tokenStored.AuthUser.Id, tokenStored.AuthUser.UserName!, roleNames.AsReadOnly()),
+                newAccessToken,
+                tokenStored.Token,
+                tokenStored.ExpiresAt);
         }
 
         public async Task<Guid?> RevokeAsync(string refreshToken, CancellationToken cancellationToken)
@@ -111,7 +114,7 @@ namespace Auth.Infrastructure.Services
             {
                 Issuer = Constants.JWT_ISSUER,
                 Subject = new ClaimsIdentity(claims),
-                Expires = now.AddHours(AuthTokenConstants.AccessTokenExpireHours),
+                Expires = now.AddMinutes(AuthTokenConstants.AccessTokenExpireMinutes),
                 SigningCredentials = new SigningCredentials(
                     new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
@@ -121,22 +124,24 @@ namespace Auth.Infrastructure.Services
             return handler.WriteToken(handler.CreateToken(descriptor));
         }
 
-        private async Task<string> CreateRefreshTokenAsync(string userId, CancellationToken cancellationToken)
+        private async Task<RefreshToken> CreateRefreshTokenAsync(string userId, CancellationToken cancellationToken)
         {
             // Token ngẫu nhiên 64 bytes — Base64URL (không có +, /, = → an toàn trong cookie/URL)
             var token = Guid.CreateVersion7().ToString("N"); // 32 chars hex, đủ ngẫu nhiên cho refresh token
 
-            _dbContext.RefreshTokens.Add(new RefreshToken
+            var refreshToken = new RefreshToken
             {
                 Token = token,
                 UserId = userId,
                 ExpiresAt = DateTime.UtcNow.AddDays(AuthTokenConstants.RefreshTokenExpireDays),
                 IsRevoked = false,
                 CreatedAt = DateTime.UtcNow
-            });
+            };
+
+            _dbContext.RefreshTokens.Add(refreshToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return token;
+            return refreshToken;
         }
     }
 }

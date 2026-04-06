@@ -9,6 +9,7 @@ using HanziAnhVuHsk.Api.Extensions;
 using HanziAnhVuHsk.Extensions;
 using Interface;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Model;
 using Notification.Application.Config;
@@ -55,6 +56,9 @@ builder.Services.Configure<MailSettings>(
 // auth dependency
 Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
+// users dependency
+Users.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
+
 // notification dependency
 Notification.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
@@ -78,6 +82,18 @@ builder.Services.AddHttpClient<IOcrClient, OcrClient>((serviceProvider, client) 
 
 builder.Services.AddScoped(typeof(IAppLogger<>), typeof(LoggingAdapter<>));
 
+// Trust reverse-proxy headers from Nginx (X-Forwarded-Proto/Host/For).
+// Keep KnownNetworks/KnownProxies restricted in stricter environments if possible.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 
 var key = Encoding.ASCII.GetBytes(Constants.JWT_SECRET_KEY);
 builder.Services.AddAuthentication("Bearer")
@@ -92,6 +108,7 @@ builder.Services.AddAuthentication("Bearer")
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
+            ValidateLifetime = true, // Bắt buộc token phải có thời gian sống hợp lệ (không hết hạn).
             // ValidateIssuerSigningKey: Bắt buộc token phải có chữ ký hợp lệ (bảo mật).
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -154,6 +171,9 @@ builder.AddRedisClient("redis-hanzi");
 
 var app = builder.Build();
 
+// Apply forwarded headers before auth/cookie/redirect logic so request scheme is accurate behind Nginx.
+app.UseForwardedHeaders();
+
 //if (app.Environment.IsDevelopment())
 //{
 app.UseSwagger();
@@ -163,6 +183,10 @@ app.UseSwaggerUI();
 // Enable CORS before routing
 app.UseCors(MyAllowSpecificOrigins);
 
+// Enable auth middleware so JWT cookie/header can populate HttpContext.User
+app.UseAuthentication();
+app.UseAuthorization();
+
 // add auth api trước để có thể sử dụng cookie authentication trong api sau (nếu có)
 app.MapAuthApi();
 app.MapOcrApi();
@@ -170,3 +194,139 @@ app.MapSearchApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "hanzi-anhvu-hsk-api" }));
 
 app.Run();
+
+/*
+    1) Browser -> Nginx: HTTPS (public SSL cert ở Nginx).
+    2) Nginx -> Kestrel: HTTP nội bộ (container network/private network) là mô hình phổ biến.
+    3) Không bắt buộc cert riêng cho Kestrel, trừ khi bạn cần end-to-end TLS/compliance.
+    4) Nginx cần forward: X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-For.
+    5) App đã bật UseForwardedHeaders() để xử lý đúng scheme/callback/cookie khi chạy sau proxy.
+
+ Publish/Deploy note (Nginx + Kestrel):
+
+ 1) Browser -> Nginx: HTTPS (SSL cert đặt ở Nginx).
+ 2) Nginx -> Kestrel: thường là HTTP nội bộ (private network/container network).
+     => Thông thường KHÔNG cần cert public riêng cho Kestrel.
+
+ 3) Nếu bật HTTPS ở Kestrel trong production thì phải cấu hình thêm cert cho Kestrel.
+     Chỉ cần khi bạn muốn end-to-end TLS hoặc có yêu cầu compliance.
+
+ 4) Khi chạy sau reverse proxy, cần forward các header:
+     - X-Forwarded-Proto
+     - X-Forwarded-Host
+     - X-Forwarded-For
+     để app biết request gốc là HTTPS và tránh redirect/cookie sai scheme.
+
+ 5) UseHttpsRedirection vẫn dùng được, nhưng phải đảm bảo forwarded headers cấu hình đúng,
+     nếu không có thể gặp redirect loop hoặc callback URL bị nhảy sang http.
+
+    Mô hình bạn mô tả là mô hình chuẩn, tiết kiệm nhất:
+    Internet -> Nginx: HTTPS
+    Nginx -> Next container: HTTP nội bộ
+    Nginx -> .NET container: HTTP nội bộ
+    Các container nói chuyện nhau qua Docker network private, không cần HTTPS giữa các container.
+    Nginx chịu trách nhiệm SSL termination, load balancing, và forwarding header để .NET app biết request gốc là HTTPS.
+
+    Với mô hình đó, bạn không bắt buộc mua cert cho từng service nội bộ.
+    Chỉ cần cert ở Nginx public edge.
+    Bên trong network nội bộ để HTTP là bình thường.
+Về tiền cert:
+    Lets Encrypt: miễn phí, rất phổ biến cho production.
+    Cert trả phí DV: thường khoảng 10 đến 100 USD mỗi năm.
+    OV/EV: có thể từ vài trăm đến hơn 1000 USD mỗi năm tùy nhà cung cấp.
+    Nếu ngân sách thấp, dùng Lets Encrypt là lựa chọn hợp lý và đủ dùng cho đa số hệ thống.
+Câu hỏi quan trọng của bạn: các file token-manager/hook đã xóa còn quan trọng không khi publish bằng container network?
+Câu trả lời: không, vẫn không quan trọng trong kiến trúc hiện tại.
+    Lý do không nằm ở container network, mà nằm ở HttpOnly cookie.
+    Khi cookie là HttpOnly, JavaScript phía client không đọc được token dù bạn chạy localhost hay production.
+    Vì vậy các file cũ kiểu đọc token từ client cookie vẫn không phù hợp.
+Cái cần giữ trong production:
+    Flow restore session và refresh ở server-side như bạn đang làm tại route.ts.
+    Interceptor HTTP theo hướng cookie-based refresh ở http.ts.
+    Middleware auth/authorization backend ở Program.cs.
+Checklist để không lỗi khi lên Nginx:
+    Nginx gửi đủ X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-For
+    App trust forwarded headers
+    Cookie auth đặt HttpOnly + Secure trong production
+    URL cấu hình ngoài cùng dùng domain HTTPS thật, không dùng localhost
+
+
+// mẫy nginx
+     đây là mẫu tối giản để bạn deploy đúng hướng bạn muốn: chỉ Nginx có HTTPS, container nội bộ chạy HTTP.
+
+    Kiến trúc đích:
+
+    Browser -> Nginx: HTTPS
+    Nginx -> Next container: HTTP nội bộ
+    Nginx -> .NET API container: HTTP nội bộ
+    Không cần cert trả phí cho từng container nội bộ
+    Mẫu Nginx (1 domain, route / vào Next, /api vào .NET):
+
+    server {
+        listen 80;
+        server_name your-domain.com;
+        return 301 https://$host$request_uri;
+        }
+
+        server {
+        listen 443 ssl http2;
+        server_name your-domain.com;
+        ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+        client_max_body_size 20m;
+
+        location / {
+            proxy_pass http://next-app:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
+
+        location /api/ {
+            proxy_pass http://dotnet-api:8080/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+        }
+    }
+
+    Phần .NET cần thêm để hiểu đúng HTTPS gốc qua proxy
+    (chỉnh trong Program.cs):
+
+    using Microsoft.AspNetCore.HttpOverrides;
+
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+    options.ForwardedHeaders =
+    ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    });
+
+    var app = builder.Build();
+    app.UseForwardedHeaders();
+
+    Phần Next env production
+    (chỉnh trong .env hoặc biến môi trường runtime):
+
+    NEXTAUTH_URL=https://your-domain.com
+    NEXT_PUBLIC_SITE_URL=https://your-domain.com
+    NEXT_PUBLIC_API_BASE_URL=https://your-domain.com/api
+    Về chứng chỉ:
+
+    Không đủ tiền mua cert vẫn ổn, dùng Let’s Encrypt là miễn phí.
+    Bạn chỉ cần cert ở Nginx public edge.
+    Nội bộ container network giữ HTTP là bình thường.
+    Lưu ý quan trọng với flow auth của bạn:
+
+    Các file token manager client đọc cookie đã xóa là đúng.
+    Với HttpOnly cookie, restore/refresh server-side như hiện tại là đúng chuẩn production.
+    Nginx chỉ là lớp transport HTTPS, không thay thế logic session restore của app.
+*/

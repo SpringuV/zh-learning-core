@@ -1,4 +1,6 @@
-﻿namespace Auth.Application.DomainEventHandlers;
+﻿using HanziAnhVu.Shared.Application;
+
+namespace Auth.Application.DomainEventHandlers;
 
 // AuthUserCreatedDomainEventHandler is responsible for handling the AuthUserCreatedDomainEvent
 // and publishing a UserRegisteredIntegrationEvent to the event bus.

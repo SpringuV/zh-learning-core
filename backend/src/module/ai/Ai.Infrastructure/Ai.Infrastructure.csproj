@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\Ai.Application\Ai.Application.csproj" />
+    <ProjectReference Include="..\Ai.Domain\Ai.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

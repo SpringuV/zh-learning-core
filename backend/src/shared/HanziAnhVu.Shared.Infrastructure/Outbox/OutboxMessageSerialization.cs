@@ -3,6 +3,7 @@ using System.Text.Json;
 
 namespace Shared.Infrastructure.Outbox;
 
+// This class provides methods for serializing integration events into outbox messages and deserializing them back.
 public static class OutboxMessageSerialization
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)

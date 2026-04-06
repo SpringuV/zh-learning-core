@@ -2,12 +2,8 @@
 
 namespace Auth.Infrastructure.Identity;
 
-public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
+public class AuthIdentityDbContext(DbContextOptions<AuthIdentityDbContext> options) : IdentityDbContext<AuthApplicationUser>(options)
 {
-    public AuthIdentityDbContext(DbContextOptions<AuthIdentityDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<AuthOutboxMessage> OutboxMessages { get; set; } = null!;
 
@@ -22,16 +18,6 @@ public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
             entity.ConfigureOutboxMessage("OutboxMessages");
         });
 
-        // ── Quan hệ: ApplicationUser ←→ IdentityUserRole ──────────────
-        // Đọc theo hướng: "ApplicationUser có NHIỀU UserRoles,
-        //                  mỗi UserRole thuộc về MỘT ApplicationUser"
-        //
-        //  ApplicationUser          IdentityUserRole<string>
-        //  ───────────────          ────────────────────────
-        //  Id (PK)       ◄──────── UserId (FK)
-        //  UserName                 RoleId
-        //  ...                      (bảng AspNetUserRoles)
-        //
         builder.Entity<AuthApplicationUser>()
             // HasMany: "ApplicationUser có NHIỀU UserRoles"
             // → 1 user có thể có nhiều role (Admin, User, Manager...)
@@ -51,19 +37,8 @@ public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
 
         builder.Entity<AuthApplicationUser>()
             .HasIndex(u => u.PhoneNumber)
-            .IsUnique(false);
+            .IsUnique(true);
 
-        // ── Quan hệ: RefreshToken ←→ ApplicationUser ──────────────────
-        // Đọc theo hướng: "RefreshToken thuộc về MỘT ApplicationUser,
-        //                  1 ApplicationUser có THỂ có NHIỀU RefreshToken"
-        //
-        //  RefreshToken             ApplicationUser
-        //  ────────────             ───────────────
-        //  Id (PK)                  Id (PK)
-        //  UserId (FK) ────────►   UserName
-        //  Token                   ...
-        //  IsRevoked
-        //
         builder.Entity<RefreshToken>(entity =>
         {
             // Đảm bảo Token là duy nhất trong DB (không thể có 2 refresh token giống nhau)
@@ -71,7 +46,6 @@ public class AuthIdentityDbContext: IdentityDbContext<AuthApplicationUser>
 
             entity
                 // HasOne: "RefreshToken thuộc về MỘT ApplicationUser"
-                // → mỗi refresh token chỉ gắn với 1 user cụ thể
                 .HasOne(t => t.AuthUser)
 
                 // WithMany(): "ApplicationUser có THỂ có NHIỀU RefreshToken"

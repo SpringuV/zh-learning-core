@@ -4,17 +4,17 @@ import { ReactNode, useState } from "react";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 export default function QueryClientProviderWrapper({
-  children,
+    children,
 }: {
-  children: ReactNode;
+    children: ReactNode;
 }) {
-  const [queryClient] = useState(() => new QueryClient());
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      {process.env.NODE_ENV === "development" && (
-        <ReactQueryDevtools initialIsOpen={true} />
-      )}
-    </QueryClientProvider>
-  );
+    const [queryClient] = useState(() => new QueryClient());
+    return (
+        <QueryClientProvider client={queryClient}>
+            {children}
+            {process.env.NODE_ENV === "development" && (
+                <ReactQueryDevtools initialIsOpen={true} />
+            )}
+        </QueryClientProvider>
+    );
 }

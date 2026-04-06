@@ -4,7 +4,14 @@ const endpoints = {
     getListUsers: "/search/v1/users",
 };
 
-export type UserSortBy = "CreatedAt" | "UpdatedAt" | "CurrentLevel";
+export type UserSortBy =
+    | "CreatedAt"
+    | "UpdatedAt"
+    | "CurrentLevel"
+    | "Email"
+    | "Username";
+
+export type SortDirection = "Asc" | "Desc";
 
 export interface UserListQueryParams {
     email?: string;
@@ -15,6 +22,10 @@ export interface UserListQueryParams {
     searchAfterCreatedAt?: string;
     sortBy?: UserSortBy;
     orderByDescending?: boolean;
+    emailOrder?: SortDirection;
+    usernameOrder?: SortDirection;
+    phoneNumberOrder?: SortDirection;
+    currentLevelOrder?: SortDirection;
     startCreatedAt?: string;
     endCreatedAt?: string;
 }

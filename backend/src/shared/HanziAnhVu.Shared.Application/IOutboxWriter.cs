@@ -1,6 +1,6 @@
 using HanziAnhVu.Shared.EventBus;
 
-namespace Auth.Application.Interfaces;
+namespace HanziAnhVu.Shared.Application;
 
 public interface IOutboxWriter
 {

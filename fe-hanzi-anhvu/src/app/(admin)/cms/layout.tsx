@@ -13,13 +13,14 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/shared/components/ui/sidebar";
+import { headers } from "next/headers";
 export default async function CmsLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     const session = await auth();
-
+    console.log("[CMS Layout] Session:", session);
     if (!session?.user?.id) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -35,7 +36,44 @@ export default async function CmsLayout({
         // Redirect to 403 page or handle unauthorized access
         return <Page403 />;
     }
+    const route = {
+        userManagement: {
+            list: {
+                url: "/cms/users",
+                title: "Danh Sách User",
+            },
+        },
+        dashboard: {
+            main: {
+                url: "/cms/dashboard",
+                title: "Bảng Điều Khiển",
+            },
+        },
+        lessons: {
+            list: {
+                url: "/cms/lessons",
+                title: "Danh Sách Bài Học",
+            },
+        },
+        categories: {
+            list: {
+                url: "/cms/categories",
+                title: "Danh Sách Danh Mục",
+            },
+        },
+    };
+    // Determine current route to set breadcrumb title. This is a simple implementation,
+    // you can enhance it based on your routing structure.
+    const headerStore = await headers();
+    const pathName = headerStore.get("x-pathname") ?? "/cms/dashboard";
+    const currentRoute =
+        Object.values(route)
+            .map((group) => Object.values(group))
+            .flat()
+            .find((item) => pathName.startsWith(item.url))?.title ??
+        route.dashboard.main.title;
 
+    console.log("[CMS Layout] Current Pathname:", pathName);
     return (
         <SidebarProvider>
             <AppSidebar />
@@ -51,7 +89,7 @@ export default async function CmsLayout({
                             <BreadcrumbList>
                                 <BreadcrumbItem>
                                     <BreadcrumbPage>
-                                        Bảng Điều Khiển
+                                        {currentRoute}
                                     </BreadcrumbPage>
                                 </BreadcrumbItem>
                             </BreadcrumbList>

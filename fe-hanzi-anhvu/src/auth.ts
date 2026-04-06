@@ -3,10 +3,63 @@ import "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
-import NextAuth, { CredentialsSignin } from "next-auth";
+import NextAuth, { CredentialsSignin, Session } from "next-auth";
 import { AxiosError } from "axios";
 import { authApi } from "@/modules/auth/api/auth.api";
 import { TypeLogin } from "@/modules/auth/types/auth.inteface";
+import { JWT } from "next-auth/jwt";
+import { jwtDecode } from "jwt-decode";
+
+type DecodedIdentityToken = {
+    sub?: string;
+    unique_name?: string;
+    name?: string;
+    role?: string | string[];
+    roles?: string[];
+    exp?: number;
+};
+
+function getCookieValueFromHeader(
+    cookieHeader: string | null | undefined,
+    cookieName: string,
+): string | null {
+    if (!cookieHeader) return null;
+
+    const cookiePairs = cookieHeader.split(";");
+    for (const pair of cookiePairs) {
+        const trimmed = pair.trim();
+        if (trimmed.startsWith(`${cookieName}=`)) {
+            return trimmed.substring(cookieName.length + 1);
+        }
+    }
+    return null;
+}
+
+function restoreUserFromIdentityCookie(identityToken: string) {
+    try {
+        const decoded = jwtDecode<DecodedIdentityToken>(identityToken);
+
+        if (!decoded.sub) return null;
+        if (decoded.exp && decoded.exp <= Math.floor(Date.now() / 1000)) {
+            return null;
+        }
+
+        const rolesRaw = decoded.roles ?? decoded.role ?? [];
+        const roles = Array.isArray(rolesRaw)
+            ? rolesRaw.filter((r) => typeof r === "string")
+            : typeof rolesRaw === "string"
+              ? [rolesRaw]
+              : [];
+
+        return {
+            id: decoded.sub,
+            name: decoded.unique_name ?? decoded.name ?? "",
+            roles,
+        };
+    } catch {
+        return null;
+    }
+}
 
 class BackendCredentialsError extends CredentialsSignin {
     constructor(message: string) {
@@ -108,7 +161,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     const res = await authApi.Login(payload);
                     await parseAndSetServerCookie(res);
-
                     return {
                         id: res.data.userId,
                         name: res.data.userName,
@@ -130,6 +182,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 }
             },
         }),
+        Credentials({
+            id: "restore-session",
+            name: "restore-session",
+            credentials: {
+                identityToken: { label: "IdentityToken", type: "text" },
+            },
+            async authorize(credentials, request) {
+                const tokenFromCredentials =
+                    typeof credentials?.identityToken === "string"
+                        ? credentials.identityToken
+                        : null;
+                const cookieHeader = request?.headers?.get("cookie");
+                const identityToken = getCookieValueFromHeader(
+                    cookieHeader,
+                    "HanziAnhVu.Identity",
+                );
+
+                const effectiveIdentityToken =
+                    tokenFromCredentials ?? identityToken;
+                if (!effectiveIdentityToken) return null;
+
+                return restoreUserFromIdentityCookie(effectiveIdentityToken);
+            },
+        }),
         Facebook({
             clientId: process.env.AUTH_FACEBOOK_ID!,
             clientSecret: process.env.AUTH_FACEBOOK_SECRET!,
@@ -142,22 +218,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     callbacks: {
         jwt({ token, user, account }) {
             if (user) {
-                token.roles = user.roles;
+                // User vừa login - lấy thông tin từ backend response
+                token.roles = (user as any).roles;
                 token.sub = user.id;
+                token.name = user.name ?? undefined;
+                // NextAuth JWT token chỉ cần user info
+                // Access token được lưu ở browser cookie (HanziAnhVu.Identity)
             }
+
             if (account?.access_token) {
                 token.accessToken = account.access_token;
             }
             return token;
         },
-        async session({ session, token }) {
+        async session({ session, token }: { session: Session; token: JWT }) {
             session.user.roles = token.roles;
             session.user.id = token.sub || "";
             session.user.name = token.name || "";
+            // Access token nằm trong HttpOnly cookie, không đọc trực tiếp ở client.
+            // Session chỉ giữ user identity/roles cho UI và route guard.
             return session;
         },
-        authorized: async ({ auth }) => {
-            return !!(auth && auth.user?.id);
+        authorized: async ({ auth, request }) => {
+            const { pathname } = request.nextUrl;
+
+            // Protected routes - require authentication
+            const protectedRoutes = [
+                "/cms/dashboard",
+                "/cms/profile",
+                "/cms/settings",
+                "/cms/classroom",
+                "/cms/flashcard",
+                "/cms/admin",
+            ];
+
+            const isProtected = protectedRoutes.some((route) =>
+                pathname.startsWith(route),
+            );
+
+            // If accessing protected route without auth, deny (redirect to signin)
+            if (isProtected) {
+                return !!auth?.user?.id;
+            }
+
+            // If user logged in and accessing login page, allow
+            // (component will redirect to dashboard)
+            return true;
         },
     },
     pages: {

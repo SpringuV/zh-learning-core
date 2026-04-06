@@ -1,3 +1,4 @@
+using HanziAnhVu.Shared.Application;
 
 namespace Auth.Application.DomainEventIntegration;
 

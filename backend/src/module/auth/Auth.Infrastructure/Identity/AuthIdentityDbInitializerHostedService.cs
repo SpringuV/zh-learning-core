@@ -18,14 +18,19 @@ public sealed class AuthIdentityDbInitializerHostedService(
     {
         try
         {
+            // Tạo scope để lấy các service cần thiết cho việc khởi tạo database và seed dữ liệu, 
+            // tránh việc inject trực tiếp DbContext vào hosted service để không bị lỗi về scope
             await using var scope = _scopeFactory.CreateAsyncScope();
 
+            // Lấy DbContext, UserManager và RoleManager từ scope để thực hiện migration và seed dữ liệu
             var identityDbContext = scope.ServiceProvider.GetRequiredService<AuthIdentityDbContext>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AuthApplicationUser>>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
             if (identityDbContext.Database.IsNpgsql())
             {
+                // Migrate database với retry logic để xử lý trường hợp database chưa sẵn sàng 
+                // khi ứng dụng khởi động, đặc biệt là trong môi trường containerized
                 var migrated = await identityDbContext.Database.MigrateWithRetryAsync(
                     _logger,
                     cancellationToken,
@@ -37,6 +42,8 @@ public sealed class AuthIdentityDbInitializerHostedService(
                     return;
                 }
 
+                // đảm bảo trigger cho outbox table để có thể notify service khác khi có message mới,
+                //  tránh việc phải dùng polling
                 await identityDbContext.Database.EnsureOutboxNotifyTriggerAsync(
                     tableName: "OutboxMessages",
                     channelName: "outbox_channel",

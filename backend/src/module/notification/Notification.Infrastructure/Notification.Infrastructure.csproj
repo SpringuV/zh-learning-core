@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
+    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\Notification.Application\Notification.Application.csproj" />
   </ItemGroup>
 

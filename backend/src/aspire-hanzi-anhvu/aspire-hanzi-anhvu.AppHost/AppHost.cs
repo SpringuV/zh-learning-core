@@ -11,6 +11,7 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
 
 var authDb = postgres.AddDatabase("identity-hanzi");
+var usersDb = postgres.AddDatabase("users-hanzi");
 var elasticsearch = builder
     .AddElasticsearchWithKibana("elastic-hanzi", elasticPassword)
     .WithElasticsearchSetup();
@@ -24,10 +25,13 @@ var elasticsearch = builder
 builder.AddProject<Projects.HanziAnhVuHsk_Api>("hanzi-anhvu-hsk-api")
     .WithReference(redis) // add redis
     .WithReference(authDb) // add db auth/identity
+    .WithReference(usersDb) // add db users
     .WithReference(elasticsearch)
 
     .WithEnvironment("ConnectionStrings__AuthIdentityDbConnection", authDb)
+    .WithEnvironment("ConnectionStrings__UsersDbConnection", usersDb)
     .WithEnvironment("ASPNETCORE_URLS", "https://localhost:1907;http://localhost:1908")
-    .WaitFor(authDb);
+    .WaitFor(authDb)
+    .WaitFor(usersDb);
 
 builder.Build().Run();

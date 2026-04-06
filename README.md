@@ -106,3 +106,78 @@ After each non-trivial task, update the relevant `SESSION_HANDOFF.md` with:
 
 // chạy thêm frontend
 // docker compose --profile frontend up --build
+
+## Production Deploy Quick Start (Nginx HTTPS + Internal HTTP)
+
+This repository includes a production compose template where:
+
+- Browser -> Nginx uses HTTPS
+- Nginx -> Next.js/.NET containers uses internal HTTP on Docker network
+
+### 1) Prepare environment
+
+From repository root:
+
+```bash
+cp .env.production.example .env.production
+```
+
+PowerShell (Windows):
+
+```powershell
+Copy-Item .env.production.example .env.production
+```
+
+Update values in `.env.production`:
+
+- `PUBLIC_BASE_URL`
+- `NEXTAUTH_SECRET`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `USERS_DB`
+- `AUTH_IDENTITY_DB_CONNECTION`
+- `USERS_DB_CONNECTION`
+- `OUTBOX_DB_CONNECTION`
+
+Note: default compose uses one Postgres container (`zh-postgres`) with multiple databases (module-per-database style), plus persistent volume (`postgres-data`).
+The init script `deploy/postgres/init-multiple-databases.sh` creates extra module databases on first startup.
+
+Important: Postgres init scripts run only when data directory is empty.
+If you add new module databases later, recreate volume or create DB manually:
+
+```bash
+docker compose -f docker-compose.production.yml down -v
+```
+
+### 2) Prepare TLS cert files for Nginx
+
+Place certificate files at:
+
+- `deploy/nginx/certs/fullchain.pem`
+- `deploy/nginx/certs/privkey.pem`
+
+Update `server_name` in `deploy/nginx/nginx.conf` to your real domain.
+
+### 3) Build and run production stack
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+### 4) Verify
+
+```bash
+docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml logs -f nginx
+```
+
+Health check:
+
+- `https://your-domain.com/health`
+
+### 5) Stop stack
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml down
+```

@@ -197,8 +197,13 @@ public class AuthApi
         // Keep cookie policy consistent for both access and refresh tokens.
         // If current request is HTTPS, use Secure + SameSite=None so cookies are sent in cross-site XHR.
         bool isSecure = httpResponse.HttpContext.Request.IsHttps;
-        var sameSiteMode = isSecure ? SameSiteMode.None : SameSiteMode.Lax;
-        
+        bool isDevelopment = httpResponse.HttpContext.RequestServices
+        .GetRequiredService<IWebHostEnvironment>()
+        .IsDevelopment();
+        // Dev: có thể dùng SameSite.Lax (nhưng XHR có thể fail)
+        // Prod: HTTPS + SameSite.None
+        var sameSiteMode = isSecure ? SameSiteMode.None : (isDevelopment ? SameSiteMode.Lax : SameSiteMode.Strict);
+    
         httpResponse.Cookies.Append(ConfigureCookieSettings.IdentifierCookieName, accessToken, new CookieOptions
         {
             HttpOnly = true,

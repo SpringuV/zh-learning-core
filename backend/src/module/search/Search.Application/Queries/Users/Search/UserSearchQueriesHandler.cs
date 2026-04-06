@@ -10,17 +10,10 @@ using Search.Domain.Entities;
 
 namespace Search.Application.Queries.Users.Search;
 
-public class UserSearchQueriesHandler : IRequestHandler<UserSearchQueries, SearchQueryResult<UserSearchItemResponse>>
+public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, ElasticsearchClient client) : IRequestHandler<UserSearchQueries, SearchQueryResult<UserSearchItemResponse>>
 {
-    private readonly ElasticsearchClient _client;
-    private readonly ILogger<UserSearchQueriesHandler> _logger;
-    private readonly IUserSearchQueriesServices _userSearchQueriesServices;
-    public UserSearchQueriesHandler(IUserSearchQueriesServices userSearchQueriesServices, ILogger<UserSearchQueriesHandler> logger, ElasticsearchClient client)
-    {
-        _client = client;
-        _logger = logger;
-        _userSearchQueriesServices = userSearchQueriesServices;
-    }
+    private readonly ElasticsearchClient _client = client;
+    private readonly ILogger<UserSearchQueriesHandler> _logger = logger;
     public async Task<SearchQueryResult<UserSearchItemResponse>> Handle(UserSearchQueries request, CancellationToken cancellationToken)
     {
         var searchResult = await SearchInternalAsync(
@@ -66,60 +59,6 @@ public class UserSearchQueriesHandler : IRequestHandler<UserSearchQueries, Searc
                     NextCursor: string.Empty);
             }
 
-            try
-            {
-                // Primary path: keep LINQ-style query composition for readability.
-                var query = _client.Esql.CreateQuery<UserSearch>().From(ConstantIndexElastic.UserIndex);
-
-                if (!string.IsNullOrWhiteSpace(request.Email))
-                    query = query.Where(u => u.Email.Contains(request.Email));
-
-                if (!string.IsNullOrWhiteSpace(request.Username))
-                    query = query.Where(u => u.Username.Contains(request.Username));
-
-                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                    query = query.Where(u => u.PhoneNumber == request.PhoneNumber);
-
-                if (request.IsActive.HasValue)
-                    query = query.Where(u => u.IsActive == request.IsActive.Value);
-
-                if (request.StartCreatedAt.HasValue)
-                    query = query.Where(u => u.CreatedAt >= request.StartCreatedAt.Value);
-
-                if (request.EndCreatedAt.HasValue)
-                    query = query.Where(u => u.CreatedAt <= request.EndCreatedAt.Value);
-
-                if (!string.IsNullOrWhiteSpace(request.SearchAfterCreatedAt) && DateTime.TryParse(request.SearchAfterCreatedAt, out var searchAfterCreatedAt))
-                {
-                    query = request.OrderByDescending
-                        ? query.Where(u => u.CreatedAt < searchAfterCreatedAt)
-                        : query.Where(u => u.CreatedAt > searchAfterCreatedAt);
-                }
-
-                query = request.SortBy switch
-                {
-                    UserSortBy.UpdatedAt => request.OrderByDescending
-                        ? query.OrderByDescending(u => u.UpdatedAt)
-                        : query.OrderBy(u => u.UpdatedAt),
-                    UserSortBy.CurrentLevel => request.OrderByDescending
-                        ? query.OrderByDescending(u => u.CurrentLevel)
-                        : query.OrderBy(u => u.CurrentLevel),
-                    _ => request.OrderByDescending
-                        ? query.OrderByDescending(u => u.CreatedAt)
-                        : query.OrderBy(u => u.CreatedAt)
-                };
-
-                query = query.Take(request.Take + 1);
-
-                var documentsFromLinq = await query.ToAsyncEnumerable().ToListAsync(cancellationToken);
-                return BuildPagedResult(documentsFromLinq, request.Take);
-            }
-            catch (Exception ex) when (ex is JsonException || ex is NotSupportedException)
-            {
-                _logger.LogWarning(ex, "ES|QL LINQ query failed. Falling back to Search API query.");
-            }
-
-            // Fallback path: if LINQ-style query fails (e.g. due to complex query or deserialization issues), use low-level Search API with manual query construction.
             var response = await _client.SearchAsync<UserSearch>(s =>
             {
                 s.Indices(ConstantIndexElastic.UserIndex);
@@ -183,48 +122,37 @@ public class UserSearchQueriesHandler : IRequestHandler<UserSearchQueries, Searc
                     }
                 }));
 
-                switch (request.SortBy)
+                s.Sort(sort =>
                 {
-                    case UserSortBy.UpdatedAt:
-                        s.Sort(sort =>
-                        {
-                            if (request.OrderByDescending)
-                            {
-                                sort.Field(f => f.Field(u => u.UpdatedAt).Order(Elastic.Clients.Elasticsearch.SortOrder.Desc));
-                            }
-                            else
-                            {
-                                sort.Field(f => f.Field(u => u.UpdatedAt).Order(Elastic.Clients.Elasticsearch.SortOrder.Asc));
-                            }
-                        });
-                        break;
-                    case UserSortBy.CurrentLevel:
-                        s.Sort(sort =>
-                        {
-                            if (request.OrderByDescending)
-                            {
-                                sort.Field(f => f.Field(u => u.CurrentLevel).Order(Elastic.Clients.Elasticsearch.SortOrder.Desc));
-                            }
-                            else
-                            {
-                                sort.Field(f => f.Field(u => u.CurrentLevel).Order(Elastic.Clients.Elasticsearch.SortOrder.Asc));
-                            }
-                        });
-                        break;
-                    default:
-                        s.Sort(sort =>
-                        {
-                            if (request.OrderByDescending)
-                            {
-                                sort.Field(f => f.Field(u => u.CreatedAt).Order(Elastic.Clients.Elasticsearch.SortOrder.Desc));
-                            }
-                            else
-                            {
-                                sort.Field(f => f.Field(u => u.CreatedAt).Order(Elastic.Clients.Elasticsearch.SortOrder.Asc));
-                            }
-                        });
-                        break;
-                }
+                    switch (request.SortBy)
+                    {
+                        case UserSortBy.Email:
+                            sort.Field(f => f.Field(u => u.Email).Order(request.OrderByDescending
+                                ? SortOrder.Desc
+                                : SortOrder.Asc));
+                            break;
+                        case UserSortBy.Username:
+                            sort.Field(f => f.Field(u => u.Username).Order(request.OrderByDescending
+                                ? SortOrder.Desc
+                                : SortOrder.Asc));
+                            break;
+                        case UserSortBy.UpdatedAt:
+                            sort.Field(f => f.Field(u => u.UpdatedAt).Order(request.OrderByDescending
+                                ? SortOrder.Desc
+                                : SortOrder.Asc));
+                            break;
+                        case UserSortBy.CurrentLevel:
+                            sort.Field(f => f.Field(u => u.CurrentLevel).Order(request.OrderByDescending
+                                ? SortOrder.Desc
+                                : SortOrder.Asc));
+                            break;
+                        default:
+                            sort.Field(f => f.Field(u => u.CreatedAt).Order(request.OrderByDescending
+                                ? SortOrder.Desc
+                                : SortOrder.Asc));
+                            break;
+                    }
+                });
             }, cancellationToken);
 
             if (!response.IsValidResponse)
@@ -233,7 +161,15 @@ public class UserSearchQueriesHandler : IRequestHandler<UserSearchQueries, Searc
             }
 
             var documents = response.Documents.ToList();
-            return BuildPagedResult(documents, request.Take);
+            var totalHits = response.HitsMetadata?.Total;
+            long? totalMatched = null;
+            if (totalHits is not null)
+            {
+                totalMatched = totalHits.Match(
+                    hitCount => hitCount?.Value ?? 0,
+                    value => value);
+            }
+            return BuildPagedResult(documents, request.Take, totalMatched);
         }
         catch (Exception ex)
         {
@@ -242,17 +178,19 @@ public class UserSearchQueriesHandler : IRequestHandler<UserSearchQueries, Searc
         }
     }
 
-    private SearchQueryResult<UserSearch> BuildPagedResult(List<UserSearch> documents, int take)
+    private SearchQueryResult<UserSearch> BuildPagedResult(List<UserSearch> documents, int take, long? totalMatched = null)
     {
         _logger.LogInformation("Query executed successfully: {DocumentCount} documents returned", documents.Count);
 
         var hasNextPage = documents.Count > take;
         var results = documents.Take(take).ToList();
+        var total = totalMatched ?? results.Count;
 
         return new SearchQueryResult<UserSearch>(
-            Total: results.Count,
+            Total: total,
             Items: results,
             HasNextPage: hasNextPage,
             NextCursor: hasNextPage && results.Count > 0 ? results.Last().CreatedAt.ToString("O") : string.Empty);
     }
+
 }

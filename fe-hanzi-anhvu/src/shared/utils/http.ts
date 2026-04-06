@@ -42,9 +42,21 @@ class Http {
     private isRefreshing = false;
     // Queue for failed requests during refresh
     private failedQueue: Array<{
-        resolve: (value?: any) => void; // tạo resolve và reject để xử lý các request bị lỗi trong khi đang refresh token
+        resolve: (config: any) => void;
         reject: (error?: any) => void;
+        requestConfig: any;
     }> = [];
+
+    private processQueue(error: any = null) {
+        this.failedQueue.forEach(({ resolve, reject, requestConfig }) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve(requestConfig);
+        });
+        this.failedQueue = [];
+    }
 
     // Constructor: Create axios instance and setup interceptors
     constructor() {
@@ -63,7 +75,8 @@ class Http {
 
     // Private method to setup axios interceptors
     private setupInterceptors() {
-        // Response interceptor to handle successful and error responses
+        // ============= Response Interceptor =============
+        // Handle 401 as fallback (reactive approach)
         this.instance.interceptors.response.use(
             // On success: return response as is
             (response: AxiosResponse) => response,
@@ -71,22 +84,30 @@ class Http {
             async (error: AxiosError) => {
                 // Get original request config
                 const originalRequest = error.config;
+                const isRefreshEndpoint =
+                    originalRequest?.url?.includes("/auth/v1/refresh-token") ??
+                    false;
                 // Check if error is auth-related, has config, and not already retried
                 if (
                     (error.response?.status === 401 ||
                         error.response?.status === 403) &&
                     originalRequest &&
+                    !isRefreshEndpoint &&
                     !originalRequest._retry
                 ) {
                     // If already refreshing, queue this request
                     if (this.isRefreshing) {
                         // Return promise that resolves after refresh completes
                         return new Promise((resolve, reject) => {
-                            this.failedQueue.push({ resolve, reject });
+                            this.failedQueue.push({
+                                resolve,
+                                reject,
+                                requestConfig: originalRequest,
+                            });
                         })
-                            .then(() => {
-                                // Retry original request after refresh
-                                return this.instance(originalRequest);
+                            .then((requestConfig: any) => {
+                                // Retry request after refresh
+                                return this.instance(requestConfig);
                             })
                             .catch((err) => {
                                 // Reject if queue processing fails
@@ -101,25 +122,17 @@ class Http {
                     sendAuthSessionEvent({ type: "TOKEN_REFRESH_STARTED" });
 
                     try {
-                        // Call backend refresh endpoint
+                        // Refresh using HttpOnly cookies; backend will rotate cookies.
                         await axios.post(
-                            `${API_BASE_URL}/auth/v1/refresh-token`, // Refresh API URL
-                            {}, // Empty body
+                            `${API_BASE_URL}/auth/v1/refresh-token`,
+                            {},
                             {
-                                withCredentials: true, // Send refresh cookie
+                                withCredentials: true,
                             },
                         );
 
-                        // In browser runtime, Set-Cookie is applied by the browser automatically
-                        // when CORS + credentials are configured correctly.
-
-                        // Process queued requests
-                        this.failedQueue.forEach(({ resolve }) => {
-                            // Resolve each queued request with retried call
-                            resolve(this.instance(originalRequest));
-                        });
-                        // Clear queue
-                        this.failedQueue = [];
+                        // Process queued requests after successful refresh
+                        this.processQueue(null);
                         sendAuthSessionEvent({
                             type: "TOKEN_REFRESH_SUCCEEDED",
                         });
@@ -128,11 +141,7 @@ class Http {
                         return this.instance(originalRequest);
                     } catch (refreshError) {
                         // If refresh fails, reject all queued requests
-                        this.failedQueue.forEach(({ reject }) => {
-                            reject(refreshError);
-                        });
-                        // Clear queue
-                        this.failedQueue = [];
+                        this.processQueue(refreshError);
                         sendAuthSessionEvent({
                             type: "TOKEN_REFRESH_FAILED",
                             reason:
@@ -140,7 +149,7 @@ class Http {
                                     ? refreshError.message
                                     : "Refresh token failed",
                         });
-                        // Reject the error
+                        // Return 401 error to allow proper handling
                         return Promise.reject(refreshError);
                     } finally {
                         // Reset refreshing flag

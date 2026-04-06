@@ -1,10 +1,12 @@
+using HanziAnhVu.Shared.Application;
+
 namespace Auth.Application.DomainEventHandlers;
 
-public sealed class AuthDeactivatedOutboxEvent(IEventBus @eventBus) : INotificationHandler<UserDeactivatedDomainEvent>
+public sealed class AuthDeactivatedOutboxEvent(IOutboxWriter outboxWriter)
+    : INotificationHandler<UserDeactivatedDomainEvent>
 {
     public Task Handle(UserDeactivatedDomainEvent notification, CancellationToken cancellationToken)
-    {
-        eventBus.PublishAsync(new UserDeactivateIntegrationEvent(notification.UserId), cancellationToken);
-        return Task.CompletedTask;
-    }
+        => outboxWriter.EnqueueAsync(
+            new UserDeactivateIntegrationEvent(notification.UserId),
+            cancellationToken);
 }

@@ -23,5 +23,7 @@ declare module "next-auth/jwt" {
         roles: string[];
         sub?: string;
         name?: string;
+        token?: string;
+        exp?: number;
     }
 }

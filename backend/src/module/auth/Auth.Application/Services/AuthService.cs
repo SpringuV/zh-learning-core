@@ -16,7 +16,7 @@ public class AuthService(IMediator mediator) : IAuthService
         }
 
         var accessTokenExpiresAt = GetAccessTokenExpiresAt(result.AccessToken);
-        var refreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(AuthTokenConstants.RefreshTokenExpireDays);
+        var refreshTokenExpiresAt = result.RefreshTokenExpiresAt;
 
         return new LoginResponse(
             result.Users.Id,
@@ -34,14 +34,13 @@ public class AuthService(IMediator mediator) : IAuthService
         var command = new RefreshTokenCommand(refreshToken);
         var result = await _mediator.Send(command, cancellationToken) ?? throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
         var accessTokenExpiresAt = GetAccessTokenExpiresAt(result.AccessToken);
-        var refreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(AuthTokenConstants.RefreshTokenExpireDays);
 
         return new RefreshTokenResponse(
             "Refresh token thành công.",
             result.AccessToken,
             result.RefreshToken,
             accessTokenExpiresAt,
-            refreshTokenExpiresAt);
+            result.RefreshTokenExpiresAt);
     }
 
     public async Task<UserRegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
