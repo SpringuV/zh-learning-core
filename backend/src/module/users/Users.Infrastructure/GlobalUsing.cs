@@ -1,0 +1,10 @@
+global using Auth.Application.Interfaces;
+global using HanziAnhVu.Shared.Application;
+global using HanziAnhVu.Shared.Infrastructure;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Users.Domain.Interface;
+global using Users.Infrastructure.Outbox;
+global using Users.Infrastructure.Persistence;
+global using Users.Infrastructure.Repository;

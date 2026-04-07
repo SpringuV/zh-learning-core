@@ -90,10 +90,13 @@ public sealed class AuthOutboxDispatcherServiceWorker : BackgroundService
         // Ghi log trạng thái đã vào chế độ lắng nghe.
         _logger.LogInformation("Listening for outbox notifications on channel 'outbox_channel'...");
 
-        // Chờ notification liên tục đến khi bị hủy.
-        while (!ct.IsCancellationRequested)
+        try
         {
             await conn.WaitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Auth outbox listener cancelled.");
         }
     }
 

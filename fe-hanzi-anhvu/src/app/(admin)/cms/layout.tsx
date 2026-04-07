@@ -95,6 +95,8 @@ export default async function CmsLayout({
                             </BreadcrumbList>
                         </Breadcrumb>
                     </div>
+
+                    {/* Bổ sung notify */}
                 </header>
 
                 {/* content */}

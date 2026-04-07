@@ -171,6 +171,7 @@ Table exercise {
   correct_answer text [null, note: "Null nếu AI chấm (write_sentence)"]
   explanation text [null]
   difficulty enum("easy","medium","hard") [default: "medium", note: "Độ khó — dùng để recommend và thống kê"]
+  exercise_context enum("learning","classroom","mixed") [default: "learning", note: "learning = topic-based | classroom = assignment | mixed = cả hai"]
   order_index int
   is_published boolean [default: false]
   created_at datetime
@@ -181,20 +182,43 @@ Table exercise {
   }
 }
 
-Table exercise_attempt {
+Table user_exercise_session {
+  // -- Phiên làm bài (session) — group nhiều exercise hoặc start standalone
+  // -- Dùng để track: điểm phiên, thời gian phiên, trạng thái phiên
   id uuid [pk]
-  user_id uuid [note: "soft ref → users.id (cross-module)"]
-  exercise_id uuid [note: "soft ref → exercise.id (cross-module)"]
-  answer text
-  score float(8,2)
-  ai_feedback text [null, note: "Chỉ cho write_sentence"]
-  is_correct boolean
+  user_id uuid [not null, note: "soft ref → users.id (cross-module)"]
+  topic_id uuid [null, note: "✅ cùng module → GIỮ FK (optional, for context)"]
+  status enum("in_progress","completed","abandoned") [default: "in_progress"]
+  total_score float [null, note: "Điểm tổng phiên (calculate từ exercise attempts)"]
+  started_at datetime
+  completed_at datetime [null]
   time_spent_seconds int
-  created_at datetime
 
   indexes {
     user_id
+    topic_id
+    (user_id, status)
+    started_at
+  }
+}
+
+Table exercise_attempt {
+  // -- Chi tiết từng câu hỏi trong phiên làm bài
+  // -- ✅ session_id cùng module → GIỮ FK (parent session)
+  // -- ❌ exercise_id cross-module → soft ref
+  id uuid [pk]
+  session_id uuid [not null, note: "✅ cùng module → GIỮ FK (→ user_exercise_session.id)"]
+  exercise_id uuid [not null, note: "soft ref → exercise.id (cross-module)"]
+  answer text
+  score float(8,2)
+  is_correct boolean
+  ai_feedback text [null, note: "Feedback từ AI cho bài viết"]
+  created_at datetime
+
+  indexes {
+    session_id
     exercise_id
+    (session_id, exercise_id)
   }
 }
 
@@ -221,18 +245,18 @@ Table user_topic_progress {
 }
 
 // ─── MODULE: Classroom ─────────────────────────────────
-// Xử lý: lớp học trực tiếp và không gian làm việc
-// Live Class: Admin/Teacher tạo → student đăng ký → tạo Classroom
-// Classroom: Teacher add student → giao bài tập (assignment)
-// Aggregates: LiveClass, LiveClassEnrollment, Classroom, ClassroomStudent, Assignment, AssignmentSubmission
+// Xử lý: lớp học (registration, enrollment, workspace, assignments)
+// Classroom: Admin/Teacher tạo → student đăng ký + thanh toán → confirmed → teacher add student → giao bài tập
+// Aggregates: Classroom, ClassroomEnrollment, ClassroomStudent, Assignment, AssignmentSubmission
 
-Table live_class {
+Table classroom {
+  // -- Lớp học đơn nhất — xử lý registration + workspace
+  // -- registration_open → student đăng ký → confirmed → ongoing → completed
   id uuid [pk]
-  teacher_id uuid [note: "soft ref → users.id (cross-module)"]
+  teacher_id uuid [not null, note: "soft ref → users.id (cross-module)"]
   title varchar [note: "VD: Lớp ôn luyện HSK1 T3-T5 2025"]
-  description text
+  description text [null]
   hsk_level int [null]
-  thumbnail_url text
 
   // -- Cửa sổ đăng ký
   registration_start datetime [note: "Thời điểm mở đăng ký"]
@@ -242,11 +266,14 @@ Table live_class {
   // -- Lịch học
   class_start datetime [note: "Ngày khai giảng"]
   class_end datetime [note: "Ngày kết thúc"]
-  schedule_description varchar [note: "VD: T3-T5, 19h-21h (8 tuần)"]
+  schedule_description varchar [null, note: "VD: T3-T5, 19h-21h (8 tuần)"]
 
+  // -- Giá cả
   price decimal(8,2)
   currency enum("VND","USD") [default: "VND"]
-  status enum("upcoming","registration_open","registration_closed","ongoing","completed","cancelled")
+
+  // -- Trạng thái
+  status enum("upcoming","registration_open","registration_closed","ongoing","completed","cancelled") [default: "upcoming"]
   created_at datetime
   updated_at datetime
 
@@ -256,49 +283,34 @@ Table live_class {
   }
 }
 
-Table live_class_enrollment {
-  // -- ✅ live_class_id cùng module → GIỮ FK
+Table classroom_enrollment {
+  // -- Đăng ký lớp học — student đăng ký + thanh toán
+  // -- ✅ classroom_id cùng module → GIỮ FK
   // -- ❌ student_id, payment_id cross-module → soft ref
   id uuid [pk]
-  live_class_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
+  classroom_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
   student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
-  status enum("pending","confirmed","cancelled")
+  status enum("pending","confirmed","cancelled") [default: "pending"]
   enrolled_at datetime
   confirmed_at datetime [null]
   payment_id uuid [null, note: "soft ref → payment.id (cross-module)"]
 
   indexes {
-    (live_class_id, student_id) [unique]
-    live_class_id
+    (classroom_id, student_id) [unique]
+    classroom_id
     student_id
   }
 }
 
-Table classroom {
-  // -- Tạo tương ứng với live_class sau khi enrollment confirmed
-  // -- Hoặc teacher tạo độc lập không gắn live_class
-  id uuid [pk]
-  teacher_id uuid [note: "soft ref → users.id (cross-module)"]
-  live_class_id uuid [null, note: "soft ref → live_class.id (cross-module). Null nếu tạo độc lập"]
-  name varchar
-  description text
-  is_active boolean [default: true]
-  created_at datetime
-
-  indexes {
-    teacher_id
-  }
-}
-
 Table classroom_student {
-  // -- Teacher add student thẳng, không cần invite code
+  // -- Teacher add confirmed enrollment student vào lớp làm việc
   // -- ✅ classroom_id cùng module → GIỮ FK
-  // -- ❌ student_id cross-module → soft ref
+  // -- ❌ student_id, added_by cross-module → soft ref
   id uuid [pk]
   classroom_id uuid [not null, note: "✅ cùng module → GIỮ FK"]
   student_id uuid [not null, note: "soft ref → users.id (cross-module)"]
   added_by uuid [note: "soft ref → users.id — teacher nào add"]
-  status enum("active","removed")
+  status enum("active","removed") [default: "active"]
   added_at datetime
 
   indexes {
@@ -667,12 +679,12 @@ Ref: refresh_tokens.user_id  > users.id
 Ref: topic.course_id        > course.id
 Ref: exercise.topic_id      > topic.id
 Ref: user_topic_progress.topic_id > topic.id
+Ref: user_exercise_session.topic_id > topic.id
+Ref: exercise_attempt.session_id > user_exercise_session.id
 
 // ── Classroom module (internal FKs) ──
-Ref: live_class_enrollment.live_class_id > live_class.id
-
-// ── Classroom Aggregate (internal FKs) ──
-Ref: classroom_student.classroom_id          > classroom.id
+Ref: classroom_enrollment.classroom_id > classroom.id
+Ref: classroom_student.classroom_id    > classroom.id
 
 // ── Assignment Aggregate (internal FKs) ──
 Ref: assignment.classroom_id                 > classroom.id
@@ -703,11 +715,9 @@ Ref: notification.announcement_id > announcement.id
 // ── Cross-module soft references (no FK constraint) ──
 // Auth:       refresh_tokens.user_id                → users.id (Identity uuid)
 // User:       user_ai_usage.user_id                 → users.id
-// Live Class: live_class.teacher_id                 → users.id
-//             live_class_enrollment.student_id      → users.id
-//             live_class_enrollment.payment_id      → payment.id
 // Classroom:  classroom.teacher_id                  → users.id
-//             classroom.live_class_id               → live_class.id
+//             classroom_enrollment.student_id       → users.id
+//             classroom_enrollment.payment_id       → payment.id
 //             classroom_student.student_id          → users.id
 //             classroom_student.added_by            → users.id
 //             assignment.teacher_id                 → users.id
@@ -767,14 +777,12 @@ Kỹ năng:
   Viết (Write):  write_hanzi, write_sentence, write_pinyin
 
 Classroom flow:
-  Live Class: Admin/Teacher tạo live_class → status: upcoming
-  → registration_open → student đăng ký + thanh toán
-  → registration_closed → teacher xác nhận danh sách
-  → Teacher tạo classroom, add confirmed students
-  → ongoing: giao bài tập trong classroom
-  → completed
-
-  Standalone Classroom: Teacher tạo classroom độc lập → add students → giao bài
+  Classroom: Admin/Teacher tạo classroom → status: upcoming
+  → registration_open → student đăng ký + thanh toán (classroom_enrollment.pending)
+  → registration_closed → teacher xác nhận danh sách (classroom_enrollment.confirmed)
+  → Teacher add confirmed students vào classroom_student
+  → class_start → ongoing: giao bài tập trong classroom (assignment)
+  → class_end → completed
 
 Assignment giao bài:
   class:      giao cả lớp → check quyền qua classroom_student

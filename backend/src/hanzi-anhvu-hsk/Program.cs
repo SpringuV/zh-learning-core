@@ -1,4 +1,3 @@
-using Auth.Infrastructure;
 using HanziAnhVu.Shared.Application;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using HanziAnhVu.Shared.EventBus.InMemory;
@@ -56,6 +55,9 @@ builder.Services.Configure<MailSettings>(
 // auth dependency
 Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
+// lesson dependency
+Lesson.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
+
 // users dependency
 Users.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
@@ -95,7 +97,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 
-var key = Encoding.ASCII.GetBytes(Constants.JWT_SECRET_KEY);
+var key = Encoding.ASCII.GetBytes(Auth.Infrastructure.Constants.JWT_SECRET_KEY);
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -115,7 +117,7 @@ builder.Services.AddAuthentication("Bearer")
             // ValidateIssuer: Có kiểm tra "issuer" trong token không? (ai phát hành token)
             // Nếu false: chấp nhận mọi issuer.
             ValidateIssuer = true,
-            ValidIssuer = Constants.JWT_ISSUER, // Phải khớp với Issuer khi tạo token
+            ValidIssuer = Auth.Infrastructure.Constants.JWT_ISSUER, // Phải khớp với Issuer khi tạo token
 
             // ValidateAudience: Có kiểm tra "audience" trong token không? (token dành cho ai)
             // Nếu false: chấp nhận mọi audience.

@@ -16,9 +16,11 @@ public static class DatabaseMigrationExtensions
 
     public static Task<int> ExecuteSqlAsync(
         this DatabaseFacade database,
-        FormattableString sql,
+        FormattableString sql, // FormattableString hỗ trợ interpolated SQL với tham số an toàn
+                            // Ví dụ: database.ExecuteSqlAsync($"INSERT INTO MyTable (Column) VALUES ({value})");
         CancellationToken cancellationToken = default)
     {
+        // Sử dụng ExecuteSqlInterpolatedAsync để hỗ trợ interpolated SQL với tham số an toàn
         return database.ExecuteSqlInterpolatedAsync(sql, cancellationToken);
     }
 
@@ -37,6 +39,10 @@ public static class DatabaseMigrationExtensions
 
             try
             {
+                // Thực hiện migration
+                // là những lỗi tạm thời như database chưa sẵn sàng, network issues, deadlocks, v.v.
+                // migration sẽ dùng các migration script đã được tạo ra trước đó, nên nếu có lỗi sẽ
+                //  là lỗi tạm thời chứ không phải lỗi logic trong code.
                 await database.MigrateAsync(cancellationToken);
                 return true;
             }
@@ -92,7 +98,11 @@ public static class DatabaseMigrationExtensions
             AFTER INSERT ON "{safeTableName}"
             FOR EACH ROW EXECUTE FUNCTION {safeFunctionName}();
             """;
-
+        // Lưu ý: Cần đảm bảo rằng tên bảng, function, trigger và channel được 
+        // chuẩn hóa để tránh lỗi SQL injection hoặc lỗi cú pháp. Hàm NormalizeIdentifier 
+        // sẽ kiểm tra và làm sạch các identifier này.
+        // Execute SQL để tạo function và trigger. Nếu đã tồn tại, sẽ được thay thế 
+        // (CREATE OR REPLACE FUNCTION) hoặc xóa rồi tạo lại (DROP TRIGGER IF EXISTS).
         return database.ExecuteSqlAsync(sql, cancellationToken);
     }
 

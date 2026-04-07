@@ -1,12 +1,3 @@
-using Auth.Application.Interfaces;
-using HanziAnhVu.Shared.Application;
-using HanziAnhVu.Shared.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Users.Infrastructure.Outbox;
-using Users.Infrastructure.Persistence;
-
 namespace Users.Infrastructure;
 
 public static class Dependencies
@@ -24,6 +15,9 @@ public static class Dependencies
 
         // Outbox writer để enqueue events vào database
         services.AddScoped<IOutboxWriter, UserOutboxMessageWriter>();
+
+        // repositories, nếu có (ví dụ: IUserRepository)
+        services.AddScoped<IUserRepository, UserRepository>();
 
         // Unit of Work pattern
         services.AddScoped<IUnitOfWork, EfUnitOfWork<UserModuleDbContext>>();

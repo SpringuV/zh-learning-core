@@ -1,4 +1,5 @@
 ﻿using HanziAnhVu.Shared.Domain;
+using Users.Domain.Events;
 
 namespace Users.Domain;
 
@@ -22,7 +23,10 @@ public class UserAggregate : BaseAggregateRoot
 {
     public Guid Id { get; private set; } // soft reference đến user trong auth service, tránh việc phải reference đến project auth
     public int CurrentHskLevel { get; private set; } = 0;
-
+    private readonly List<Guid> _enrolledCourses = [];
+    public IReadOnlyList<Guid> EnrolledCourses => _enrolledCourses.AsReadOnly();
+    public DateTime UpdatedAt { get; private set; }
+    
     // AI Usage Tracking (Local to Users module)
     // Kiểm tra quota realtime — tần suất đọc rất cao
     public int AiMessagesUsedToday { get; private set; } = 0;
@@ -55,6 +59,20 @@ public class UserAggregate : BaseAggregateRoot
         // Fire domain event — các handler khác lắng nghe
         //user.AddDomainEvent(new UserCreatedDomainEvent(user.Id, user.Email));
         return user;
+    }
+
+    public void EnrollInCourse(Guid courseId)
+    {
+        if (_enrolledCourses.Contains(courseId))
+            throw new InvalidOperationException("Đã đăng ký khóa học này.");
+        _enrolledCourses.Add(courseId);
+        UpdatedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new StudentEnrolledInCourseEvent(
+            Id,
+            courseId,
+            UpdatedAt
+        ));
     }
 
     public void UpdateSubscription(SubscriptionStatusEnum status, SubscriptionTierEnum tier, DateTime resetAt)

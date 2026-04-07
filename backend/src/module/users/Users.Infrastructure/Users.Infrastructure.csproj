@@ -14,6 +14,8 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+        <PackageReference Include="MediatR" Version="14.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
     </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Application\HanziAnhVu.Shared.Application.csproj" />

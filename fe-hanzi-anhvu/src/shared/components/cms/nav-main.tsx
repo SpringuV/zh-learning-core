@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     Collapsible,
     CollapsibleContent,
@@ -31,36 +33,60 @@ export function NavMain({
         }[];
     }[];
 }) {
+    const pathname = usePathname();
+
+    const isPathActive = (targetUrl: string) => {
+        if (!targetUrl || targetUrl === "#") {
+            return false;
+        }
+
+        return pathname === targetUrl || pathname.startsWith(`${targetUrl}/`);
+    };
+
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) => {
                     const hasItems = item.items && item.items.length > 0;
-
+                    const isItemActive = isPathActive(item.url);
+                    const hasActiveChild =
+                        item.items?.some((subItem) =>
+                            isPathActive(subItem.url),
+                        ) ?? false;
+                    const isParentActive = isItemActive || hasActiveChild;
+                    // If the item has no children, render it as a simple link
                     if (!hasItems) {
                         return (
                             <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton asChild tooltip={item.title}>
-                                    <a href={item.url}>
+                                <SidebarMenuButton
+                                    asChild
+                                    tooltip={item.title}
+                                    isActive={isParentActive}
+                                >
+                                    <Link href={item.url}>
                                         {item.icon}
                                         <span>{item.title}</span>
-                                    </a>
+                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         );
                     }
 
+                    // If the item has children, render it as a collapsible menu
                     return (
                         <Collapsible
                             key={item.title}
                             asChild
-                            defaultOpen={item.isActive}
+                            defaultOpen={item.isActive || hasActiveChild}
                             className="group/collapsible"
                         >
                             <SidebarMenuItem>
                                 <CollapsibleTrigger asChild>
-                                    <SidebarMenuButton tooltip={item.title}>
+                                    <SidebarMenuButton
+                                        tooltip={item.title}
+                                        isActive={isParentActive}
+                                    >
                                         {item.icon}
                                         <span>{item.title}</span>
                                         <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -72,12 +98,17 @@ export function NavMain({
                                             <SidebarMenuSubItem
                                                 key={subItem.title}
                                             >
-                                                <SidebarMenuSubButton asChild>
-                                                    <a href={subItem.url}>
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={isPathActive(
+                                                        subItem.url,
+                                                    )}
+                                                >
+                                                    <Link href={subItem.url}>
                                                         <span>
                                                             {subItem.title}
                                                         </span>
-                                                    </a>
+                                                    </Link>
                                                 </SidebarMenuSubButton>
                                             </SidebarMenuSubItem>
                                         ))}

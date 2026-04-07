@@ -16,25 +16,17 @@ namespace Users.Infrastructure.Outbox;
 /// và đẩy event từ outbox lên event bus.
 /// Tương tự AuthOutboxDispatcherServiceWorker nhưng dành cho Users module với channel riêng.
 /// </summary>
-public sealed class UserOutboxDispatcherWorker : BackgroundService
+public sealed class UserOutboxDispatcherWorker(
+    IServiceScopeFactory scopeFactory,
+    IConfiguration config,
+    ILogger<UserOutboxDispatcherWorker> logger) : BackgroundService
 {
     // Tạo scope để resolve các service scoped khi xử lý từng event
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     // Đọc cấu hình, đặc biệt là chuỗi kết nối database
-    private readonly IConfiguration _config;
+    private readonly IConfiguration _config = config;
     // Ghi log phục vụ theo dõi và xử lý sự cố
-    private readonly ILogger<UserOutboxDispatcherWorker> _logger;
-
-    // Constructor inject các dependency cần thiết cho service
-    public UserOutboxDispatcherWorker(
-        IServiceScopeFactory scopeFactory,
-        IConfiguration config,
-        ILogger<UserOutboxDispatcherWorker> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _config = config;
-        _logger = logger;
-    }
+    private readonly ILogger<UserOutboxDispatcherWorker> _logger = logger;
 
     // Entry point của BackgroundService: xử lý sự kiện tồn trước, sau đó vào vòng lắng nghe liên tục
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -94,10 +86,15 @@ public sealed class UserOutboxDispatcherWorker : BackgroundService
         // Ghi log trạng thái đã vào chế độ lắng nghe
         _logger.LogInformation("Listening for User module outbox notifications on channel 'user_outbox_channel'...");
 
-        // Chờ notification liên tục đến khi bị hủy
-        while (!ct.IsCancellationRequested)
+        // WaitAsync chờ liên tục cho đến khi bị cancel
+        // Không cần while loop - WaitAsync sẽ xử lý liên tục
+        try
         {
             await conn.WaitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("User outbox listener cancelled.");
         }
     }
 
@@ -155,7 +152,7 @@ public sealed class UserOutboxDispatcherWorker : BackgroundService
                 .ExecuteUpdateAsync(
                     setter => setter
                         .SetProperty(x => x.ProcessedOnUtc, _ => DateTime.UtcNow)
-                        .SetProperty(x => x.Error, _ => null),
+                        .SetProperty(x => x.Error, _ => null), // Xóa lỗi cũ nếu có
                     ct);
         }
         catch (Exception ex)

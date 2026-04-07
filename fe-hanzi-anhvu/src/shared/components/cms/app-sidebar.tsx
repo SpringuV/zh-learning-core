@@ -63,35 +63,23 @@ const data = {
             icon: <BookOpenIcon />,
             items: [
                 {
-                    title: "Bài Học",
+                    title: "Khóa học công khai",
                     url: "/cms/lessons",
-                },
-                {
-                    title: "Danh Mục",
-                    url: "/cms/categories",
-                },
-                {
-                    title: "Cấp Độ HSK",
-                    url: "/cms/hsk-levels",
                 },
             ],
         },
         {
-            title: "Khóa Học & Lớp",
+            title: "Lớp Học và Học Viên",
             url: "#",
             icon: <FrameIcon />,
             items: [
                 {
-                    title: "Khóa Học Đang Hoạt Động",
-                    url: "/cms/courses",
+                    title: "Lớp học trực tuyến",
+                    url: "/cms/classrooms",
                 },
                 {
-                    title: "Ghi Danh",
-                    url: "/cms/enrollments",
-                },
-                {
-                    title: "Tiến Độ Học",
-                    url: "/cms/progress",
+                    title: "Quản Lý Học Viên",
+                    url: "/cms/classrooms/students",
                 },
             ],
         },

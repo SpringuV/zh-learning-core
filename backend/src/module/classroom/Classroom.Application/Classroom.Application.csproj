@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\search\Search.Contracts\Search.Contracts.csproj" />
     <ProjectReference Include="..\..\users\Users.Contracts\Users.Contracts.csproj" />
     <ProjectReference Include="..\Classroom.Domain\Classroom.Domain.csproj" />
+    <ProjectReference Include="..\Classroom.Contracts\Classroom.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

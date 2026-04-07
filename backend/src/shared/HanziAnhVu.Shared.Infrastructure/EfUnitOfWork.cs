@@ -6,11 +6,9 @@ namespace HanziAnhVu.Shared.Infrastructure;
 
 // UnitOfWork implementation using Entity Framework Core, đảm bảo rằng tất cả các thay đổi trong một transaction được commit hoặc rollback cùng nhau.
 // generict T để có thể sử dụng với bất kỳ DbContext nào, giúp tăng tính tái sử dụng của code.
-public class EfUnitOfWork<T> : IUnitOfWork where T : DbContext
+public class EfUnitOfWork<T>(T dbContext) : IUnitOfWork where T : DbContext
 {
-    private readonly T _dbContext;
-
-    public EfUnitOfWork(T dbContext) => _dbContext = dbContext;
+    private readonly T _dbContext = dbContext;
 
     public void Dispose()
     {

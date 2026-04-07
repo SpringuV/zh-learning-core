@@ -31,4 +31,38 @@ public abstract class BaseAggregateRoot: IAggregateRoot
         _domainEvents.Clear();
         return events;
     }
+    
+    /// <summary>
+    /// Generate URL-friendly slug from text
+    /// Example: "HSK 1 - Beginner" -> "hsk-1-beginner"
+    /// Reusable across all aggregates (Course, Topic, Exercise, etc.)
+    /// </summary>
+    protected string GenerateSlug(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+        
+        // Normalize & lowercase
+        var slug = text.ToLower()
+            .Replace(" ", "-")
+            .Replace("--", "-")
+            .Trim('-');
+        
+        // Remove special characters (keep only alphanumeric + hyphen)
+        var chars = new char[slug.Length];
+        for (int i = 0; i < slug.Length; i++)
+        {
+            var c = slug[i];
+            if (char.IsLetterOrDigit(c) || c == '-')
+                chars[i] = c;
+            else
+                chars[i] = '-';
+        }
+        
+        slug = new string(chars)
+            .Replace("--", "-")
+            .Trim('-');
+        
+        return slug;
+    }
 }
