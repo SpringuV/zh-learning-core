@@ -45,7 +45,17 @@ public class CourseAggregate : BaseAggregateRoot
         course.Slug = course.GenerateSlug(title);
 
         // Fire domain event — các handler khác lắng nghe
-        //course.AddDomainEvent(new CourseCreatedDomainEvent(course.CourseId, course.Title));
+        course.AddDomainEvent(
+            new CourseCreatedEvent(
+                course.CourseId, 
+                course.Title, 
+                course.Description,
+                course.HskLevel,
+                course.OrderIndex,
+                course.CreatedAt,
+                course.UpdatedAt,
+                course.Slug
+            ));
 
         return course;
     }

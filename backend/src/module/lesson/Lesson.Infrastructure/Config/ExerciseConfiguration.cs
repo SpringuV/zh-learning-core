@@ -19,6 +19,7 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<ExerciseAggregate>
         builder.Property(e => e.TopicId).IsRequired();
         builder.Property(e => e.Question).IsRequired();
         builder.Property(e => e.ExerciseType).IsRequired();
+        builder.Property(e => e.Slug).IsRequired();
         builder.Property(e => e.SkillType).IsRequired();
         builder.Property(e => e.Difficulty).IsRequired();
         builder.Property(e => e.Context).IsRequired().HasDefaultValue(ExerciseContext.Learning);

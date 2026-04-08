@@ -18,6 +18,7 @@ public class TopicConfiguration : IEntityTypeConfiguration<TopicAggregate>
         builder.Property(t => t.Title).IsRequired();
         builder.Property(t => t.Description).IsRequired(false);
         builder.Property(t => t.TopicType).IsRequired();
+        builder.Property(t => t.Slug).IsRequired();
         builder.Property(t => t.EstimatedTimeMinutes).IsRequired();
         builder.Property(t => t.ExamYear).IsRequired(false);
         builder.Property(t => t.ExamCode).IsRequired(false);

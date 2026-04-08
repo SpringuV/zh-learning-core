@@ -69,7 +69,8 @@ public record CourseCreatedEvent(
     int HskLevel,
     int OrderIndex,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    string Slug
 ): BaseDomainEvent;
 
 /// <summary>
@@ -127,6 +128,7 @@ public sealed record ExerciseCreatedEvent(
     string AudioUrl,
     string ImageUrl,
     string Explanation,
+    string Slug,
     List<ExerciseOption>? Options
 ) : BaseDomainEvent;
 
@@ -144,6 +146,7 @@ public sealed record ExerciseUpdatedEvent(
     string? AudioUrl,
     string? ImageUrl,
     string? Explanation,
+    string? Slug,
     List<ExerciseOption>? Options
 ) : BaseDomainEvent;
 

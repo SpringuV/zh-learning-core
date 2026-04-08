@@ -86,6 +86,7 @@ public class ExerciseAggregate: BaseAggregateRoot
     public Guid TopicId { get; private set; }
     public int OrderIndex { get; private set; } // thứ tự hiển thị trong topic
     public DateTime CreatedAt { get; private set; }
+    public string Slug { get; private set; } = string.Empty;
     public DateTime UpdatedAt { get; private set; }
     public bool IsPublished { get; private set; }
     public ExerciseType ExerciseType { get; private set; }
@@ -238,6 +239,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             UpdatedAt = DateTime.UtcNow,
             IsPublished = false
         };
+        exercise.Slug = exercise.GenerateSlug($"{exercise.ExerciseType}-{exercise.Question[..Math.Min(20, exercise.Question.Length)]}");
         
         exercise.AddDomainEvent(new ExerciseCreatedEvent(
             exercise.ExerciseId,
@@ -256,6 +258,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             exercise.AudioUrl,
             exercise.ImageUrl,
             exercise.Explanation,
+            exercise.Slug,
             [.. exercise.Options]
         ));
         
@@ -342,6 +345,7 @@ public class ExerciseAggregate: BaseAggregateRoot
                 throw new ArgumentException("Câu hỏi không được để trống", nameof(question));
             Question = question;
             hasChanges = true;
+            Slug = GenerateSlug($"{ExerciseType}-{question[..Math.Min(20, question.Length)]}");
         }
         
         if (correctAnswer is not null && CorrectAnswer != correctAnswer)
@@ -408,6 +412,7 @@ public class ExerciseAggregate: BaseAggregateRoot
                 audioUrl,
                 imageUrl,
                 explanation,
+                Slug,
                 options
             ));
         }

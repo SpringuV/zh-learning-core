@@ -14,6 +14,7 @@ public class CourseConfiguration : IEntityTypeConfiguration<CourseAggregate>
         builder.HasIndex(c => c.OrderIndex).IsUnique(); // đảm bảo không có 2 khóa học nào có cùng order index
         builder.Property(c => c.Title).IsRequired();
         builder.Property(c => c.Description).IsRequired(false);
+        builder.Property(c => c.Slug).IsRequired();
         builder.Property(c => c.HskLevel).IsRequired();
         builder.Property(c => c.IsPublished).IsRequired();
         builder.Property(c => c.CreatedAt).IsRequired();
