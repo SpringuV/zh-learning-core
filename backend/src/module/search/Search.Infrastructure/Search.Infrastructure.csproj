@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.3.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.5" />
   </ItemGroup>
@@ -16,7 +17,6 @@
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\Search.Application\Search.Application.csproj" />
-    <ProjectReference Include="..\Search.Domain\Search.Domain.csproj" />
   </ItemGroup>
 
 </Project>

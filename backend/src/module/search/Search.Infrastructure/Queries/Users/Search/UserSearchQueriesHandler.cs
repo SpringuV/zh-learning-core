@@ -1,14 +1,5 @@
-﻿using System.Text.Json;
-using Elastic.Clients.Elasticsearch;
-using Elastic.Esql.Extensions;
-using HanziAnhVu.Shared.Application;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
-using Search.Domain.Entities;
-
-namespace Search.Application.Queries.Users.Search;
+﻿
+namespace Search.Infrastructure.Queries.Users.Search;
 
 public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, ElasticsearchClient client) : IRequestHandler<UserSearchQueries, SearchQueryResult<UserSearchItemResponse>>
 {

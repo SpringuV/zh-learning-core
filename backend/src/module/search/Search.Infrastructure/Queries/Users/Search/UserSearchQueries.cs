@@ -1,9 +1,4 @@
-﻿using HanziAnhVu.Shared.Application;
-using MediatR;
-using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
-
-namespace Search.Application.Queries.Users.Search;
+﻿namespace Search.Infrastructure.Queries.Users.Search;
 
 public record UserSearchQueries(
     string? Email = null,

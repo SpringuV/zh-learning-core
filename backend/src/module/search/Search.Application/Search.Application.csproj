@@ -7,15 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-  <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.3.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
-	<PackageReference Include="MediatR" Version="14.1.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\auth\Auth.Contracts\Auth.Contracts.csproj" />
     <ProjectReference Include="..\Search.Contracts\Search.Contracts.csproj" />
-    <ProjectReference Include="..\Search.Domain\Search.Domain.csproj" />
   </ItemGroup>
 
 </Project>

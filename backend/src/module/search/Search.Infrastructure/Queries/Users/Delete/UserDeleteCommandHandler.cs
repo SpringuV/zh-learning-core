@@ -1,8 +1,4 @@
-using Elastic.Clients.Elasticsearch;
-using MediatR;
-using Microsoft.Extensions.Logging;
-
-namespace Search.Application.Queries.Users.Delete;
+namespace Search.Infrastructure.Queries.Users.Delete;
 
 public class UserDeleteCommandHandler(
     ElasticsearchClient client,

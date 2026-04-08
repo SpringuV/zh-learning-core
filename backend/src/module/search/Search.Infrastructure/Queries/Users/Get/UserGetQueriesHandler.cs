@@ -1,9 +1,4 @@
-using Elastic.Clients.Elasticsearch;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using Search.Domain.Entities;
-
-namespace Search.Application.Queries.Users.Get;
+namespace Search.Infrastructure.Queries.Users.Get;
 
 public class UserGetQueriesHandler(
     ElasticsearchClient client,

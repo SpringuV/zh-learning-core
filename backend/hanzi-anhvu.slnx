@@ -50,7 +50,6 @@
     <File Path="note.md" />
     <Project Path="src/module/search/Search.Application/Search.Application.csproj" />
     <Project Path="src/module/search/Search.Contracts/Search.Contracts.csproj" />
-    <Project Path="src/module/search/Search.Domain/Search.Domain.csproj" />
     <Project Path="src/module/search/Search.Infrastructure/Search.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Users/">

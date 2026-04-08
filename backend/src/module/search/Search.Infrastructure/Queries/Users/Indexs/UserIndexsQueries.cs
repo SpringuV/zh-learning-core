@@ -1,7 +1,4 @@
-using MediatR;
-using Search.Contracts.DTOs;
-
-namespace Search.Application.Queries.Users.Indexs;
+namespace Search.Infrastructure.Queries.Users.Indexs;
 
 public record UserIndexsQueries(
     Guid Id,

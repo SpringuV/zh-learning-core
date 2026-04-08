@@ -1,10 +1,4 @@
-using Elastic.Clients.Elasticsearch;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using Search.Contracts.DTOs;
-using Search.Domain.Entities;
-
-namespace Search.Application.Queries.Users.Patch;
+namespace Search.Infrastructure.Queries.Users.Patch;
 
 public class UserPatchQueriesHandler(ElasticsearchClient client, ILogger<UserPatchQueriesHandler> logger) : IRequestHandler<UserPatchQueries, UserSearchPatchDocumentResponse>
 {

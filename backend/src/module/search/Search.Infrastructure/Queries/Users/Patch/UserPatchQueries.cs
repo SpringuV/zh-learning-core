@@ -1,7 +1,4 @@
-using MediatR;
-using Search.Contracts.DTOs;
-
-namespace Search.Application.Queries.Users.Patch;
+namespace Search.Infrastructure.Queries.Users.Patch;
 
 public record UserPatchQueries(
     Guid Id,

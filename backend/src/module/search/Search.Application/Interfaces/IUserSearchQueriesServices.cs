@@ -1,9 +1,9 @@
 ﻿
 using HanziAnhVu.Shared.Application;
 using Search.Contracts.DTOs;
-using Search.Domain.Entities;
+using Search.Application.Entities;
 
-namespace Search.Contracts.Interfaces;
+namespace Search.Application.Interfaces;
 
 /*
 [Controller/API]

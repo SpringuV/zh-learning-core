@@ -2,7 +2,7 @@ using Auth.Contracts;
 using HanziAnhVu.Shared.EventBus.Abstracts;
 using Microsoft.Extensions.Logging;
 using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
+using Search.Application.Interfaces;
 
 namespace Search.Application.EventHandlers.Users;
 

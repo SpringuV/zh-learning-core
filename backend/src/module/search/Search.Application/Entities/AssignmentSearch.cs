@@ -1,4 +1,4 @@
-namespace Search.Domain.Entities;
+namespace Search.Application.Entities;
 
 /// <summary>
 /// AssignmentSearch entity for Elasticsearch indexing
