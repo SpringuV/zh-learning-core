@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using Users.Domain;
-using Users.Infrastructure.Outbox;
 using Shared.Infrastructure.Outbox;
 
 namespace Users.Infrastructure;

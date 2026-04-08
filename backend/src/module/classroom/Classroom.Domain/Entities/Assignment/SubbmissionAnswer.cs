@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-
 namespace Classroom.Domain.Entities.Assignment;
 
 public class SubmissionAnswer : Entity

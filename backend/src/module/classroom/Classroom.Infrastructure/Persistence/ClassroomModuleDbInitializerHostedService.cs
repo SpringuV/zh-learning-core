@@ -1,6 +1,4 @@
-using Shared.Infrastructure;
-
-namespace Lesson.Infrastructure.Persistence;
+namespace Classroom.Infrastructure.Persistence;
 
 /// <summary>
 /// IHostedService để khởi tạo database và setup outbox trigger cho Lesson module khi ứng dụng khởi động.
@@ -8,48 +6,47 @@ namespace Lesson.Infrastructure.Persistence;
 /// Chạy tự động khi app start, thiết lập migration, seed dữ liệu, và config trigger PostgreSQL notify.
 /// Trên production, nên dùng migration script thay vì seed dữ liệu.
 /// </summary>
-
-public sealed class LessonModuleDbInitializerHostedService(
+public sealed class ClassroomModuleDbInitializerHostedService(
     IServiceScopeFactory scopeFactory,
-    ILogger<LessonModuleDbInitializerHostedService> logger) : IHostedService
+    ILogger<ClassroomModuleDbInitializerHostedService> logger) : IHostedService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly ILogger<LessonModuleDbInitializerHostedService> _logger = logger;
+    private readonly ILogger<ClassroomModuleDbInitializerHostedService> _logger = logger;
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         try
         {
             // Tạo scope để resolve scoped services (DbContext, etc.)
             await using var scope = _scopeFactory.CreateAsyncScope();
-            var lessonDbContext = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
+            var classroomDbContext = scope.ServiceProvider.GetRequiredService<ClassroomDbContext>();
             // Nếu dùng PostgreSQL, chạy migration với retry logic
-            if (lessonDbContext.Database.IsNpgsql())
+            if (classroomDbContext.Database.IsNpgsql())
             {
-                var migrated = await lessonDbContext.Database.MigrateWithRetryAsync(
+                var migrated = await classroomDbContext.Database.MigrateWithRetryAsync(
                     _logger,
                     cancellationToken,
                     maxAttempts: 10,
                     retryDelay: TimeSpan.FromSeconds(2));
 
                 if (!migrated){
-                    _logger.LogError("Lesson module migration failed after retries. Skipping initialization for this startup.");
+                    _logger.LogError("Classroom module migration failed after retries. Skipping initialization for this startup.");
                     return; 
                 }
-                // Đảm bảo trigger cho outbox table - dùng channel riêng "lesson_outbox_channel"
+                // Đảm bảo trigger cho outbox table - dùng channel riêng "classroom_outbox_channel"
                 // để tách biệt với Auth và Users module channel
-                await lessonDbContext.Database.EnsureOutboxNotifyTriggerAsync(
-                    tableName: "OutboxMessagesLessonModule",
-                    channelName: "lesson_outbox_channel", // Tên channel riêng cho lesson module
-                    functionName: "notify_lesson_outbox_change",
-                    triggerName: "lesson_outbox_change_trigger",
+                await classroomDbContext.Database.EnsureOutboxNotifyTriggerAsync(
+                    tableName: "OutboxMessagesClassroomModule", // Tên bảng outbox riêng cho classroom module   
+                    channelName: "classroom_outbox_channel", // Tên channel riêng cho classroom module
+                    functionName: "notify_classroom_outbox_change",
+                    triggerName: "classroom_outbox_change_trigger",
                     cancellationToken: cancellationToken);
 
-                _logger.LogInformation("Lesson module database and outbox trigger initialized successfully.");
+                _logger.LogInformation("Classroom module database and outbox trigger initialized successfully.");
             }
 
         } catch (Exception ex)
         {
-            _logger.LogError(ex, "Lesson module database initialization failed. Startup will continue without seeding.");
+            _logger.LogError(ex, "Classroom module database initialization failed. Startup will continue without seeding.");
         }
     }
 

@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-
 namespace Classroom.Domain.Entities;
 
 public enum StatusClass
@@ -7,9 +5,10 @@ public enum StatusClass
     Active,
     Removed
 }
+
 // teacher confirm student enrollment, then add to classroom student list
 public class ClassroomStudentAggregate : BaseAggregateRoot
-{
+{ 
     public Guid ClassroomStudentId { get; private set; }
     public Guid ClassroomId { get; private set; }
     public Guid StudentId { get; private set; } // Liên kết đến UserId của học viên, soft link
@@ -34,7 +33,33 @@ public class ClassroomStudentAggregate : BaseAggregateRoot
             UpdatedAt = DateTime.UtcNow
         };
         
+        // Emit event when student added to classroom
+        classroomStudent.AddDomainEvent(new ClassroomStudentAddedEvent(
+            classroomStudent.ClassroomStudentId,
+            classroomStudent.ClassroomId,
+            classroomStudent.StudentId,
+            classroomStudent.AddedBy,
+            classroomStudent.Status.ToString(),
+            classroomStudent.JoinedAt
+        ));
+        
         return classroomStudent;
     }
     
+    public void RemoveStudent()
+    {
+        if (Status != StatusClass.Active)
+            throw new InvalidOperationException("Chỉ có thể xóa học sinh đang ở trạng thái Active.");
+        
+        Status = StatusClass.Removed;
+        UpdatedAt = DateTime.UtcNow;
+        
+        AddDomainEvent(new ClassroomStudentRemovedEvent(
+            ClassroomStudentId,
+            ClassroomId,
+            StudentId,
+            Status.ToString(),
+            UpdatedAt
+        ));
+    }
 }

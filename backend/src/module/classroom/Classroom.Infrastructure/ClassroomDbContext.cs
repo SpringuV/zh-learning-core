@@ -1,18 +1,15 @@
-using Classroom.Domain.Entities.Assignment;
-using Classroom.Infrastructure.Config;
-using Microsoft.EntityFrameworkCore;
-
+using Classroom.Infrastructure.Outbox;
+using Shared.Infrastructure.Outbox;
 namespace Classroom.Infrastructure;
 
-public class ClassroomDbContext : DbContext
+public class ClassroomDbContext(DbContextOptions<ClassroomDbContext> options) : DbContext(options)
 {
-    public ClassroomDbContext(DbContextOptions<ClassroomDbContext> options)
-        : base(options)
-    {
-    }
-
-    public DbSet<AssignmentAggregate> Assignments { get; set; }
-    public DbSet<AssignmentSubmissionAggregate> Submissions { get; set; }
+    public DbSet<AssignmentAggregate> Assignments { get; set; } = null!;
+    public DbSet<AssignmentSubmissionAggregate> AssignmentSubmission { get; set; } = null!;
+    public DbSet<ClassroomStudentAggregate> ClassroomStudents { get; set; } = null!;
+    public DbSet<ClassroomEnrollmentAggregate> ClassroomEnrollments { get; set; } = null!;
+    public DbSet<ClassroomAggregate> Classrooms { get; set; } = null!;
+    public DbSet<ClassroomModuleOutboxMessage> ClassroomOutboxMessages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +17,14 @@ public class ClassroomDbContext : DbContext
 
         // Apply configurations
         modelBuilder.ApplyConfiguration(new AssignmentConfiguration());
-        // TODO: Add AssignmentSubmissionConfiguration, SubmissionAnswerConfiguration when needed
+        modelBuilder.ApplyConfiguration(new AssignmentSubmissionConfiguration());
+        modelBuilder.ApplyConfiguration(new ClassroomStudentConfiguration());
+        modelBuilder.ApplyConfiguration(new ClassroomEnrollmentConfiguration());
+        modelBuilder.ApplyConfiguration(new ClassroomConfiguration());
+        // TODO: Add SubmissionAnswerConfiguration when needed
+        modelBuilder.Entity<ClassroomModuleOutboxMessage>(entity =>
+        {
+            entity.ConfigureOutboxMessage("OutboxMessagesClassroomModule");
+        });
     }
 }

@@ -1,7 +1,3 @@
-using Classroom.Domain.Entities.Assignment;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace Classroom.Infrastructure.Config;
 
 public class AssignmentConfiguration : IEntityTypeConfiguration<AssignmentAggregate>
@@ -22,20 +18,24 @@ public class AssignmentConfiguration : IEntityTypeConfiguration<AssignmentAggreg
         builder.Property(a => a.AssignmentType).IsRequired();
         builder.Property(a => a.SkillFocus).IsRequired();
         builder.Property(a => a.DueDate).IsRequired();
+        builder.Property(a => a.IsTimedAssignment).IsRequired().HasDefaultValue(false);     // ⏱️ Timed assignment?
+        builder.Property(a => a.DurationMinutes).IsRequired(false);                         // ⏱️ Duration in minutes
         builder.Property(a => a.IsPublished).IsRequired().HasDefaultValue(false);
         builder.Property(a => a.CreatedAt).IsRequired();
         builder.Property(a => a.UpdatedAt).IsRequired();
 
         // Child entities - AssignmentExercise
         builder.HasMany<AssignmentExercise>()
-            .WithOne()
+            .WithOne() // không có navigation property trong AssignmentExercise trỏ về Assignment, nên để trống
             .HasForeignKey("AssignmentId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         // Child entities - AssignmentRecipient
         builder.HasMany<AssignmentRecipient>()
-            .WithOne()
+            .WithOne() // không có navigation property trong AssignmentRecipient trỏ về Assignment, nên để trống    
             .HasForeignKey("AssignmentId")
+            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
         // Indexes

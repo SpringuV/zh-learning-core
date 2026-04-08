@@ -9,28 +9,17 @@ using Shared.Infrastructure.Outbox;
 namespace Auth.Infrastructure.Identity;
 
 // BackgroundService chịu trách nhiệm lắng nghe NOTIFY từ PostgreSQL và đẩy event từ outbox lên event bus.
-public sealed class AuthOutboxDispatcherServiceWorker : BackgroundService
+public sealed class AuthOutboxDispatcherServiceWorker(
+    IServiceScopeFactory scopeFactory,
+    IConfiguration config,
+    ILogger<AuthOutboxDispatcherServiceWorker> logger) : BackgroundService
 {
     // Tạo scope để resolve các service scoped khi xử lý từng event.
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     // Đọc cấu hình, đặc biệt là chuỗi kết nối database.
-    private readonly IConfiguration _config;
+    private readonly IConfiguration _config = config;
     // Ghi log phục vụ theo dõi và xử lý sự cố.
-    private readonly ILogger<AuthOutboxDispatcherServiceWorker> _logger;
-
-    // Constructor inject các dependency cần thiết cho service.
-    public AuthOutboxDispatcherServiceWorker(
-        IServiceScopeFactory scopeFactory,
-        IConfiguration config,
-        ILogger<AuthOutboxDispatcherServiceWorker> logger)
-    {
-        // Lưu scope factory để tạo scope mới mỗi lần xử lý.
-        _scopeFactory = scopeFactory;
-        // Lưu cấu hình để đọc connection string. 
-        _config = config;
-        // Lưu logger để ghi log runtime.
-        _logger = logger;
-    }
+    private readonly ILogger<AuthOutboxDispatcherServiceWorker> _logger = logger;
 
     // Entry point của BackgroundService: xử lý sự kiện tồn trước, sau đó vào vòng lắng nghe liên tục.
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -1,24 +1,17 @@
-namespace Lesson.Infrastructure.Outbox;
+namespace Classroom.Infrastructure.Outbox;
 
-/// <summary>
-/// BackgroundService chịu trách nhiệm lắng nghe NOTIFY từ PostgreSQL
-///  trên channel "lesson_outbox_channel"
-/// và đẩy event từ outbox lên event bus.
-/// Tương tự AuthOutboxDispatcherServiceWorker nhưng dành cho 
-/// Lesson module với channel riêng.
-/// </summary>
-
-public sealed class LessonOutboxDispatcherWorker(
+public sealed class ClassroomModuleDispatcherWorker(
     IServiceScopeFactory scopeFactory,
     IConfiguration config,
-    ILogger<LessonOutboxDispatcherWorker> logger) : BackgroundService
+    ILogger<ClassroomModuleDispatcherWorker> logger
+) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IConfiguration _config = config;
-    private readonly ILogger<LessonOutboxDispatcherWorker> _logger = logger;
+    private readonly ILogger<ClassroomModuleDispatcherWorker> _logger = logger;
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await ProcessMissedEventAsync(stoppingToken); // Xử lý các event bị bỏ lỡ trước khi bắt đầu lắng nghe
+         await ProcessMissedEventAsync(stoppingToken); // Xử lý các event bị bỏ lỡ trước khi bắt đầu lắng nghe
 
         while(!stoppingToken.IsCancellationRequested)
         {
@@ -35,24 +28,24 @@ public sealed class LessonOutboxDispatcherWorker(
             catch (Exception ex)
             {
                 // Ghi log lỗi bất ngờ và thử lại sau khoảng nghỉ ngắn
-                _logger.LogError(ex, "Lesson outbox LISTEN loop failed. Retrying in 2 seconds.");
+                _logger.LogError(ex, "Classroom outbox LISTEN loop failed. Retrying in 2 seconds.");
                 // Tránh retry nóng gây tốn tài nguyên
                 await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
             }
         }
     }
-
+    
 // Lắng nghe NOTIFY từ PostgreSQL và xử lý message mới
     private async Task ListenAsync(CancellationToken stoppingToken)
     {
-        var connectionString = _config.GetConnectionString("LessonDbConnection") ?? throw new InvalidOperationException("Connection string 'LessonDbConnection' not found.");
+        var connectionString = _config.GetConnectionString("ClassroomDbConnection") ?? throw new InvalidOperationException("Connection string 'ClassroomConnection' not found.");
         await using var connection = new Npgsql.NpgsqlConnection(connectionString);
         await connection.OpenAsync(stoppingToken);
         // Implementation for listening to PostgreSQL notifications
         
-        await using (var cmd = new Npgsql.NpgsqlCommand("LISTEN lesson_outbox_channel;", connection))
+        await using (var cmd = new Npgsql.NpgsqlCommand("LISTEN classroom_outbox_channel;", connection))
         {
-            _logger.LogInformation("Executing LISTEN command on PostgreSQL for Lesson module outbox...");
+            _logger.LogInformation("Executing LISTEN command on PostgreSQL for Classroom module outbox...");
             await cmd.ExecuteNonQueryAsync(stoppingToken);
         }
         connection.Notification += (_,  e) =>
@@ -60,7 +53,7 @@ public sealed class LessonOutboxDispatcherWorker(
             // fire-and-forget xử lý notification để không block thread lắng nghe
             _ = HandleNotificationAsync(e.Payload, stoppingToken);
         };
-        _logger.LogInformation("Started listening to PostgreSQL notifications for Lesson module outbox.");
+        _logger.LogInformation("Started listening to PostgreSQL notifications for Classroom module outbox.");
         
         // WaitAsync chờ liên tục cho đến khi bị cancel
         // Không cần while loop - WaitAsync sẽ xử lý liên tục
@@ -70,16 +63,15 @@ public sealed class LessonOutboxDispatcherWorker(
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("Lesson outbox listener cancelled.");
+            _logger.LogInformation("Classroom outbox listener cancelled.");
         }
     }
-
     private async Task HandleNotificationAsync(string payload, CancellationToken stoppingToken)
     {
         try
         {
             // Deserialize payload từ trigger row_to_json(NEW)
-            var outboxMessage = JsonSerializer.Deserialize<LessonModuleOutboxMessage>(payload);
+            var outboxMessage = JsonSerializer.Deserialize<ClassroomModuleOutboxMessage>(payload);
             if (outboxMessage is not null &&
                 outboxMessage.Id != Guid.Empty &&
                 !string.IsNullOrWhiteSpace(outboxMessage.Type))
@@ -90,10 +82,10 @@ public sealed class LessonOutboxDispatcherWorker(
             }
 
             // Fallback: payload cũ chỉ chứa Id
-            var outbox = JsonSerializer.Deserialize<LessonNotificationPayload>(payload);
+            var outbox = JsonSerializer.Deserialize<ClassroomNotificationPayload>(payload);
             if (outbox is null)
             {
-                _logger.LogWarning("Received invalid lesson outbox notification payload: {Payload}", payload);
+                _logger.LogWarning("Received invalid classroom outbox notification payload: {Payload}", payload);
                 return;
             }
 
@@ -103,25 +95,24 @@ public sealed class LessonOutboxDispatcherWorker(
         catch (Exception ex)
         {
             // Bắt lỗi để tránh crash luồng notification
-            _logger.LogError(ex, "Failed to process Lesson module outbox notification payload.");
+            _logger.LogError(ex, "Failed to process Classroom module outbox notification payload.");
         }
     }
-
-    private async Task ProcessEventAsync(LessonModuleOutboxMessage outboxMessage, CancellationToken cancellationToken)
+    private async Task ProcessEventAsync(ClassroomModuleOutboxMessage outboxMessage, CancellationToken cancellationToken)
     {
         // Tạo scope mới để resolve DbContext và EventBus
         await using var scope = _scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<ClassroomDbContext>();
         var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
         try
         {
             // Publish event ra event bus từ message trong payload
-            _logger.LogInformation("Publishing lesson outbox event {Id} of type {Type} from notification payload...", outboxMessage.Id, outboxMessage.Type);
+            _logger.LogInformation("Publishing classroom outbox event {Id} of type {Type} from notification payload...", outboxMessage.Id, outboxMessage.Type);
             await PublishAsync(eventBus, outboxMessage, cancellationToken);
 
             // Cập nhật trạng thái đã xử lý mà không cần load entity trước
-            await db.LessonOutboxMessages
+            await db.ClassroomOutboxMessages
                 .Where(x => x.Id == outboxMessage.Id && x.ProcessedOnUtc == null)
                 .ExecuteUpdateAsync(
                     setter => setter
@@ -132,7 +123,7 @@ public sealed class LessonOutboxDispatcherWorker(
         catch (Exception ex)
         {
             // Khi publish thất bại, tăng retry và lưu lỗi
-            await db.LessonOutboxMessages
+            await db.ClassroomOutboxMessages
                 .Where(x => x.Id == outboxMessage.Id && x.ProcessedOnUtc == null)
                 .ExecuteUpdateAsync(
                     setter => setter
@@ -140,18 +131,18 @@ public sealed class LessonOutboxDispatcherWorker(
                         .SetProperty(x => x.Error, _ => ex.Message),
                     cancellationToken);
 
-            _logger.LogError(ex, "Failed to process lesson outbox event {Id}", outboxMessage.Id);
+            _logger.LogError(ex, "Failed to process classroom outbox event {Id}", outboxMessage.Id);
         }
     }
     private async Task ProcessEventAsync(Guid outboxId, CancellationToken cancellationToken)
     {
          // Tạo scope mới để resolve DbContext và EventBus
         await using var scope = _scopeFactory.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<ClassroomDbContext>();
         var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
         // Lấy message chưa xử lý tương ứng với outboxId
-        var message = await db.LessonOutboxMessages
+        var message = await db.ClassroomOutboxMessages
             .FirstOrDefaultAsync(x => x.Id == outboxId && x.ProcessedOnUtc == null, cancellationToken);
 
         // Không có message hợp lệ thì thoát sớm
@@ -160,7 +151,7 @@ public sealed class LessonOutboxDispatcherWorker(
         try
         {
             // Publish event ra event bus
-            _logger.LogInformation("Publishing lesson outbox event {Id} of type {Type}...", message.Id, message.Type);
+            _logger.LogInformation("Publishing classroom outbox event {Id} of type {Type}...", message.Id, message.Type);
             await PublishAsync(eventBus, message, cancellationToken);
 
             // Đánh dấu đã xử lý thành công
@@ -175,22 +166,20 @@ public sealed class LessonOutboxDispatcherWorker(
             // Lưu thông tin lỗi để truy vết
             message.Error = ex.Message;
             // Ghi log lỗi chi tiết
-            _logger.LogError(ex, "Failed to process lesson outbox event {Id}", message.Id);
+            _logger.LogError(ex, "Failed to process classroom outbox event {Id}", message.Id);
         }
 
         // Persist trạng thái xử lý message
         await db.SaveChangesAsync(cancellationToken);
     }
-
-
     // xử lý trường hợp có sự kiện bị bỏ lỡ (ví dụ do worker downtime) bằng cách kiểm tra outbox table định kỳ
     private async Task ProcessMissedEventAsync(CancellationToken cancellationToken)
     {
         // create scope để resolve DbContext và EventBus
         await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ClassroomDbContext>();
         // Lấy các message chưa được dispatch (dựa trên timestamp hoặc status)
-        var missedMessages = await dbContext.LessonOutboxMessages
+        var missedMessages = await dbContext.ClassroomOutboxMessages
             .Where(x => x.ProcessedOnUtc == null && x.RetryCount < 3)
             .OrderBy(x => x.OccurredOnUtc)
             .ToListAsync(cancellationToken);
@@ -203,15 +192,15 @@ public sealed class LessonOutboxDispatcherWorker(
 
     
     // Publish một outbox message thông qua generic method của IEventBus
-    private static async Task PublishAsync(IEventBus eventBus, LessonModuleOutboxMessage message, CancellationToken cancellationToken)
+    private static async Task PublishAsync(IEventBus eventBus, ClassroomModuleOutboxMessage message, CancellationToken cancellationToken)
     {
         // Resolve Type từ tên type đã lưu trong outbox
         var eventType = Type.GetType(message.Type, throwOnError: false)
-            ?? throw new InvalidOperationException($"Unable to resolve lesson outbox event type '{message.Type}'.");
+            ?? throw new InvalidOperationException($"Unable to resolve classroom outbox event type '{message.Type}'.");
 
         // Deserialize payload ra instance event đúng type
         var integrationEvent = OutboxMessageSerialization.DeserializePayload(message, eventType)
-            ?? throw new InvalidOperationException($"Unable to deserialize lesson outbox payload for '{message.Type}'.");
+            ?? throw new InvalidOperationException($"Unable to deserialize classroom outbox payload for '{message.Type}'.");
 
         // Lấy method PublishAsync<TEvent> từ interface IEventBus
         var publishMethod = typeof(IEventBus)
@@ -223,11 +212,11 @@ public sealed class LessonOutboxDispatcherWorker(
 
         // Gọi method publish bằng reflection
         var publishTask = genericMethod.Invoke(eventBus, [integrationEvent, cancellationToken]) as Task
-            ?? throw new InvalidOperationException($"Unable to publish lesson outbox event '{message.Type}'.");
+            ?? throw new InvalidOperationException($"Unable to publish classroom outbox event '{message.Type}'.");
 
         // Chờ hoàn tất publish
         await publishTask;
     }
-    private sealed record LessonNotificationPayload(Guid Id);
-}
 
+    private sealed record ClassroomNotificationPayload(Guid Id);
+}

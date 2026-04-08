@@ -55,6 +55,9 @@ builder.Services.Configure<MailSettings>(
 // auth dependency
 Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
+// classroom dependency
+Classroom.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
+
 // lesson dependency
 Lesson.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 

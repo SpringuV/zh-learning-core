@@ -30,7 +30,7 @@ public class EfUnitOfWork<T>(T dbContext) : IUnitOfWork where T : DbContext
         transaction.Complete();
     }
 
-    public async Task<T> SaveChangeAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default)
+    public async Task<TResult> SaveChangeAsync<TResult>(Func<Task<TResult>> action, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);

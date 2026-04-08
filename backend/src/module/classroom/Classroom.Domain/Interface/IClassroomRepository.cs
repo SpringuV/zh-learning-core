@@ -1,6 +1,3 @@
-
-using Classroom.Domain.Entities;
-
 namespace Classroom.Domain.Interface;
 
 public interface IClassroomRepository

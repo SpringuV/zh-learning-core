@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-
 namespace Classroom.Domain.Entities;
 
 public enum Currency
@@ -23,20 +21,21 @@ public class ClassroomAggregate : BaseAggregateRoot
     public Guid TeacherId { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
+    public string Slug { get; private set; } = string.Empty; // URL-friendly identifier for the classroom
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
-    public int HskLevel { get; private set; } // Cấp độ HSK của lớp học (1-6)
-    public DateTime? StartDate { get; private set; } // Ngày bắt đầu lớp
-    public DateTime? EndDate { get; private set; } // Ngày kết thúc lớp (nếu có)
+    public int HskLevel { get; private set; } 
+    public DateTime? StartDate { get; private set; } 
+    public DateTime? EndDate { get; private set; } 
     public string ScheduleInfo { get; private set; } = string.Empty; // Thông tin lịch học (ví dụ: "Thứ 2,4,6 - 18:00-19:30")
-    public float Price { get; private set; } // Giá tiền của lớp học
-    public Currency PriceCurrency { get; private set; } = Currency.VND; // Đơn vị tiền tệ của giá tiền
-    public Status ClassroomStatus { get; private set; } = Status.Upcoming; // Trạng thái của lớp học
+    public float Price { get; private set; } 
+    public Currency PriceCurrency { get; private set; } = Currency.VND; 
+    public Status ClassroomStatus { get; private set; } = Status.Upcoming;
 
     private readonly List<Guid> _StudentIds = [];
     public IReadOnlyList<Guid> StudentIds => _StudentIds.AsReadOnly();
     
-    public static ClassroomAggregate Create(string title, string description, Guid teacherId, int hskLevel)
+    public static ClassroomAggregate Create(string title, string description, Guid teacherId, int hskLevel, DateTime? startDate = null, DateTime? endDate = null, string scheduleInfo = "", float price = 0, Currency priceCurrency = Currency.VND)
     {
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Tiêu đề lớp học không được để trống.", nameof(title));
         if (teacherId == Guid.Empty) throw new ArgumentException("TeacherId không được để trống.", nameof(teacherId));
@@ -49,11 +48,89 @@ public class ClassroomAggregate : BaseAggregateRoot
             Description = description,
             TeacherId = teacherId,
             HskLevel = hskLevel,
+            StartDate = startDate,
+            EndDate = endDate,
+            ScheduleInfo = scheduleInfo,
+            Price = price,
+            PriceCurrency = priceCurrency,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            ClassroomStatus = Status.Upcoming
         };
-        
+        classroom.Slug = classroom.GenerateSlug(title);
+
+        // Emit domain event for new classroom creation
+        classroom.AddDomainEvent(new ClassroomCreatedEvent(
+            classroom.ClassroomId,
+            classroom.Title,
+            classroom.Description,
+            classroom.TeacherId,
+            classroom.HskLevel,
+            classroom.StartDate,
+            classroom.EndDate,
+            classroom.ScheduleInfo,
+            classroom.Price,
+            classroom.PriceCurrency,
+            classroom.CreatedAt,    
+            classroom.UpdatedAt,
+            classroom.Slug,
+            classroom.ClassroomStatus.ToString()
+        ));        
         return classroom;
+    }
+
+    public void ChangeStatus(Status newStatus)
+    {
+        if (ClassroomStatus == newStatus) return; // No change
+        
+        ClassroomStatus = newStatus;
+        UpdatedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new ClassroomStatusChangedEvent(
+            ClassroomId,
+            newStatus.ToString(),
+            UpdatedAt
+        ));
+    }
+
+    public void UpdateClassroom (string? newTitle, string? newDescription, int? newHskLevel, DateTime? newStartDate, DateTime? newEndDate, string? newScheduleInfo, float? newPrice, Currency? newPriceCurrency)
+    {
+        if (newTitle is not null)
+        {
+            if (string.IsNullOrWhiteSpace(newTitle)) throw new ArgumentException("Tiêu đề lớp học không được để trống.", nameof(newTitle));
+            Title = newTitle;
+            Slug = GenerateSlug(newTitle);
+        }
+        if (newDescription != null) Description = newDescription;
+        if (newHskLevel.HasValue)
+        {
+            if (newHskLevel < 1 || newHskLevel > 6) throw new ArgumentException("Cấp độ HSK phải là một số từ 1 đến 6.", nameof(newHskLevel));
+            HskLevel = newHskLevel.Value;
+        }
+        if (newStartDate.HasValue) StartDate = newStartDate;
+        if (newEndDate.HasValue) EndDate = newEndDate;
+        if (newScheduleInfo != null) ScheduleInfo = newScheduleInfo;
+        if (newPrice.HasValue)
+        {
+            if (newPrice < 0) throw new ArgumentException("Giá không được âm.", nameof(newPrice));
+            Price = newPrice.Value;
+        }
+        if (newPriceCurrency.HasValue) PriceCurrency = newPriceCurrency.Value;
+
+        UpdatedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new ClassroomUpdatedEvent(
+            ClassroomId,
+            newTitle,
+            newDescription,
+            newHskLevel,
+            newStartDate,
+            newEndDate,
+            newScheduleInfo,
+            newPrice,
+            newPriceCurrency,
+            UpdatedAt
+        ));
     }
     
     public void AddStudent(Guid studentId)
@@ -63,6 +140,13 @@ public class ClassroomAggregate : BaseAggregateRoot
         
         _StudentIds.Add(studentId);
         UpdatedAt = DateTime.UtcNow;
+        
+        AddDomainEvent(new ClassroomStudentIndividualAddedEvent(
+            ClassroomId,
+            studentId,
+            _StudentIds.Count,
+            UpdatedAt
+        ));
     }
     
     public void RemoveStudent(Guid studentId)
@@ -71,5 +155,60 @@ public class ClassroomAggregate : BaseAggregateRoot
         
         _StudentIds.Remove(studentId);
         UpdatedAt = DateTime.UtcNow;
+        
+        AddDomainEvent(new ClassroomStudentIndividualRemovedEvent(
+            ClassroomId,
+            studentId,
+            _StudentIds.Count,
+            UpdatedAt
+        ));
+    }
+    
+    public void AddStudentBulk(List<Guid> studentIds)
+    {
+        if (studentIds == null || studentIds.Count == 0) 
+            throw new ArgumentException("Danh sách học sinh không được để trống.", nameof(studentIds));
+        
+        foreach (var studentId in studentIds)
+        {
+            if (studentId == Guid.Empty) continue;
+            if (!_StudentIds.Contains(studentId))
+            {
+                _StudentIds.Add(studentId);
+            }
+        }
+        
+        UpdatedAt = DateTime.UtcNow;
+        
+        // Emit bulk enrollment event
+        AddDomainEvent(new ClassroomStudentsEnrolledBulkEvent(
+            ClassroomId,
+            [.. studentIds.Where(id => id != Guid.Empty)],
+            _StudentIds.Count,
+            UpdatedAt
+        ));
+    }
+    
+    public void RemoveStudentBulk(List<Guid> studentIds)
+    {
+        if (studentIds == null || studentIds.Count == 0) 
+            throw new ArgumentException("Danh sách học sinh không được để trống.", nameof(studentIds));
+        
+        foreach (var studentId in studentIds)
+        {
+            if (_StudentIds.Contains(studentId))
+            {
+                _StudentIds.Remove(studentId);
+            }
+        }
+        
+        UpdatedAt = DateTime.UtcNow;
+        // Emit bulk removal event
+        AddDomainEvent(new ClassroomStudentsRemovedBulkEvent(
+            ClassroomId,
+            [.. studentIds.Where(id => id != Guid.Empty)],
+            _StudentIds.Count,
+            UpdatedAt
+        ));
     }
 }

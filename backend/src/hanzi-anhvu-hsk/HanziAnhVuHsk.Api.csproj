@@ -33,5 +33,6 @@
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
     <ProjectReference Include="..\shared\HanziAnhVu.Shared.Infrastructure\HanziAnhVu.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\module\search\Search.Infrastructure\Search.Infrastructure.csproj" />
+    <ProjectReference Include="..\module\classroom\Classroom.Infrastructure\Classroom.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

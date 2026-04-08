@@ -5,7 +5,7 @@ public static class Dependencies
     public static void ConfigureServices(IConfiguration configuration, IServiceCollection services)
     {
         // Register DbContext
-        // DB cho users module
+        // DB cho Lesson module
         var connectionString = configuration.GetConnectionString("LessonDbConnection")
             ?? throw new InvalidOperationException("Missing connection string for LessonDbConnection. Set it in appsettings.json or environment variables.");
 
