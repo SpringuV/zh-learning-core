@@ -2,12 +2,12 @@ namespace Search.Infrastructure.Queries.Users.Get;
 
 public class UserGetQueriesHandler(
     ElasticsearchClient client,
-    ILogger<UserGetQueriesHandler> logger) : IRequestHandler<UserGetQueries, UserSearch?>
+    ILogger<UserGetQueriesHandler> logger) : IRequestHandler<UserGetQueries, UserSearchResponse?>
 {
     private readonly ElasticsearchClient _client = client ?? throw new ArgumentNullException(nameof(client));
     private readonly ILogger<UserGetQueriesHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public async Task<UserSearch?> Handle(UserGetQueries request, CancellationToken cancellationToken)
+    public async Task<UserSearchResponse?> Handle(UserGetQueries request, CancellationToken cancellationToken)
     {
         ValidateRequest(request);
 
@@ -15,7 +15,7 @@ public class UserGetQueriesHandler(
 
         try
         {
-            var response = await _client.GetAsync<UserSearch>(
+            var response = await _client.GetAsync<UserSearchResponse>(
                 request.Id,
                 g => g.Index(ConstantIndexElastic.UserIndex),
                 cancellationToken);

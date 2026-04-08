@@ -1,9 +1,6 @@
 ﻿
-using HanziAnhVu.Shared.Application;
 using Search.Contracts.DTOs;
-using Search.Application.Entities;
-
-namespace Search.Application.Interfaces;
+namespace Search.Contracts.Interfaces;
 
 /*
 [Controller/API]
@@ -20,19 +17,10 @@ namespace Search.Application.Interfaces;
 public interface IUserSearchQueriesServices
 {
 	Task<SearchQueryResult<UserSearchItemResponse>> SearchUsersAsync(UserSearchQueryRequest request, CancellationToken cancellationToken = default);
-    Task<UserSearch?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<UserSearchResponse?> GetAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<UserIndexResponse> IndexAsync(UserSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
     Task<UserSearchPatchDocumentResponse?> PatchAsync(Guid id, UserSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
-public enum UserSortBy
-{
-    CreatedAt,
-    UpdatedAt,
-    CurrentLevel,
-    Email,
-    Username,
-}
-
 

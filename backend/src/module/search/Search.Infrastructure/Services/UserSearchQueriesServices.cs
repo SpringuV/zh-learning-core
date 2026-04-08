@@ -51,7 +51,7 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
         return result;
     }
 
-    public async Task<UserSearch?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<UserSearchResponse?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(id.ToString()))
             throw new ArgumentException("UserId không được để trống.", nameof(id));

@@ -1,4 +1,4 @@
-﻿namespace HanziAnhVu.Shared.Application;
+﻿namespace Search.Contracts.DTOs;
 
 public sealed record SearchQueryResult<T>(
     long Total,

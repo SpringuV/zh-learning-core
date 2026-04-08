@@ -1,12 +1,3 @@
-using Auth.Contracts;
-using HanziAnhVu.Shared.EventBus.Abstracts;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Search.Application.EventHandlers.Users;
-using Search.Application.Queries.Users.Search;
-using Search.Contracts.Interfaces;
-using Search.Infrastructure.Services;
-
 namespace Search.Infrastructure;
 
 public static class Dependencies

@@ -36,7 +36,6 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
     {
         try
         {
-
             _logger.LogDebug("Executing search with request: {@SearchRequest}", request);
 
             var indexExistsResponse = await _client.Indices.ExistsAsync(ConstantIndexElastic.UserIndex, cancellationToken);

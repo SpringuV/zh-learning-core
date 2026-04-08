@@ -1,12 +1,5 @@
-using Elastic.Clients.Elasticsearch;
-using MediatR;
-using Microsoft.Extensions.Logging;
-using Search.Contracts.DTOs;
-using Search.Domain.Entities;
-
+using Search.Infrastructure;
 namespace Search.Application.Queries.Users.Indexs;
-
-
 
 public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, UserIndexResponse>
 {

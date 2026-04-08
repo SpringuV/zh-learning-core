@@ -1,7 +1,6 @@
-using HanziAnhVu.Shared.Application;
 using Search.Contracts.DTOs;
 
-namespace Search.Application.Interfaces;
+namespace Search.Contracts.Interfaces;
 
 /// <summary>
 /// IAssignmentSearchQueriesService - Search operations for assignments (CQRS Read Side)
