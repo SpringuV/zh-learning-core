@@ -106,7 +106,9 @@ public class ClassroomAggregate : BaseAggregateRoot
 
     public void UpdateDescription(string newDescription)
     {
-        Description = newDescription ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(newDescription))
+            throw new ArgumentException("Mô tả lớp học không được để trống.", nameof(newDescription));
+        Description = newDescription;
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new ClassroomDescriptionUpdatedEvent(ClassroomId, newDescription, UpdatedAt));
     }
@@ -137,7 +139,9 @@ public class ClassroomAggregate : BaseAggregateRoot
 
     public void UpdateScheduleInfo(string newScheduleInfo)
     {
-        ScheduleInfo = newScheduleInfo ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(newScheduleInfo))
+            throw new ArgumentException("Thông tin lịch học không được để trống.", nameof(newScheduleInfo));
+        ScheduleInfo = newScheduleInfo;
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new ClassroomScheduleInfoUpdatedEvent(ClassroomId, newScheduleInfo, UpdatedAt));
     }

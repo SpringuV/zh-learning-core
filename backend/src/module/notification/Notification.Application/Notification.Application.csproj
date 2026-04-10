@@ -23,7 +23,6 @@
     <ProjectReference Include="..\..\ai\Ai.Contracts\Ai.Contracts.csproj" />
     <ProjectReference Include="..\..\auth\Auth.Contracts\Auth.Contracts.csproj" />
     <ProjectReference Include="..\..\classroom\Classroom.Contracts\Classroom.Contracts.csproj" />
-    <ProjectReference Include="..\..\flashcard\Flashcard.Contracts\Flashcard.Contracts.csproj" />
     <ProjectReference Include="..\..\lesson\Lesson.Contracts\Lesson.Contracts.csproj" />
     <ProjectReference Include="..\..\payment\Payment.Contracts\Payment.Contracts.csproj" />
     <ProjectReference Include="..\..\search\Search.Contracts\Search.Contracts.csproj" />

@@ -5,3 +5,5 @@ global using MediatR;
 
 global using HanziAnhVu.Shared.Application;
 global using Microsoft.Extensions.Logging;
+global using HanziAnhVu.Shared.Contracts.DTOs;
+global using HanziAnhVu.Shared.Contracts.Enums;

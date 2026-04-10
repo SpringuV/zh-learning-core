@@ -1,7 +1,3 @@
-using Lesson.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 namespace Lesson.Infrastructure.Config;
 
 public class CourseConfiguration : IEntityTypeConfiguration<CourseAggregate>

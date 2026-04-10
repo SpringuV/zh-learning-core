@@ -124,8 +124,10 @@ public class AssignmentAggregate : BaseAggregateRoot
     {
         if (IsPublished)
             throw new InvalidOperationException("Cannot update details of a published assignment.");
+        if (string.IsNullOrWhiteSpace(newDescription))            
+            throw new ArgumentException("Description cannot be empty.", nameof(newDescription));
         
-        Description = newDescription ?? string.Empty;
+        Description = newDescription;
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new AssignmentDescriptionUpdatedEvent(AssignmentId, newDescription, UpdatedAt));
     }

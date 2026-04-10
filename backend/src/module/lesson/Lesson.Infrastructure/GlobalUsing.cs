@@ -4,11 +4,10 @@ global using Lesson.Infrastructure.Persistence;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
-global using Auth.Application.Interfaces;
 global using HanziAnhVu.Shared.Infrastructure;
 global using Lesson.Domain.Interface;
 global using Lesson.Infrastructure.Repository;
-
+global using Microsoft.EntityFrameworkCore.Metadata.Builders;
 global using System.Reflection;
 global using System.Text.Json;
 global using HanziAnhVu.Shared.EventBus.Abstracts;
@@ -18,3 +17,6 @@ global using Shared.Infrastructure.Outbox;
 global using Lesson.Domain.Entities;
 global using MediatR;
 global using Lesson.Infrastructure.Exceptions;
+global using Lesson.Domain.Entities.Exercise;
+global using Microsoft.EntityFrameworkCore.ChangeTracking;
+

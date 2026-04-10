@@ -1,11 +1,5 @@
 namespace Lesson.Infrastructure.Config;
 
-using Lesson.Domain.Entities;
-using Lesson.Domain.Entities.Exercise;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 public class ExerciseConfiguration : IEntityTypeConfiguration<ExerciseAggregate>
 {
     public void Configure(EntityTypeBuilder<ExerciseAggregate> builder)
@@ -36,8 +30,8 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<ExerciseAggregate>
         // JSON conversion for Options (Value Object collection)
         var optionsProperty = builder.Property(e => e.Options)
             .HasConversion(
-                v => System.Text.Json.JsonSerializer.Serialize(v, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<ExerciseOption>>(v, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }) ?? new List<ExerciseOption>()
+                v => JsonSerializer.Serialize(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+                v => JsonSerializer.Deserialize<List<ExerciseOption>>(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new List<ExerciseOption>()
             )
             .IsRequired();
         

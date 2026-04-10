@@ -11,7 +11,6 @@
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
     <ProjectReference Include="..\..\auth\Auth.Contracts\Auth.Contracts.csproj" />
     <ProjectReference Include="..\..\classroom\Classroom.Contracts\Classroom.Contracts.csproj" />
-    <ProjectReference Include="..\..\flashcard\Flashcard.Contracts\Flashcard.Contracts.csproj" />
     <ProjectReference Include="..\..\lesson\Lesson.Contracts\Lesson.Contracts.csproj" />
     <ProjectReference Include="..\..\notification\Notification.Contracts\Notification.Contracts.csproj" />
     <ProjectReference Include="..\..\payment\Payment.Contracts\Payment.Contracts.csproj" />

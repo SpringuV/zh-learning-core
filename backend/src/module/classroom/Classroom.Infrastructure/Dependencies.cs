@@ -1,4 +1,3 @@
-using Auth.Application.Interfaces;
 using Classroom.Infrastructure.Outbox;
 using Classroom.Infrastructure.Persistence;
 using Classroom.Infrastructure.Repository;

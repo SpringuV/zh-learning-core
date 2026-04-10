@@ -23,12 +23,6 @@
     <Project Path="src/module/classroom/Classroom.Domain/Classroom.Domain.csproj" />
     <Project Path="src/module/classroom/Classroom.Infrastructure/Classroom.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/FlashCard/">
-    <Project Path="src/module/flashcard/Flashcard.Application/Flashcard.Application.csproj" />
-    <Project Path="src/module/flashcard/Flashcard.Contracts/Flashcard.Contracts.csproj" />
-    <Project Path="src/module/flashcard/Flashcard.Domain/Flashcard.Domain.csproj" />
-    <Project Path="src/module/flashcard/Flashcard.Infrastructure/Flashcard.Infrastructure.csproj" />
-  </Folder>
   <Folder Name="/src/Modules/Lesson/">
     <Project Path="src/module/lesson/Lesson.Application/Lesson.Application.csproj" />
     <Project Path="src/module/lesson/Lesson.Contracts/Lesson.Contracts.csproj" />

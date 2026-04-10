@@ -1,4 +1,3 @@
-global using Auth.Application.Interfaces;
 global using HanziAnhVu.Shared.Application;
 global using HanziAnhVu.Shared.Infrastructure;
 global using Microsoft.EntityFrameworkCore;

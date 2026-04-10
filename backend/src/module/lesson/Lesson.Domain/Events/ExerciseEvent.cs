@@ -98,6 +98,18 @@ public sealed record CourseTitleUpdatedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
+public sealed record CourseDescriptionUpdatedEvent(
+    Guid CourseId,
+    string NewDescription,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record CourseOrderIndexUpdatedEvent(
+    Guid CourseId,
+    int NewOrderIndex,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
 public record CourseEnrollmentCountUpdatedEvent(
     Guid CourseId,
     long TotalStudentsEnrolled,

@@ -1,7 +1,4 @@
-﻿
-using HanziAnhVu.Shared.Domain.Exceptions;
-
-namespace HanziAnhVuHsk.Api.Middlewares
+﻿namespace HanziAnhVuHsk.Api.Middlewares
 {
     public class GlobalExceptionMiddleware
     {
@@ -26,25 +23,43 @@ namespace HanziAnhVuHsk.Api.Middlewares
 
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            int statusCode = StatusCodes.Status500InternalServerError;
+            ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
             string message = "An internal server error occurred.";
+            int statusCode = StatusCodes.Status500InternalServerError;
 
-            // Thay vì if/else từng loại AuthDomainException, PaymentDomainException...
-            // Chúng ta chỉ cần gom tất cả các lỗi có đặc điểm "DomainException"
             if (exception is DomainException domainEx)
             {
-                statusCode = StatusCodes.Status400BadRequest;
+                errorCode = ErrorCode.VALIDATION;
                 message = domainEx.Message;
+                statusCode = StatusCodes.Status400BadRequest;
             }
-            // Thêm các loại exception dùng chung khác, ví dụ: NotFoundException, ValidationException...
+            else if (exception is KeyNotFoundException notFoundEx)
+            {
+                errorCode = ErrorCode.NOTFOUND;
+                message = notFoundEx.Message;
+                statusCode = StatusCodes.Status404NotFound;
+            }
+            else if (exception is ArgumentException argEx)
+            {
+                errorCode = ErrorCode.VALIDATION;
+                message = argEx.Message;
+                statusCode = StatusCodes.Status400BadRequest;
+            }
+            else if (exception is InvalidOperationException opEx)
+            {
+                errorCode = ErrorCode.INVALID_STATE;
+                message = opEx.Message;
+                statusCode = StatusCodes.Status400BadRequest;
+            }
 
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
 
-            var result = new
+            var result = new Result
             {
-                error = message
-                // có thể thêm stack trace cho môi trường development
+                Success = false,
+                Message = message,
+                ErrorCode = errorCode.ToString()
             };
 
             return context.Response.WriteAsJsonAsync(result);

@@ -1,6 +1,3 @@
-using System.Text.Json;
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Domain.Entities;
 
 public enum PhraseType
@@ -57,8 +54,7 @@ public class FlashcardAggregate : BaseAggregateRoot
         string? radical = null,
         int? strokeCount = null,
         string? traditionalForm = null,
-        JsonDocument? strokeOrderJson = null
-        ) 
+        JsonDocument? strokeOrderJson = null) 
     {
         if (courseId == Guid.Empty)
             throw new ArgumentException("CourseId cannot be empty.", nameof(courseId));

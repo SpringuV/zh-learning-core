@@ -23,17 +23,16 @@ public class CourseAggregate : BaseAggregateRoot
 
     public CourseAggregate(){}
 
-    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex, string slug)
+    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex, string? slug)
     {
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Tiêu đề không thể để trống.", nameof(title));
         if (hskLevel < 0 || hskLevel > 6) throw new ArgumentOutOfRangeException(nameof(hskLevel), "Cấp HSK phải từ 0 đến 6.");
         if (orderIndex < 1) throw new ArgumentOutOfRangeException(nameof(orderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
-        if (string.IsNullOrWhiteSpace(slug)) throw new ArgumentException("Slug không được để trống.", nameof(slug));
         var course = new CourseAggregate
         {
             CourseId = Guid.NewGuid(),
             Title = title,
-            Slug = slug,
+            Slug = slug ?? GenerateSlug(title),
             Description = description,
             HskLevel = hskLevel,
             OrderIndex = orderIndex,
@@ -41,9 +40,6 @@ public class CourseAggregate : BaseAggregateRoot
             UpdatedAt = DateTime.UtcNow
         };
         
-        // Generate slug using inherited method
-        course.Slug = GenerateSlug(title);
-
         // Fire domain event — các handler khác lắng nghe
         course.AddDomainEvent(new CourseCreatedEvent(
             course.CourseId, 
@@ -61,16 +57,32 @@ public class CourseAggregate : BaseAggregateRoot
     /// <summary>
     /// Update course title & regenerate slug
     /// </summary>
-    public void UpdateTitle(string newTitle)
+    public void UpdateTitle(string newTitle, string? newSlug = null)
     {
         if (string.IsNullOrWhiteSpace(newTitle))
             throw new ArgumentException("Tiêu đề không thể để trống.", nameof(newTitle));
-        
         Title = newTitle;
-        Slug = GenerateSlug(newTitle);  // Using inherited method
+        Slug = newSlug ?? GenerateSlug(newTitle);  // Using inherited method
         UpdatedAt = DateTime.UtcNow;
         
         AddDomainEvent(new CourseTitleUpdatedEvent(CourseId, newTitle, Slug, UpdatedAt));
+    }
+
+    public void UpdateOrderIndex(int newOrderIndex)
+    {
+        if (newOrderIndex < 1) throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
+        OrderIndex = newOrderIndex;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseOrderIndexUpdatedEvent(CourseId, newOrderIndex, UpdatedAt));
+    }
+
+    public void UpdateDescription(string newDescription)
+    {
+        if (string.IsNullOrWhiteSpace(newDescription))
+            throw new ArgumentException("Mô tả không được để trống.", nameof(newDescription));
+        Description = newDescription;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseDescriptionUpdatedEvent(CourseId, newDescription, UpdatedAt));
     }
 
     public void IncrementEnrollmentCount()

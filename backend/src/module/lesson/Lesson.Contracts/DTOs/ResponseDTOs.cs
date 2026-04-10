@@ -1,3 +1,17 @@
 namespace Lesson.Contracts.DTOs;
-public record BaseResponseDTO(bool Success, string Message);
-public sealed record CreateCourseResponseDTO(Guid? CourseId = null): BaseResponseDTO(Success: CourseId.HasValue, Message: CourseId.HasValue ? "Khóa học đã được tạo thành công." : "Không thể tạo khóa học.");
+
+public sealed record CreateCourseResponseDTO(Guid CourseId);
+
+public sealed record UpdateCourseResponseDTO(
+    Guid CourseId,
+    string Title,
+    string Description,
+    int OrderIndex,
+    string Slug,
+    DateTime UpdatedAt
+);
+
+public sealed record PublishCourseResponseDTO(
+    Guid CourseId,
+    DateTime UpdatedAt
+);
