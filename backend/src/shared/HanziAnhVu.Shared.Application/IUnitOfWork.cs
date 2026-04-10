@@ -1,4 +1,4 @@
-﻿namespace Auth.Application.Interfaces
+﻿namespace HanziAnhVu.Shared.Application;
 {
     public interface IUnitOfWork : IDisposable // đảm bảo rằng các tài nguyên được giải phóng đúng cách sau khi sử dụng
     {

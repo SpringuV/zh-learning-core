@@ -14,10 +14,10 @@ public class LogoutCommandHandler(ITokenClaimService tokenClaimService, ILogger<
     {
         // revoke the refresh token
 
-        return await _unitOfWork.SaveChangeAsync( async()=>
+        try
         {
             var result = await _tokenClaimService.RevokeAsync(request.RefreshToken, cancellationToken);
-            if(result.HasValue)
+            if (result.HasValue)
             {
                 // revoke token thành công mới update last logout time, tránh trường hợp token đã bị revoke trước đó rồi mà vẫn update last logout time
                 await _identityService.UpdateLastLogoutTimeAsync(result.Value, cancellationToken);
@@ -26,6 +26,11 @@ public class LogoutCommandHandler(ITokenClaimService tokenClaimService, ILogger<
             }
             _logger.LogError("Đăng xuất thất bại !");
             return new UserLoggoutResponse("Đăng xuất thất bại !");
-        }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while logging out");
+            return new UserLoggoutResponse("Đăng xuất thất bại !");
+        }
     }
 }

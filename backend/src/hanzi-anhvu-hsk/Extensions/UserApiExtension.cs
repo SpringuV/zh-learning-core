@@ -1,8 +1,4 @@
-﻿using HanziAnhVuHsk.Api.Apis;
-using HanziAnhVuHsk.Api.Apis.SearchApi;
-using HanziAnhVuHsk.Extensions;
-
-namespace HanziAnhVuHsk.Api.Extensions;
+﻿namespace HanziAnhVuHsk.Api.Extensions;
 
 public static class UserApiExtension
 {

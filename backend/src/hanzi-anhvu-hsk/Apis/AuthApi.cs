@@ -1,10 +1,4 @@
-﻿using Auth.Contracts;
-using Auth.Contracts.DTOs;
-using Auth.Domain.Exceptions;
-using HanziAnhVuHsk.Api.Config;
-using Microsoft.AspNetCore.Mvc;
-
-namespace HanziAnhVuHsk.Api.Apis;
+﻿namespace HanziAnhVuHsk.Apis;
 
 public class AuthApi
 {

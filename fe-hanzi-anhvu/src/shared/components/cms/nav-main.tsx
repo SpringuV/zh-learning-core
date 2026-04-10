@@ -33,11 +33,15 @@ export function NavMain({
         }[];
     }[];
 }) {
+    // hight light active link and its parent
     const pathname = usePathname();
-
     const isPathActive = (targetUrl: string) => {
         if (!targetUrl || targetUrl === "#") {
             return false;
+        }
+
+        if (targetUrl === "/cms") {
+            return pathname === "/cms";
         }
 
         return pathname === targetUrl || pathname.startsWith(`${targetUrl}/`);

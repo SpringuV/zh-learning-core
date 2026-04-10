@@ -15,3 +15,6 @@ global using HanziAnhVu.Shared.EventBus.Abstracts;
 global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Shared.Infrastructure.Outbox;
+global using Lesson.Domain.Entities;
+global using MediatR;
+global using Lesson.Infrastructure.Exceptions;

@@ -1,9 +1,8 @@
 ﻿global using HanziAnhVu.Shared.Domain;
 global using MediatR;
 global using FluentValidation;
-global using HanziAnhVu.Shared.EventBus.Abstracts;
 global using Auth.Application.Interfaces;
-
+global using HanziAnhVu.Shared.Application;
 global using Auth.Contracts;
 global using Auth.Contracts.DTOs;
 global using Auth.Application.Command.Login;
@@ -14,4 +13,7 @@ global using Auth.Application.Command.Logout;
 global using Auth.Application.Command.ActivateAccount;
 global using Auth.Application.Command.ResendMail;
 global using Auth.Application.Command.ChangePassword;
-
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Logging;
+global using Auth.Domain.Exceptions;

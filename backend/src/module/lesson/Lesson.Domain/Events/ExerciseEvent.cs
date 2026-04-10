@@ -1,6 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Exercise;
-
 /// <summary>
 /// Domain Events - Rich events with denormalized payload for Search module
 /// Pattern: Events contain full context → Search handlers DON'T query DB
@@ -22,44 +19,62 @@ public record TopicCreatedEvent(
     int OrderIndex,
     DateTime CreatedAt,
     DateTime UpdatedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
-public record TopicUpdatedEvent(
+// Granular Topic events
+public record TopicTitleUpdatedEvent(
     Guid TopicId,
-    Guid CourseId,
-    bool? IsPublished,
-    string? Title,
-    string? Description,
-    string? Slug,
-    TopicType? TopicType,
-    int? EstimatedTimeMinutes,
-    int? ExamYear,
-    string? ExamCode,
-    int? OrderIndex,
+    string NewTitle,
+    string NewSlug,
     DateTime UpdatedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
+
+public record TopicDescriptionUpdatedEvent(
+    Guid TopicId,
+    string NewDescription,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
+
+public record TopicEstimatedTimeUpdatedEvent(
+    Guid TopicId,
+    int NewEstimatedTimeMinutes,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
+
+public record TopicOrderIndexUpdatedEvent(
+    Guid TopicId,
+    int NewOrderIndex,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
+
+public record TopicExamInfoUpdatedEvent(
+    Guid TopicId,
+    int NewExamYear,
+    string NewExamCode,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
 
 public record TopicPublishedEvent(
     Guid TopicId,
     DateTime PublishedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record TopicUnpublishedEvent(
     Guid TopicId,
     DateTime UnpublishedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record ExerciseAddedToTopicEvent(
     Guid TopicId,
     Guid ExerciseId,
     DateTime AddedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record ExerciseRemovedFromTopicEvent(
     Guid TopicId,
     Guid ExerciseId,
     DateTime RemovedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 // --------------- course events --------------
 public record CourseCreatedEvent(
@@ -68,10 +83,10 @@ public record CourseCreatedEvent(
     string Description,
     int HskLevel,
     int OrderIndex,
+    string Slug,
     DateTime CreatedAt,
-    DateTime UpdatedAt,
-    string Slug
-): BaseDomainEvent;
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Course title updated (and slug regenerated)
@@ -81,30 +96,30 @@ public sealed record CourseTitleUpdatedEvent(
     string NewTitle,
     string NewSlug,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public record CourseEnrollmentCountUpdatedEvent(
     Guid CourseId,
     long TotalStudentsEnrolled,
     DateTime UpdatedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record CoursePublishedDomainEvent(
     Guid CourseId,
     DateTime PublishedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record CourseUnpublishedDomainEvent(
     Guid CourseId,
     DateTime UnpublishedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 
 public record TopicAddedToCourseDomainEvent(
     Guid CourseId,
     Guid TopicId,
     int OrderIndex,
     DateTime AddedAt
-): BaseDomainEvent;
+): BaseDomainEvent, INotification;
 // ============= EXERCISE EVENTS =============
 
 /// <summary>
@@ -130,7 +145,7 @@ public sealed record ExerciseCreatedEvent(
     string Explanation,
     string Slug,
     List<ExerciseOption>? Options
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // bulk update
 public sealed record ExerciseUpdatedEvent(
@@ -148,7 +163,7 @@ public sealed record ExerciseUpdatedEvent(
     string? Explanation,
     string? Slug,
     List<ExerciseOption>? Options
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Exercise published (accessible to students/classrooms)
@@ -157,7 +172,7 @@ public sealed record ExerciseUpdatedEvent(
 public sealed record ExercisePublishedEvent(
     Guid ExerciseId,
     DateTime PublishedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Exercise unpublished (no longer accessible to students)
@@ -165,7 +180,7 @@ public sealed record ExercisePublishedEvent(
 public sealed record ExerciseUnpublishedEvent(
     Guid ExerciseId,
     DateTime UnpublishedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 // ============= USER EXERCISE SESSION EVENTS =============
 
 /// <summary>
@@ -178,7 +193,7 @@ public sealed record UserTopicExerciseSessionStartedEvent(
     Guid? TopicId,
     DateTime StartedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: User completed exercise session (RICH)
@@ -193,7 +208,7 @@ public sealed record UserTopicExerciseSessionCompletedEvent(
     int TimeSpentSeconds,
     DateTime CompletedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: User abandoned exercise session
@@ -204,7 +219,7 @@ public sealed record UserTopicExerciseSessionAbandonedEvent(
     Guid? TopicId,
     DateTime AbandonedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // ============= EXERCISE ATTEMPT EVENTS =============
 
@@ -228,7 +243,7 @@ public sealed record ExerciseAttemptCreatedEvent(
     bool IsCorrect,          // false at creation, updated when scored
     DateTime CreatedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Exercise attempt scored/graded (RICH)
@@ -244,7 +259,7 @@ public sealed record ExerciseAttemptScoredEvent(
     bool IsCorrect,
     DateTime ScoredAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: AI feedback added to exercise attempt
@@ -258,7 +273,7 @@ public sealed record ExerciseAttemptAiFeedbackAddedEvent(
     string Feedback,
     DateTime FeedbackAddedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Exercise attempt answer changed during session
@@ -271,7 +286,7 @@ public sealed record ExerciseAttemptAnswerChangedEvent(
     Guid ExerciseId,
     string NewAnswer,
     DateTime ChangedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // ============= USER PROGRESS EVENTS =============
 
@@ -290,7 +305,7 @@ public record UserTopicProgressCreatedEvent(
     float TotalScore,
     float? AccuracyRate,
     DateTime CreatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: User progress updated after session completion
@@ -307,7 +322,7 @@ public record UserTopicProgressUpdatedEvent(
     float? TotalScore,
     float? AccuracyRate,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: User progress reset
@@ -317,5 +332,102 @@ public record UserTopicProgressResetEvent(
     Guid UserId,
     Guid TopicId,
     DateTime ResetAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
+
+// ============= FLASHCARD EVENTS =============
+
+/// <summary>
+/// Event: Flashcard created
+/// Rich: Contains full flashcard context for Search/SRS module
+/// </summary>
+public sealed record FlashcardCreatedEvent(
+    Guid FlashcardId,
+    Guid CourseId,
+    Guid TopicId,
+    string FrontTextChinese,
+    string Pinyin,
+    string MeaningVi,
+    string? MeaningEn,
+    string PhraseType,           // word|phrase|idiom|sentence
+    int OrderIndex,
+    string? AudioUrl,
+    int? HskLevel,
+    bool IsHskCore,
+    string? ExampleSentenceChinese,
+    string? ExampleSentencePinyin,
+    string? ExampleSentenceMeaningVi,
+    string? Radical,             // Chỉ cho word
+    int? StrokeCount,            // Chỉ cho word
+    string? TraditionalForm,     // Chỉ cho word
+    string? StrokeOrderJson,     // SVG path data cho Hanzi Writer
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+// Granular Flashcard events
+public sealed record FlashcardTextUpdatedEvent(
+    Guid FlashcardId,
+    string FrontTextChinese,
+    string Pinyin,
+    string MeaningVi,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardEnglishMeaningUpdatedEvent(
+    Guid FlashcardId,
+    string MeaningEn,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardPhraseTypeUpdatedEvent(
+    Guid FlashcardId,
+    string PhraseType,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardOrderIndexUpdatedEvent(
+    Guid FlashcardId,
+    int OrderIndex,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardAudioUrlUpdatedEvent(
+    Guid FlashcardId,
+    string AudioUrl,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardHskInfoUpdatedEvent(
+    Guid FlashcardId,
+    int? HskLevel,
+    bool IsHskCore,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardExampleSentenceUpdatedEvent(
+    Guid FlashcardId,
+    string? ExampleSentenceChinese,
+    string? ExampleSentencePinyin,
+    string? ExampleSentenceMeaningVi,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record FlashcardCharacterInfoUpdatedEvent(
+    Guid FlashcardId,
+    string? Radical,
+    int? StrokeCount,
+    string? TraditionalForm,
+    string? StrokeOrderJson,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+/// <summary>
+/// Event: Flashcard deleted
+/// </summary>
+public sealed record FlashcardDeletedEvent(
+    Guid FlashcardId,
+    Guid CourseId,
+    Guid TopicId,
+    DateTime DeletedAt
+) : BaseDomainEvent, INotification;
 

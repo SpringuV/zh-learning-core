@@ -1,0 +1,17 @@
+namespace HanziAnhVuHsk.Extensions;
+public static class LessonApiExtensions
+{
+    public static IEndpointRouteBuilder MapLessonApi(this IEndpointRouteBuilder builder)
+    {
+        builder.MapGroup("/api/lesson/v{version:int}")
+            .MapLessonApi()
+            .WithTags("Lesson Api");
+        return builder;
+    }
+    public static RouteGroupBuilder MapLessonApi(this RouteGroupBuilder group)
+    {
+        group.MapGet("/", LessonSearchApi.SearchLessons);
+
+        return group;
+    }
+}

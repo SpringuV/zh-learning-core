@@ -9,8 +9,8 @@
 //
 //  MODULES:
 //  auth | user | lesson | classroom
-//  flashcard | payment | ai
-//  notification | search
+//  payment | ai | notification | search
+//  (flashcard merged into lesson)
 // ══════════════════════════════════════════════════════
 
 // ─── MODULE: Auth ─────────────────────────────────────
@@ -49,7 +49,7 @@ Table user_roles {
   user_id uuid [not null, note: "same-module ref → users.id"]
   role_id varchar [not null, note: "same-module ref → roles.id"]
 
-  indexes {
+  indexes {, vi
     (user_id, role_id) [pk]
     user_id
     role_id
@@ -244,6 +244,36 @@ Table user_topic_progress {
   }
 }
 
+Table flashcard {
+  // -- SRS (Spaced Repetition System), lịch ôn tập từ vựng
+  // -- Tự động tạo từ exercise, hoặc user chọn ôn tập
+  // -- ✅ course_id, topic_id là soft refs nhưng liên quan đến lesson content
+  id uuid [pk]
+  text_cn text [note: "Nội dung tiếng Trung — 你好 hoặc 你好，我叫小明"]
+  pinyin text [note: "nǐ hǎo hoặc nǐ hǎo, wǒ jiào..."]
+  meaning_vi text
+  meaning_en text [null]
+  audio_url varchar [null]
+  hsk_level int [null, note: "1-6 theo chuẩn HSK. Null nếu không thuộc HSK"]
+  is_hsk_core boolean [default: false, note: "true = nằm trong danh sách HSK chuẩn"]
+  phrase_type enum("word","phrase","sentence") [note: "word = từ đơn | phrase = cụm từ | sentence = câu hoàn chỉnh"]
+  // -- Fields chỉ dùng cho word (phrase_type = word)
+  stroke_order_json json [null, note: "SVG path data cho Hanzi Writer — chỉ dùng cho word"]
+  radical varchar [null, note: "Bộ thủ — chỉ dùng cho word"]
+  stroke_count int [null, note: "Số nét — chỉ dùng cho word"]
+  is_traditional boolean [default: false]
+  course_id uuid [null, note: "soft ref → course.id (same module). Gắn flashcard vào khóa học"]
+  topic_id uuid [null, note: "soft ref → topic.id (same module). Gắn flashcard vào topic cụ thể (optional)"]
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (course_id, topic_id)
+    course_id
+    topic_id
+  }
+}
+
 // ─── MODULE: Classroom ─────────────────────────────────
 // Xử lý: lớp học (registration, enrollment, workspace, assignments)
 // Classroom: Admin/Teacher tạo → student đăng ký + thanh toán → confirmed → teacher add student → giao bài tập
@@ -407,36 +437,6 @@ Table submission_answer {
   }
 }
 
-
-// ─── MODULE: Flashcard ─────────────────────────────────
-// Xử lý: SRS, lịch ôn tập từ vựng
-// Tự động tạo khi: học xong lesson, hoặc user chọn ôn tập (cần subscription)
-// Aggregates: FlashcardSchedule
-
-Table flashcard {
-  id uuid [pk]
-  text_cn text [note: "Nội dung tiếng Trung — 你好 hoặc 你好，我叫小明"]
-  pinyin text [note: "nǐ hǎo hoặc nǐ hǎo, wǒ jiào..."]
-  meaning_vi text
-  meaning_en text [null]
-  audio_url varchar [null]
-  hsk_level int [null, note: "1-6 theo chuẩn HSK. Null nếu không thuộc HSK"]
-  is_hsk_core boolean [default: false, note: "true = nằm trong danh sách HSK chuẩn"]
-  phrase_type enum("word","phrase","sentence") [note: "word = từ đơn | phrase = cụm từ | sentence = câu hoàn chỉnh"]
-  // -- Fields chỉ dùng cho word (phrase_type = word)
-  stroke_order_json json [null, note: "SVG path data cho Hanzi Writer — chỉ dùng cho word"]
-  radical varchar [null, note: "Bộ thủ — chỉ dùng cho word"]
-  stroke_count int [null, note: "Số nét — chỉ dùng cho word"]
-  is_traditional boolean [default: false]
-  course_id uuid [null, note: "soft ref → course.id (cross-module). Gắn flashcard vào khóa học"]
-  topic_id uuid [null, note: "soft ref → topic.id (cross-module). Gắn flashcard vào topic cụ thể (optional)"]
-  created_at datetime
-  updated_at datetime
-
-  indexes {
-    (course_id, topic_id)
-  }
-}
 
 // ─── MODULE: Payment ───────────────────────────────────
 // Xử lý: thanh toán, subscription, course access
@@ -681,6 +681,8 @@ Ref: exercise.topic_id      > topic.id
 Ref: user_topic_progress.topic_id > topic.id
 Ref: user_exercise_session.topic_id > topic.id
 Ref: exercise_attempt.session_id > user_exercise_session.id
+Ref: flashcard.course_id    > course.id
+Ref: flashcard.topic_id     > topic.id
 
 // ── Classroom module (internal FKs) ──
 Ref: classroom_enrollment.classroom_id > classroom.id
@@ -733,8 +735,6 @@ Ref: notification.announcement_id > announcement.id
 //             exercise_attempt.exercise_id          → exercise.id
 //             user_topic_progress.user_id           → users.id
 //             user_topic_progress.topic_id          → topic.id
-// Flashcard:  flashcard.course_id          → course.id
-//             flashcard.topic_id           → topic.id
 // Payment:    payment.user_id                       → users.id
 //             user_subscription.user_id             → users.id
 //             course_access.user_id                 → users.id
@@ -758,14 +758,9 @@ Content Strategy:
     - exam topic: HSK1-2019, HSK1-2020...
 
   Topic flow:
-    1. Hiện flashcard list (qua flashcard.topic_id) → user xem qua từ vựng ~30s
-    2. Làm exercise liên tiếp → main activity
-    3. Sai → hiện exercise.explanation ngắn
-    4. Xong → tạo flashcard tự động
-
-  Flashcard:
-    1 flashcard thuộc 1 topic cụ thể (optional)
-    flashcard không bị duplicate
+    1. Làm exercise liên tiếp → main activity
+    2. Sai → hiện exercise.explanation ngắn
+    3. Xong → tạo data cho SRS/flashcard (qua outbox event)
 
   Score policy:
     exercise_attempt.score → feedback ngay khi làm bài

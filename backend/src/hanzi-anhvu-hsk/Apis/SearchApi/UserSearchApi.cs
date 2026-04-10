@@ -1,8 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
-using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
-
-namespace HanziAnhVuHsk.Api.Apis.SearchApi;
+namespace HanziAnhVuHsk.Apis.SearchApi;
 public static class UserSearchApi
 {
     public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)

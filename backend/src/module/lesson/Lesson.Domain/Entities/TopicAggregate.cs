@@ -1,6 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Domain.Entities;
 
 public enum TopicType
@@ -64,7 +61,7 @@ public class TopicAggregate: BaseAggregateRoot
             UpdatedAt = DateTime.UtcNow,
             IsPublished = false
         };
-        topic.Slug = topic.GenerateSlug(title); // Using inherited method
+        topic.Slug = GenerateSlug(title); // Using inherited method
         topic.AddDomainEvent(new TopicCreatedEvent(
             topic.TopicId,
             topic.CourseId,
@@ -83,69 +80,62 @@ public class TopicAggregate: BaseAggregateRoot
         return topic;
     }
 
-    public void UpdateTopic(
-        string? title,
-        string? description,
-        TopicType? topicType,
-        int? estimatedTimeMinutes,
-        int? orderIndex,
-        int? examYear = null,
-        string? examCode = "")
+    public void UpdateTitle(string newTitle)
     {
-        if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Tiêu đề không thể để trống.", nameof(title));
-        if (estimatedTimeMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(estimatedTimeMinutes), "Thời gian ước tính phải lớn hơn 0.");
-        if (orderIndex < 1) throw new ArgumentOutOfRangeException(nameof(orderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
+        if (string.IsNullOrWhiteSpace(newTitle))
+            throw new ArgumentException("Tiêu đề không thể để trống.", nameof(newTitle));
         
-        if (topicType == TopicType.Exam)
-        {
-            if (!examYear.HasValue || examYear <= 0) throw new ArgumentOutOfRangeException(nameof(examYear), "Năm thi phải lớn hơn 0.");
-            if (string.IsNullOrWhiteSpace(examCode)) throw new ArgumentException("ExamCode không được để trống cho chủ đề thi.", nameof(examCode));
-        }
-
-        if (!string.IsNullOrWhiteSpace(title))
-        { 
-            Title = title;
-            Slug = GenerateSlug(title);
-        }
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            Description = description;
-        }
-        if (topicType.HasValue)
-        {
-            TopicType = topicType.Value;
-        }
-        if (estimatedTimeMinutes.HasValue)
-        {
-            EstimatedTimeMinutes = estimatedTimeMinutes.Value;
-        }
-        if (examYear.HasValue)
-        {
-            ExamYear = examYear.Value;
-        }
-        if (!string.IsNullOrWhiteSpace(examCode))
-        {
-            ExamCode = examCode;
-        }
-        if (orderIndex.HasValue)
-        {
-            OrderIndex = orderIndex.Value;
-        }
+        Title = newTitle;
+        Slug = GenerateSlug(newTitle);
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicUpdatedEvent(
-            TopicId,
-            CourseId,
-            IsPublished,
-            Title,
-            Description,
-            Slug,
-            TopicType,
-            EstimatedTimeMinutes,
-            ExamYear,
-            ExamCode,
-            OrderIndex,
-            UpdatedAt
-        ));
+        AddDomainEvent(new TopicTitleUpdatedEvent(TopicId, newTitle, Slug, UpdatedAt));
+    }
+
+    public void UpdateDescription(string newDescription)
+    {
+        if (string.IsNullOrWhiteSpace(newDescription))
+            throw new ArgumentException("Mô tả không thể để trống.", nameof(newDescription));
+        
+        Description = newDescription;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicDescriptionUpdatedEvent(TopicId, newDescription, UpdatedAt));
+    }
+
+    public void UpdateEstimatedTime(int newEstimatedTimeMinutes)
+    {
+        if (newEstimatedTimeMinutes <= 0)
+            throw new ArgumentOutOfRangeException(nameof(newEstimatedTimeMinutes), "Thời gian ước tính phải lớn hơn 0.");
+        
+        EstimatedTimeMinutes = newEstimatedTimeMinutes;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicEstimatedTimeUpdatedEvent(TopicId, newEstimatedTimeMinutes, UpdatedAt));
+    }
+
+    public void UpdateOrderIndex(int newOrderIndex)
+    {
+        if (newOrderIndex < 1)
+            throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
+        
+        OrderIndex = newOrderIndex;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicOrderIndexUpdatedEvent(TopicId, newOrderIndex, UpdatedAt));
+    }
+
+    public void UpdateExamInfo(int newExamYear, string newExamCode)
+    {
+        if (TopicType != TopicType.Exam)
+            throw new InvalidOperationException("Chỉ có thể cập nhật thông tin thi cho các chủ đề thi.");
+        
+        if (newExamYear <= 0)
+            throw new ArgumentOutOfRangeException(nameof(newExamYear), "Năm thi phải lớn hơn 0.");
+        
+        if (string.IsNullOrWhiteSpace(newExamCode))
+            throw new ArgumentException("ExamCode không được để trống.", nameof(newExamCode));
+        
+        ExamYear = newExamYear;
+        ExamCode = newExamCode;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicExamInfoUpdatedEvent(TopicId, newExamYear, newExamCode, UpdatedAt));
     }
 
     public void AddExercise(Guid exerciseId)

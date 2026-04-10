@@ -1,4 +1,5 @@
 using Classroom.Domain.Entities.Assignment;
+using MediatR;
 
 namespace Classroom.Domain.Events;
 
@@ -18,7 +19,7 @@ public sealed record ClassroomCreatedEvent(
     DateTime UpdatedAt,
     string Slug, 
     string ClassroomStatus
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Multiple students enrolled in classroom (BULK OPERATION)
@@ -30,7 +31,7 @@ public sealed record ClassroomStudentsEnrolledBulkEvent(
     List<Guid> StudentIds,
     int UpdatedStudentCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Individual student added to classroom
@@ -41,7 +42,7 @@ public sealed record ClassroomStudentIndividualAddedEvent(
     Guid StudentId,
     int UpdatedStudentCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Individual student removed from classroom
@@ -52,30 +53,30 @@ public sealed record ClassroomStudentIndividualRemovedEvent(
     Guid StudentId,
     int UpdatedStudentCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record ClassroomStudentsRemovedBulkEvent(
     Guid ClassroomId,
     List<Guid> StudentIds,
     int UpdatedStudentCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record ClassroomPublishedEvent(
     Guid ClassroomId,
     DateTime PublishedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record ClassroomUnpublishedEvent(
     Guid ClassroomId,
     DateTime UnpublishedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record ClassroomStatusChangedEvent(
     Guid ClassroomId,
     string NewStatus,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record ClassroomUpdatedEvent(
     Guid ClassroomId,
@@ -88,7 +89,7 @@ public sealed record ClassroomUpdatedEvent(
     float? NewPrice,
     Currency? NewPriceCurrency,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // --------------- END CLASSROOM EVENTS --------------
 // --------------- ASSIGNMENT EVENTS --------------
@@ -113,7 +114,7 @@ public sealed record AssignmentCreatedEvent(
     int RecipientCount,
     DateTime CreatedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // --------------- END ASSIGNMENT EVENTS --------------
 
@@ -126,7 +127,7 @@ public sealed record AssignmentExerciseAddedEvent(
     Guid ExerciseId,
     int OrderIndex,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Exercise removed from assignment
@@ -137,7 +138,7 @@ public sealed record AssignmentExerciseRemovedEvent(
     Guid ExerciseId,
     int UpdatedExerciseCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Recipient added to Individual assignment
@@ -148,7 +149,7 @@ public sealed record AssignmentRecipientAddedEvent(
     Guid StudentId,
     int UpdatedRecipientCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Recipient removed from Individual assignment
@@ -158,7 +159,7 @@ public sealed record AssignmentRecipientRemovedEvent(
     Guid StudentId,
     int UpdatedRecipientCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Multiple recipients added to assignment (BULK OPERATION)
@@ -171,7 +172,7 @@ public sealed record AssignmentRecipientsAddedBulkEvent(
     List<Guid> StudentIds,
     int UpdatedRecipientCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Multiple recipients removed from assignment (BULK OPERATION)
@@ -184,7 +185,7 @@ public sealed record AssignmentRecipientsRemovedBulkEvent(
     List<Guid> StudentIds,
     int UpdatedRecipientCount,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Assignment published (RICH - Denormalized)
@@ -196,7 +197,7 @@ public sealed record AssignmentPublishedEvent(
     Guid ClassroomId,
     bool IsPublished,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 public sealed record AssignmentUpdatedEvent(
     Guid AssignmentId,
@@ -208,7 +209,7 @@ public sealed record AssignmentUpdatedEvent(
     bool? NewIsTimedAssignment,     // Timed assignment status
     DurationTimeMinutes? NewDurationMinutes,        // Duration in minutes
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Assignment unpublished (removed from student view)
@@ -219,7 +220,7 @@ public sealed record AssignmentUnpublishedEvent(
     Guid ClassroomId,
     bool IsPublished,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // ============= ASSIGNMENT SUBMISSION EVENTS =============
 
@@ -234,7 +235,7 @@ public sealed record AssignmentSubmissionCreatedEvent(
     DateTime? GradedAt,
     DateTime CreatedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Student started assignment submission (RICH)
@@ -249,7 +250,7 @@ public sealed record AssignmentSubmissionStartedEvent(
     DateTime DeadlineAt,
     int SelectedDurationMinutes,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Student submitted assignment (RICH)
@@ -262,7 +263,7 @@ public sealed record AssignmentSubmissionSubmittedEvent(
     int TotalAnswers,
     DateTime SubmittedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Submission finalized (auto-submit when time expires)
@@ -275,7 +276,7 @@ public sealed record SubmissionFinalizedEvent(
     string Reason,              // "Time limit exceeded" hoặc other
     DateTime FinalizedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Assignment submission graded (RICH)
@@ -292,7 +293,7 @@ public sealed record AssignmentSubmissionGradedEvent(
     int TotalWrong,
     DateTime GradedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 
 public sealed record SubmissionAnswerAddedEvent(
@@ -302,7 +303,7 @@ public sealed record SubmissionAnswerAddedEvent(
     string Answer,
     DateTime AddedAt,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Individual exercise answer graded (RICH)
@@ -317,7 +318,7 @@ public sealed record SubmissionAnswerGradedEvent(
     float Score,
     string Feedback,
     DateTime UpdatedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // ============= CLASSROOM ENROLLMENT EVENTS =============
 
@@ -331,7 +332,7 @@ public sealed record ClassroomEnrollmentCreatedEvent(
     Guid StudentId,
     string Status,  // "Pending"
     DateTime EnrolledAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Enrollment confirmed (RICH)
@@ -345,7 +346,7 @@ public sealed record ClassroomEnrollmentConfirmedEvent(
     Guid? PaymentId,
     string Status,  // "Confirmed"
     DateTime ConfirmedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Enrollment cancelled
@@ -357,7 +358,7 @@ public sealed record ClassroomEnrollmentCancelledEvent(
     Guid StudentId,
     string Status,  // "Cancelled"
     DateTime CancelledAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 // ============= CLASSROOM STUDENT EVENTS =============
 
@@ -373,7 +374,7 @@ public sealed record ClassroomStudentAddedEvent(
     Guid AddedBy,
     string Status,  // "Active"
     DateTime JoinedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;
 
 /// <summary>
 /// Event: Student removed from classroom
@@ -385,4 +386,4 @@ public sealed record ClassroomStudentRemovedEvent(
     Guid StudentId,
     string Status,  // "Removed"
     DateTime RemovedAt
-) : BaseDomainEvent;
+) : BaseDomainEvent, INotification;

@@ -31,7 +31,7 @@ public class UserTopicExerciseSessionConfiguration : IEntityTypeConfiguration<Us
         builder.HasOne<TopicAggregate>()
             .WithMany()
             .HasForeignKey(s => s.TopicId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade); // If session is associated with a topic, cascade delete when topic is deleted
 
         // Indexes
         builder.HasIndex(s => s.UserId);

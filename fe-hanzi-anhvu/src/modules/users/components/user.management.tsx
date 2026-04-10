@@ -7,14 +7,12 @@ import {
     UserManagementFilters,
 } from "@/modules/users/components/user.management.filters";
 import { useUserList } from "@/modules/users/hooks/use.user.query";
-import { Button } from "@/shared/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/shared/components/ui/card";
+import { cn } from "@/shared/lib/utils";
+import { Filter } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ErrorAlert } from "@/shared/components/errors/error-alert";
+import { CustomPagination } from "@/shared/components/cms/custom-pagination";
+import { Badge } from "@/shared/components/ui/badge";
 import {
     Table,
     TableBody,
@@ -23,11 +21,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/shared/components/ui/table";
-import { cn } from "@/shared/lib/utils";
-import { Filter } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ErrorAlert } from "@/shared/components/errors/error-alert";
-import { CustomPagination } from "@/shared/components/cms/custom-pagination";
 
 const formatDate = (value: string) => {
     return new Date(value).toLocaleString("vi-VN", {
@@ -139,177 +132,202 @@ const UserManagementComponent = () => {
     );
 
     return (
-        <div className="flex flex-1 flex-col gap-4">
-            <Card className="py-0! gap-2">
-                <CardHeader className="flex! flex-row! items-center! justify-between! gap-3 px-5! py-3!">
-                    <div>
-                        <CardTitle className="text-xl">
-                            User Management
-                        </CardTitle>
-                        <CardDescription className="mt-1 text-sm">
-                            Quản lý danh sách user, trạng thái kích hoạt và
-                            thông tin cơ bản.
-                        </CardDescription>
-                    </div>
+        // via-white is too heavy for the background, it makes the content look like it's floating and hard to read, so I changed it to a more subtle gradient
+        <div className=" min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-50">
+            {/* Top Navigation Bar */}
+            <div // Bắt đầu với opacity 0 và hơi dịch xuống dưới, di chuyển dưới lên trên} // Kết thúc với opacity 1 và vị trí ban đầu}
+                className="px-2 py-1 border-b border-slate-200/50 bg-white/80 backdrop-blur-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+            >
+                <div>
+                    <h1 className="text-2xl font-light tracking-tight">
+                        <span className="text-slate-900">Quản lý</span>
+                        <span className="text-amber-600"> Người dùng</span>
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">
+                        Quản lý danh sách user, trạng thái kích hoạt và thông
+                        tin cơ bản.
+                    </p>
+                </div>
+                <button
+                    onClick={() => setIsFilterVisible((prev) => !prev)}
+                    className="px-3 py-1 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                    <Filter className="w-4 h-4" />
+                    Bộ lọc
+                </button>
+            </div>
 
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsFilterVisible((prev) => !prev)}
-                    >
-                        <Filter className="size-4" />
-                        Bộ lọc
-                    </Button>
-                </CardHeader>
-
-                {isFilterVisible ? (
-                    <CardContent className="border-t px-4 py-3">
-                        <UserManagementFilters
-                            value={draftFilters}
-                            onChange={setDraftFilters}
-                            onApply={handleApplyFilters}
-                            onReset={handleResetFilters}
-                        />
-                    </CardContent>
-                ) : null}
-            </Card>
-
-            <Card className="py-0 gap-2">
-                <CardHeader className="flex! flex-row! items-center! justify-between! gap-2 border-b px-4! py-3!">
-                    <CardTitle>Danh sách users</CardTitle>
-                    <CardDescription>
-                        Tổng:{" "}
-                        {userManagementData.data?.pages[0]?.data.total ?? 0}{" "}
-                        người dùng
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent className="px-4 pb-4">
-                    {userManagementData.isLoading ? (
-                        <div className="flex h-40 items-center justify-center">
-                            <div className="text-center">
-                                <div className="mb-2 inline-block">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary"></div>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    Đang tải danh sách người dùng...
-                                </p>
-                            </div>
+            {/* Main Content */}
+            <div className="w-full flex flex-col items-center-safe justify-center-safe py-3">
+                {isFilterVisible && (
+                    <div className="mb-8">
+                        <div className="bg-white border border-slate-200/50 rounded-xl p-6 shadow-sm">
+                            <UserManagementFilters
+                                value={draftFilters}
+                                onChange={setDraftFilters}
+                                onApply={handleApplyFilters}
+                                onReset={handleResetFilters}
+                            />
                         </div>
-                    ) : null}
+                    </div>
+                )}
 
-                    {userManagementData.isError ? (
-                        <ErrorAlert
-                            error={userManagementData.error}
-                            title="Không thể tải danh sách người dùng"
-                            onRetry={handleRetry}
-                            isLoading={userManagementData.isLoading}
-                        />
-                    ) : null}
+                <div>
+                    <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden shadow-sm">
+                        <div className="px-6 py-4 border-b border-slate-200/50 bg-slate-50/50 flex justify-between items-center">
+                            <h2 className="font-semibold text-slate-800">
+                                Danh sách users
+                            </h2>
+                            <span className="text-sm text-slate-500">
+                                Tổng:{" "}
+                                {userManagementData.data?.pages[0]?.data
+                                    .total ?? 0}{" "}
+                                người dùng
+                            </span>
+                        </div>
 
-                    {!userManagementData.isLoading &&
-                    !userManagementData.isError ? (
-                        <div className="max-h-[58vh] overflow-y-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="uppercase">
-                                            Email
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Username
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Phone
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Trạng thái
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Level
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Ngày tạo
-                                        </TableHead>
-                                        <TableHead className="uppercase">
-                                            Cập nhật
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.length > 0 ? (
-                                        paginatedUsers.map((user) => (
-                                            <TableRow key={user.id}>
-                                                <TableCell className="font-medium">
-                                                    {user.email}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.username}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.phoneNumber || "-"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span
-                                                        className={cn(
-                                                            "inline-flex rounded-full px-2 py-1 text-xs font-medium",
-                                                            user.isActive
-                                                                ? "bg-emerald-100 text-emerald-700"
-                                                                : "bg-amber-100 text-amber-700",
+                        {userManagementData.isLoading ? (
+                            <div className="flex h-40 items-center justify-center">
+                                <div className="text-center">
+                                    <div className="mb-2 inline-block">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-amber-600"></div>
+                                    </div>
+                                    <p className="text-sm text-slate-500">
+                                        Đang tải danh sách người dùng...
+                                    </p>
+                                </div>
+                            </div>
+                        ) : userManagementData.isError ? (
+                            <div className="p-6">
+                                <ErrorAlert
+                                    error={userManagementData.error}
+                                    title="Không thể tải danh sách người dùng"
+                                    onRetry={handleRetry}
+                                    isLoading={userManagementData.isLoading}
+                                />
+                            </div>
+                        ) : (
+                            <div className="max-h-[58vh] max-w-[80vw] overflow-y-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-b border-slate-200/50 bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Email
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Username
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Phone
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Trạng thái
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Level
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Ngày tạo
+                                            </TableHead>
+                                            <TableHead className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                                Cập nhật
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {users.length > 0 ? (
+                                            paginatedUsers.map((user, idx) => (
+                                                <tr
+                                                    key={user.id}
+                                                    className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+                                                >
+                                                    <TableCell className="px-6 py-4">
+                                                        <span className="font-medium text-slate-900">
+                                                            {user.email}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4 text-slate-600">
+                                                        {user.username}
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4 text-slate-600">
+                                                        {user.phoneNumber ||
+                                                            "-"}
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4">
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className={cn(
+                                                                "font-medium border-0 px-2 py-1",
+                                                                user.isActive
+                                                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100/80"
+                                                                    : "bg-amber-100 text-amber-700 hover:bg-amber-100/80",
+                                                            )}
+                                                        >
+                                                            {user.isActive
+                                                                ? "Đã kích hoạt"
+                                                                : "Chưa kích hoạt"}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4 text-slate-600">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 px-2 py-1"
+                                                        >
+                                                            Lvl{" "}
+                                                            {user.currentLevel}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4 text-slate-500 text-sm">
+                                                        {formatDate(
+                                                            user.createdAt,
                                                         )}
-                                                    >
-                                                        {user.isActive
-                                                            ? "Đã kích hoạt"
-                                                            : "Chưa kích hoạt"}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.currentLevel}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatDate(user.createdAt)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatDate(user.updatedAt)}
+                                                    </TableCell>
+                                                    <TableCell className="px-6 py-4 text-slate-500 text-sm">
+                                                        {formatDate(
+                                                            user.updatedAt,
+                                                        )}
+                                                    </TableCell>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={7}
+                                                    className="px-6 py-12 text-center text-slate-500"
+                                                >
+                                                    Không có user phù hợp với bộ
+                                                    lọc.
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={7}
-                                                className="h-24 text-center text-muted-foreground"
-                                            >
-                                                Không có user phù hợp với bộ
-                                                lọc.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : null}
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
 
-                    {!userManagementData.isLoading &&
-                    !userManagementData.isError &&
-                    users.length > 0 ? (
-                        <CustomPagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            itemsPerPage={itemsPerPage}
-                            startIndex={startIndex}
-                            endIndex={endIndex}
-                            totalItems={totalItems}
-                            totalDocs={totalDocs}
-                            onPageChange={handlePageChange}
-                            onItemsPerPageChange={(value) => {
-                                setItemsPerPage(value);
-                                setCurrentPage(1);
-                            }}
-                        />
-                    ) : null}
-                </CardContent>
-            </Card>
+                        {!userManagementData.isLoading &&
+                            !userManagementData.isError &&
+                            users.length > 0 && (
+                                <div className="p-4 border-t border-slate-200/50 bg-white">
+                                    <CustomPagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        itemsPerPage={itemsPerPage}
+                                        startIndex={startIndex}
+                                        endIndex={endIndex}
+                                        totalItems={totalItems}
+                                        totalDocs={totalDocs}
+                                        onPageChange={handlePageChange}
+                                        onItemsPerPageChange={(value) => {
+                                            setItemsPerPage(value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                </div>
+                            )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

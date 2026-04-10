@@ -1,5 +1,5 @@
 using Elastic.Clients.Elasticsearch;
-namespace HanziAnhVuHsk.Api.Apis.SearchApi;
+namespace HanziAnhVuHsk.Apis.SearchApi;
 
 public static class LessonSearchApi
 {

@@ -1,19 +1,3 @@
-using HanziAnhVu.Shared.Application;
-using HanziAnhVu.Shared.EventBus.Abstracts;
-using HanziAnhVu.Shared.EventBus.InMemory;
-using HanziAnhVu.Shared.Infrastructure;
-using HanziAnhvuHsk.Services;
-using HanziAnhVuHsk.Api.Config;
-using HanziAnhVuHsk.Api.Extensions;
-using HanziAnhVuHsk.Extensions;
-using Interface;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.IdentityModel.Tokens;
-using Model;
-using Notification.Application.Config;
-using System.Text;
-
 var builder = WebApplication.CreateBuilder(args);
 // builder.AddElasticOpenTelemetry();
 builder.Services.AddEndpointsApiExplorer();

@@ -23,17 +23,17 @@ public class CourseAggregate : BaseAggregateRoot
 
     public CourseAggregate(){}
 
-    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex)
+    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex, string slug)
     {
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Tiêu đề không thể để trống.", nameof(title));
         if (hskLevel < 0 || hskLevel > 6) throw new ArgumentOutOfRangeException(nameof(hskLevel), "Cấp HSK phải từ 0 đến 6.");
         if (orderIndex < 1) throw new ArgumentOutOfRangeException(nameof(orderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
-
+        if (string.IsNullOrWhiteSpace(slug)) throw new ArgumentException("Slug không được để trống.", nameof(slug));
         var course = new CourseAggregate
         {
             CourseId = Guid.NewGuid(),
             Title = title,
-            Slug = "",  // Will be set below after object construction
+            Slug = slug,
             Description = description,
             HskLevel = hskLevel,
             OrderIndex = orderIndex,
@@ -42,20 +42,18 @@ public class CourseAggregate : BaseAggregateRoot
         };
         
         // Generate slug using inherited method
-        course.Slug = course.GenerateSlug(title);
+        course.Slug = GenerateSlug(title);
 
         // Fire domain event — các handler khác lắng nghe
-        course.AddDomainEvent(
-            new CourseCreatedEvent(
-                course.CourseId, 
-                course.Title, 
-                course.Description,
-                course.HskLevel,
-                course.OrderIndex,
-                course.CreatedAt,
-                course.UpdatedAt,
-                course.Slug
-            ));
+        course.AddDomainEvent(new CourseCreatedEvent(
+            course.CourseId, 
+            course.Title,
+            course.Description,
+            course.HskLevel,
+            course.OrderIndex,
+            course.Slug,
+            course.CreatedAt,
+            course.UpdatedAt));
 
         return course;
     }
@@ -113,3 +111,4 @@ public class CourseAggregate : BaseAggregateRoot
         AddDomainEvent(new TopicAddedToCourseDomainEvent(CourseId, topicId, OrderIndex, UpdatedAt));
     }
 }
+

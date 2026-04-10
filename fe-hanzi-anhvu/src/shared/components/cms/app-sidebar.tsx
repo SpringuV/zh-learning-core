@@ -34,7 +34,7 @@ const data = {
     navMain: [
         {
             title: "Bảng Điều Khiển",
-            url: "/cms/dashboard",
+            url: "/cms",
             icon: <PieChartIcon />,
             isActive: true,
         },
@@ -64,7 +64,7 @@ const data = {
             items: [
                 {
                     title: "Khóa học công khai",
-                    url: "/cms/lessons",
+                    url: "/cms/lessons/course",
                 },
             ],
         },

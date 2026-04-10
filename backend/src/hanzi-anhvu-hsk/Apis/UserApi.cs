@@ -1,4 +1,4 @@
-﻿namespace HanziAnhVuHsk.Api.Apis
+﻿namespace HanziAnhVuHsk.Apis
 {
     public class UserApi
     {

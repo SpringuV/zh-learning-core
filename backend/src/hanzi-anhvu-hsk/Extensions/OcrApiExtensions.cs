@@ -1,5 +1,4 @@
-﻿using Apis;
-namespace HanziAnhVuHsk.Extensions;
+﻿namespace HanziAnhVuHsk.Extensions;
 // khai báo route
 public static class OcrApiExtensions
 {

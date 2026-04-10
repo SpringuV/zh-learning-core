@@ -14,7 +14,7 @@ public abstract class BaseAggregateRoot: IAggregateRoot
     // •	thường được giữ trong aggregate
     // •	sau đó UnitOfWork hoặc handler nội bộ sẽ xử lý
 
-    private readonly List<IDomainEvent> _domainEvents = new();
+    private readonly List<IDomainEvent> _domainEvents = [];
 
     // Cho phép đọc các sự kiện domain đã xảy ra, nhưng không cho phép thay đổi trực tiếp từ bên ngoài
     public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -37,7 +37,7 @@ public abstract class BaseAggregateRoot: IAggregateRoot
     /// Example: "HSK 1 - Beginner" -> "hsk-1-beginner"
     /// Reusable across all aggregates (Course, Topic, Exercise, etc.)
     /// </summary>
-    protected string GenerateSlug(string text)
+    protected static string GenerateSlug(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;

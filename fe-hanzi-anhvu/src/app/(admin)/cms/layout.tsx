@@ -40,40 +40,40 @@ export default async function CmsLayout({
         userManagement: {
             list: {
                 url: "/cms/users",
-                title: "Danh Sách User",
+                title: "Quản lý Người dùng",
             },
         },
         dashboard: {
             main: {
-                url: "/cms/dashboard",
-                title: "Bảng Điều Khiển",
+                url: "/cms",
+                title: "Bảng điều khiển",
             },
         },
         lessons: {
             list: {
                 url: "/cms/lessons",
-                title: "Danh Sách Bài Học",
+                title: "Quản lý nội dung khóa học",
             },
         },
         categories: {
             list: {
                 url: "/cms/categories",
-                title: "Danh Sách Danh Mục",
+                title: "Quản lý danh mục",
             },
         },
     };
     // Determine current route to set breadcrumb title. This is a simple implementation,
     // you can enhance it based on your routing structure.
     const headerStore = await headers();
-    const pathName = headerStore.get("x-pathname") ?? "/cms/dashboard";
+    const pathName = headerStore.get("x-pathname") ?? "/cms";
     const currentRoute =
         Object.values(route)
             .map((group) => Object.values(group))
             .flat()
+            .sort((a, b) => b.url.length - a.url.length) // Sắp xếp URL dài nhất lên trước để ưu tiên match chính xác
             .find((item) => pathName.startsWith(item.url))?.title ??
         route.dashboard.main.title;
 
-    console.log("[CMS Layout] Current Pathname:", pathName);
     return (
         <SidebarProvider>
             <AppSidebar />

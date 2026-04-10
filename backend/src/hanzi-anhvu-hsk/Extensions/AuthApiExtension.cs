@@ -1,7 +1,4 @@
-﻿using HanziAnhVuHsk.Api.Apis;
-using Auth.Contracts.DTOs;
-
-namespace HanziAnhVuHsk.Api.Extensions;
+﻿namespace HanziAnhVuHsk.Api.Extensions;
 
 public static class AuthApiExtension
 {

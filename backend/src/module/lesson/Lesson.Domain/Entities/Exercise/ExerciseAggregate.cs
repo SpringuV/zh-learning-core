@@ -72,6 +72,8 @@ public class ExerciseOption : ValueObject
         Text = text;
     }
     
+    // Equality based on Id and Text
+    // This allows us to compare options and ensure correct answer exists in options list
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Id;
@@ -239,7 +241,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             UpdatedAt = DateTime.UtcNow,
             IsPublished = false
         };
-        exercise.Slug = exercise.GenerateSlug($"{exercise.ExerciseType}-{exercise.Question[..Math.Min(20, exercise.Question.Length)]}");
+        exercise.Slug = GenerateSlug($"{exercise.ExerciseType}-{exercise.Question[..Math.Min(20, exercise.Question.Length)]}");
         
         exercise.AddDomainEvent(new ExerciseCreatedEvent(
             exercise.ExerciseId,

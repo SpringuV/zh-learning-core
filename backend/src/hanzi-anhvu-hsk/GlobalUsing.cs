@@ -1,1 +1,24 @@
-﻿
+﻿global using HanziAnhVu.Shared.Application;
+global using HanziAnhVu.Shared.EventBus.Abstracts;
+global using HanziAnhVu.Shared.EventBus.InMemory;
+global using HanziAnhVu.Shared.Infrastructure;
+global using HanziAnhvuHsk.Services;
+global using HanziAnhVuHsk.Api.Config;
+global using HanziAnhVuHsk.Api.Extensions;
+global using HanziAnhVuHsk.Extensions;
+global using Interface;
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.AspNetCore.HttpOverrides;
+global using Microsoft.IdentityModel.Tokens;
+global using Model;
+global using Notification.Application.Config;
+global using System.Text;
+global using Auth.Contracts;
+global using Auth.Contracts.DTOs;
+global using Auth.Domain.Exceptions;
+global using Microsoft.AspNetCore.Mvc;
+global using Search.Contracts.DTOs;
+global using Search.Contracts.Interfaces;
+global using HanziAnhVuHsk.Apis;
+global using HanziAnhVuHsk.Apis.SearchApi;
+
