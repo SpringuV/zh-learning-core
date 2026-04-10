@@ -1,4 +1,4 @@
-namespace HanziAnhVu.Shared.Contracts.DTOs;
+namespace HanziAnhVu.Shared.Contracts;
 
 /// <summary>
 /// Generic Result pattern for API responses

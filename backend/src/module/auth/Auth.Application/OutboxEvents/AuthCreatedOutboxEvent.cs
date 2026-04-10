@@ -1,6 +1,4 @@
-﻿using HanziAnhVu.Shared.Application;
-
-namespace Auth.Application.DomainEventHandlers;
+﻿namespace Auth.Application.OutboxEvents;
 
 // AuthUserCreatedDomainEventHandler is responsible for handling the AuthUserCreatedDomainEvent
 // and publishing a UserRegisteredIntegrationEvent to the event bus.

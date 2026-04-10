@@ -1,5 +1,3 @@
-using Shared.Infrastructure.Outbox;
-
 namespace Lesson.Infrastructure.Outbox;
 
 public sealed class LessonModuleOutboxMessage : OutboxMessageBase

@@ -1,6 +1,4 @@
-﻿using HanziAnhVu.Shared.Application;
-
-namespace Auth.Application.DomainEventIntegration;
+﻿namespace Auth.Application.OutboxEvents;
 
 public sealed class AuthMailResentOutboxEvent(IOutboxWriter outboxWriter) : INotificationHandler<AuthUserMailResentEvent>
 {

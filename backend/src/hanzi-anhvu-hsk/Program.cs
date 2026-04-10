@@ -180,6 +180,7 @@ app.UseAuthorization();
 app.MapAuthApi();
 app.MapOcrApi();
 app.MapSearchApi();
+app.MapLessonApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "hanzi-anhvu-hsk-api" }));
 
 app.Run();

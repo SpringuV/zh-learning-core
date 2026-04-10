@@ -4,6 +4,7 @@
 /// </summary>
 namespace Lesson.Domain.Entities.Events;
 
+#region Topic events
 // --------------- Topic events --------------
 public record TopicCreatedEvent(
     Guid TopicId,
@@ -76,6 +77,9 @@ public record ExerciseRemovedFromTopicEvent(
     DateTime RemovedAt
 ): BaseDomainEvent, INotification;
 
+#endregion
+
+#region Course events
 // --------------- course events --------------
 public record CourseCreatedEvent(
     Guid CourseId,
@@ -132,6 +136,8 @@ public record TopicAddedToCourseDomainEvent(
     int OrderIndex,
     DateTime AddedAt
 ): BaseDomainEvent, INotification;
+
+#endregion
 // ============= EXERCISE EVENTS =============
 
 /// <summary>

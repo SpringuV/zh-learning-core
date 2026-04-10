@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
-    <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Contracts\HanziAnhVu.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\HanziAnhVu.Shared.Domain\HanziAnhVu.Shared.Domain.csproj" />
+    <ProjectReference Include="..\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
   </ItemGroup>
+
 </Project>

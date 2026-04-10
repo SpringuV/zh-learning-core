@@ -2,11 +2,11 @@ namespace Lesson.Application.MediatR.Command.Course;
 
 public record PublishCourseCommand(Guid CourseId) : IRequest<Result<PublishCourseResponseDTO>>;
 
-public class PublishCourseHandler(ICourseRepository courseRepository, IUnitOfWork unitOfWork, IPublisher publisher, ILogger<PublishCourseHandler> logger) : IRequestHandler<PublishCourseCommand, Result<PublishCourseResponseDTO>>
+public class PublishCourseHandler(ICourseRepository courseRepository, ILessonUnitOfWork unitOfWork, IPublisher publisher, ILogger<PublishCourseHandler> logger) : IRequestHandler<PublishCourseCommand, Result<PublishCourseResponseDTO>>
 {
     private readonly ILogger<PublishCourseHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ICourseRepository _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
-    private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+    private readonly ILessonUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     private readonly IPublisher _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
     
     public async Task<Result<PublishCourseResponseDTO>> Handle(PublishCourseCommand request, CancellationToken cancellationToken)
@@ -16,7 +16,7 @@ public class PublishCourseHandler(ICourseRepository courseRepository, IUnitOfWor
             CourseAggregate? courseAggregate = null;
             
             if (request.CourseId == Guid.Empty)
-                return Result<PublishCourseResponseDTO>.FailureResult("CourseId không được để trống.", (int)ErrorCode.INVALID_ID);
+                return Result<PublishCourseResponseDTO>.FailureResult("Id không được để trống.", (int)ErrorCode.INVALID_ID);
 
             await _unitOfWork.SaveChangeAsync(async () =>
             {
@@ -25,21 +25,19 @@ public class PublishCourseHandler(ICourseRepository courseRepository, IUnitOfWor
                 {
                     courseAggregate.Publish();
                     await _courseRepository.UpdateAsync(courseAggregate, cancellationToken);
+
+                    _logger.LogInformation("[PublishCourseHandler] Publishing {EventCount} domain events in-transaction", courseAggregate.DomainEvents.Count);
+                    foreach (var domainEvent in courseAggregate.DomainEvents)
+                    {
+                        _logger.LogInformation("Publishing domain event {EventType} for course {CourseId}", domainEvent.GetType().Name, courseAggregate.CourseId);
+                        await _publisher.Publish(domainEvent, cancellationToken);
+                    }
+                    courseAggregate.PopDomainEvents();
                 }
                 else
                     throw new KeyNotFoundException($"Không tìm thấy khóa học với ID: {request.CourseId}");
             }, cancellationToken);
 
-            try
-            {
-                await _publisher.Publish(courseAggregate!.DomainEvents, cancellationToken);
-                courseAggregate.PopDomainEvents();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to publish domain events for course {CourseId}", courseAggregate!.CourseId);
-                // Continue - don't fail the operation
-            }
             return Result<PublishCourseResponseDTO>.SuccessResult(
                 new PublishCourseResponseDTO(
                     CourseId: courseAggregate!.CourseId,

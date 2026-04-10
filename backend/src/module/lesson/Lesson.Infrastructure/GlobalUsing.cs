@@ -19,4 +19,7 @@ global using MediatR;
 global using Lesson.Infrastructure.Exceptions;
 global using Lesson.Domain.Entities.Exercise;
 global using Microsoft.EntityFrameworkCore.ChangeTracking;
-
+global using Lesson.Application.Services;
+global using Lesson.Application.Abstractions;
+global using Lesson.Contracts;
+global using Lesson.Application.MediatR.Command.Course;

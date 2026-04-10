@@ -22,6 +22,7 @@ global using Search.Contracts.Interfaces;
 global using HanziAnhVuHsk.Apis;
 global using HanziAnhVuHsk.Apis.SearchApi;
 global using HanziAnhVu.Shared.Domain.Exceptions;
-global using HanziAnhVu.Shared.Contracts.DTOs;
+global using Lesson.Contracts;
+global using Lesson.Contracts.DTOs;
 global using HanziAnhVu.Shared.Contracts.Enums;
-
+global using HanziAnhVu.Shared.Contracts;

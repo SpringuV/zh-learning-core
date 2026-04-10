@@ -1,6 +1,4 @@
-using HanziAnhVu.Shared.Application;
-
-namespace Auth.Application.DomainEventHandlers;
+namespace Auth.Application.OutboxEvents;
 
 public sealed class AuthDeactivatedOutboxEvent(IOutboxWriter outboxWriter)
     : INotificationHandler<UserDeactivatedDomainEvent>

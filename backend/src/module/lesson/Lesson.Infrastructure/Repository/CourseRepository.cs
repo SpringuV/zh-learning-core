@@ -10,12 +10,20 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
     {
         throw new NotImplementedException();
     }
+
+    public async Task<bool> ExistsOrderIndexAsync(int orderIndex, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Courses.AnyAsync(c => c.OrderIndex == orderIndex, cancellationToken);
+    }
+
     public async Task AddAsync(CourseAggregate course, CancellationToken cancellationToken = default)
     {
         try
-        {
+        {   
+            _logger.LogInformation("[CourseRepository.AddAsync] Adding course {CourseId} to DbSet - Title: {Title}", course.CourseId, course.Title);
             // Chỉ thêm vào DbSet, không save - để UnitOfWork xử lý
             await _dbContext.Courses.AddAsync(course, cancellationToken);
+            _logger.LogInformation("[CourseRepository.AddAsync] Course {CourseId} added to DbSet successfully", course.CourseId);
         }
         catch (DbUpdateException ex)
         {

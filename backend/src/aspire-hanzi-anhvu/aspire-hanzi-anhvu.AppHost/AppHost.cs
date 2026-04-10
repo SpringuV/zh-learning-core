@@ -8,6 +8,7 @@ var redis = builder.AddRedis("redis-hanzi");
 var postgres = builder.AddPostgres("postgres")
     .WithPgWeb()
     .WithImage("postgres:17-alpine")
+    .WithEnvironment("POSTGRES_MAX_PREPARED_TRANSACTIONS", "100") 
     .WithDataVolume();
 
 var authDb = postgres.AddDatabase("identity-hanzi");

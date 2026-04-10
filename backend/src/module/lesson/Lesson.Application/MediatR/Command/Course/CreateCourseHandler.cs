@@ -8,11 +8,15 @@ public record CreateCourseCommand(
     string Slug
 ) : IRequest<Result<CreateCourseResponseDTO>>;
 
-public class CreateCourseHandler(ICourseRepository courseRepository, IUnitOfWork unitOfWork, IPublisher publisher, ILogger<CreateCourseHandler> logger) : IRequestHandler<CreateCourseCommand, Result<CreateCourseResponseDTO>>
+public class CreateCourseHandler(
+    ICourseRepository courseRepository, 
+    ILessonUnitOfWork unitOfWork, 
+    IPublisher publisher, 
+    ILogger<CreateCourseHandler> logger) : IRequestHandler<CreateCourseCommand, Result<CreateCourseResponseDTO>>
 {
     private readonly ILogger<CreateCourseHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ICourseRepository _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
-    private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+    private readonly ILessonUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     private readonly IPublisher _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
     
     public async Task<Result<CreateCourseResponseDTO>> Handle(CreateCourseCommand request, CancellationToken cancellationToken)
@@ -20,32 +24,42 @@ public class CreateCourseHandler(ICourseRepository courseRepository, IUnitOfWork
         try
         {
             CourseAggregate courseAggregate = null!;
+            _logger.LogInformation("[CreateCourseHandler] Starting course creation - Title: {Title}, HskLevel: {HskLevel}, OrderIndex: {OrderIndex}", 
+                request.Title, request.HskLevel, request.OrderIndex);
+
+            if (await _courseRepository.ExistsOrderIndexAsync(request.OrderIndex, cancellationToken))
+            {
+                return Result<CreateCourseResponseDTO>.FailureResult(
+                    $"OrderIndex {request.OrderIndex} đã tồn tại. Vui lòng chọn thứ tự khác.",
+                    (int)ErrorCode.DUPLICATE
+                );
+            }
             
-            // Phase 1: Create & Save
+            // Create aggregate + publish domain events (write outbox) + save DB in one transaction
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                // Create aggregate 
                 courseAggregate = CourseAggregate.CreateCourse(
-                    request.Title, 
-                    request.Description, 
-                    request.HskLevel, 
-                    request.OrderIndex, 
+                    request.Title,
+                    request.Description,
+                    request.HskLevel,
+                    request.OrderIndex,
                     request.Slug
                 );
+                _logger.LogInformation("[CreateCourseHandler] Aggregate created - CourseId: {CourseId}", courseAggregate.CourseId);
+
                 await _courseRepository.AddAsync(courseAggregate, cancellationToken);
+                _logger.LogInformation("[CreateCourseHandler] Aggregate added to repository");
+
+                _logger.LogInformation("[CreateCourseHandler] Publishing {EventCount} domain events in-transaction", courseAggregate.DomainEvents.Count);
+                foreach (var domainEvent in courseAggregate.DomainEvents)
+                {
+                    _logger.LogInformation("[CreateCourseHandler] Publishing {EventType} for {AggregateId}", domainEvent.GetType().Name, courseAggregate.CourseId);
+                    await _publisher.Publish(domainEvent, cancellationToken);
+                }
+                courseAggregate.PopDomainEvents();
             }, cancellationToken);
             
-            // Phase 2: Publish events (best-effort)
-            try
-            {
-                await _publisher.Publish(courseAggregate.DomainEvents, cancellationToken);
-                courseAggregate.PopDomainEvents();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to publish domain events for course {CourseId}", courseAggregate.CourseId);
-                // Continue - don't fail the operation
-            }
+            _logger.LogInformation("[CreateCourseHandler] COMPLETED - Data and outbox committed atomically");
             
             // Phase 3: Return success result
             return Result<CreateCourseResponseDTO>.SuccessResult(
@@ -59,6 +73,14 @@ public class CreateCourseHandler(ICourseRepository courseRepository, IUnitOfWork
             return Result<CreateCourseResponseDTO>.FailureResult(
                 "Dữ liệu khóa học không hợp lệ: " + ex.Message,
                 (int)ErrorCode.VALIDATION
+            );
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Conflict while creating course");
+            return Result<CreateCourseResponseDTO>.FailureResult(
+                ex.Message,
+                (int)ErrorCode.DUPLICATE
             );
         }
         catch (Exception ex)

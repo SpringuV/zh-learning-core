@@ -38,7 +38,7 @@ public sealed class LessonModuleDbInitializerHostedService(
                 // Đảm bảo trigger cho outbox table - dùng channel riêng "lesson_outbox_channel"
                 // để tách biệt với Auth và Users module channel
                 await lessonDbContext.Database.EnsureOutboxNotifyTriggerAsync(
-                    tableName: "OutboxMessagesLessonModule",
+                    tableName: "LessonOutboxMessages",
                     channelName: "lesson_outbox_channel", // Tên channel riêng cho lesson module
                     functionName: "notify_lesson_outbox_change",
                     triggerName: "lesson_outbox_change_trigger",

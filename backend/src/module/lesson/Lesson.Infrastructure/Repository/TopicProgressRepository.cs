@@ -1,9 +1,3 @@
-using Lesson.Domain.Entities;
-using Lesson.Domain.Entities.Exercise;
-using Lesson.Domain.Interface;
-using MediatR;
-using Microsoft.Extensions.Logging;
-
 namespace Lesson.Infrastructure.Repository;
 
 public class TopicProgressRepository(LessonDbContext dbContext, ILogger<TopicProgressRepository> logger, IPublisher publisher) : ITopicProgressRepository
