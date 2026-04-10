@@ -306,118 +306,127 @@ public class ExerciseAggregate: BaseAggregateRoot
     }
 
     /// <summary>
-    /// Update exercise with optional fields (bulk update)
-    /// Only provided fields will be updated
+    /// Update exercise description
     /// </summary>
-    public void Update(
-        string? description = null,
-        int? orderIndex = null,
-        string? question = null,
-        string? correctAnswer = null,
-        ExerciseDifficulty? difficulty = null,
-        ExerciseContext? context = null,
-        string? audioUrl = null,
-        string? imageUrl = null,
-        string? explanation = null,
-        List<ExerciseOption>? options = null)
+    public void UpdateDescription(string newDescription)
     {
-        if (IsPublished)
-            throw new InvalidOperationException("Không thể cập nhật bài tập đã xuất bản.");
+        if (string.IsNullOrWhiteSpace(newDescription))
+            throw new ArgumentException("Description cannot be empty", nameof(newDescription));
         
-        // Track which fields changed
-        var hasChanges = false;
+        Description = newDescription;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseDescriptionUpdatedEvent(ExerciseId, newDescription, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise order index
+    /// </summary>
+    public void UpdateOrderIndex(int newOrderIndex)
+    {
+        if (newOrderIndex < 1)
+            throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "OrderIndex must be greater than 0");
         
-        if (description is not null && Description != description)
+        OrderIndex = newOrderIndex;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseOrderIndexUpdatedEvent(ExerciseId, newOrderIndex, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise question
+    /// </summary>
+    public void UpdateQuestion(string newQuestion)
+    {
+        if (string.IsNullOrWhiteSpace(newQuestion))
+            throw new ArgumentException("Question cannot be empty", nameof(newQuestion));
+        
+        Question = newQuestion;
+        Slug = GenerateSlug($"{ExerciseType}-{newQuestion[..Math.Min(20, newQuestion.Length)]}");
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseQuestionUpdatedEvent(ExerciseId, newQuestion, Slug, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise correct answer
+    /// </summary>
+    public void UpdateCorrectAnswer(string newCorrectAnswer)
+    {
+        if (string.IsNullOrWhiteSpace(newCorrectAnswer))
+            throw new ArgumentException("CorrectAnswer cannot be empty", nameof(newCorrectAnswer));
+        
+        CorrectAnswer = newCorrectAnswer;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseCorrectAnswerUpdatedEvent(ExerciseId, newCorrectAnswer, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise difficulty
+    /// </summary>
+    public void UpdateDifficulty(ExerciseDifficulty newDifficulty)
+    {
+        Difficulty = newDifficulty;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseDifficultyUpdatedEvent(ExerciseId, newDifficulty.ToString(), UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise context
+    /// </summary>
+    public void UpdateContext(ExerciseContext newContext)
+    {
+        Context = newContext;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseContextUpdatedEvent(ExerciseId, newContext.ToString(), UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise audio URL
+    /// </summary>
+    public void UpdateAudioUrl(string newAudioUrl)
+    {
+        if (string.IsNullOrWhiteSpace(newAudioUrl))
+            throw new ArgumentException("AudioUrl cannot be empty.", nameof(newAudioUrl));
+        AudioUrl = newAudioUrl ;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseAudioUrlUpdatedEvent(ExerciseId, newAudioUrl, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise image URL
+    /// </summary>
+    public void UpdateImageUrl(string newImageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(newImageUrl))
+            throw new ArgumentException("ImageUrl cannot be empty.", nameof(newImageUrl));
+        ImageUrl = newImageUrl ;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseImageUrlUpdatedEvent(ExerciseId, newImageUrl, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise explanation
+    /// </summary>
+    public void UpdateExplanation(string newExplanation)
+    {
+        if (string.IsNullOrWhiteSpace(newExplanation))
+            throw new ArgumentException("Explanation cannot be empty.", nameof(newExplanation));
+        Explanation = newExplanation;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseExplanationUpdatedEvent(ExerciseId, newExplanation, UpdatedAt));
+    }
+
+    /// <summary>
+    /// Update exercise options
+    /// </summary>
+    public void UpdateOptions(List<ExerciseOption> newOptions)
+    {
+        _options.Clear();
+        if (newOptions != null)
         {
-            Description = description;
-            hasChanges = true;
+            _options.AddRange(newOptions);
         }
-        
-        if (orderIndex is not null && OrderIndex != orderIndex)
-        {
-            if (orderIndex < 1)
-                throw new ArgumentOutOfRangeException(nameof(orderIndex), "OrderIndex phải > 0");
-            OrderIndex = orderIndex.Value;
-            hasChanges = true;
-        }
-        
-        if (question is not null && Question != question)
-        {
-            if (string.IsNullOrWhiteSpace(question))
-                throw new ArgumentException("Câu hỏi không được để trống", nameof(question));
-            Question = question;
-            hasChanges = true;
-            Slug = GenerateSlug($"{ExerciseType}-{question[..Math.Min(20, question.Length)]}");
-        }
-        
-        if (correctAnswer is not null && CorrectAnswer != correctAnswer)
-        {
-            if (string.IsNullOrWhiteSpace(correctAnswer))
-                throw new ArgumentException("Câu trả lời đúng không được để trống", nameof(correctAnswer));
-            CorrectAnswer = correctAnswer;
-            hasChanges = true;
-        }
-        
-        if (difficulty.HasValue && Difficulty != difficulty.Value)
-        {
-            Difficulty = difficulty.Value;
-            hasChanges = true;
-        }
-        
-        if (context.HasValue && Context != context.Value)
-        {
-            Context = context.Value;
-            hasChanges = true;
-        }
-        
-        if (audioUrl is not null && AudioUrl != audioUrl)
-        {
-            AudioUrl = audioUrl;
-            hasChanges = true;
-        }
-        
-        if (imageUrl is not null && ImageUrl != imageUrl)
-        {
-            ImageUrl = imageUrl;
-            hasChanges = true;
-        }
-        
-        if (explanation is not null && Explanation != explanation)
-        {
-            Explanation = explanation;
-            hasChanges = true;
-        }
-        
-        if (options is not null)
-        {
-            _options.Clear();
-            _options.AddRange(options);
-            hasChanges = true;
-        }
-        
-        // Only emit event if something actually changed
-        if (hasChanges)
-        {
-            UpdatedAt = DateTime.UtcNow;
-            ValidateOptions();
-            
-            AddDomainEvent(new ExerciseUpdatedEvent(
-                ExerciseId,
-                TopicId,
-                description,
-                orderIndex,
-                UpdatedAt,
-                question,
-                correctAnswer,
-                difficulty?.ToString(),
-                context?.ToString(),
-                audioUrl,
-                imageUrl,
-                explanation,
-                Slug,
-                options
-            ));
-        }
+        UpdatedAt = DateTime.UtcNow;
+        ValidateOptions();
+        AddDomainEvent(new ExerciseOptionsUpdatedEvent(ExerciseId, [.. _options], UpdatedAt));
     }
 }
    

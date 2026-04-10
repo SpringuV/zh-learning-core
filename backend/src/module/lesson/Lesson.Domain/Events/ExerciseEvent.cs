@@ -147,22 +147,66 @@ public sealed record ExerciseCreatedEvent(
     List<ExerciseOption>? Options
 ) : BaseDomainEvent, INotification;
 
-// bulk update
-public sealed record ExerciseUpdatedEvent(
+// Granular Exercise events
+public sealed record ExerciseDescriptionUpdatedEvent(
     Guid ExerciseId,
-    Guid TopicId,
-    string? Description,
-    int? OrderIndex,
-    DateTime UpdatedAt,
-    string? Question,
-    string? CorrectAnswer,
-    string? Difficulty,
-    string? Context,
-    string? AudioUrl,
-    string? ImageUrl,
-    string? Explanation,
-    string? Slug,
-    List<ExerciseOption>? Options
+    string NewDescription,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseOrderIndexUpdatedEvent(
+    Guid ExerciseId,
+    int NewOrderIndex,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseQuestionUpdatedEvent(
+    Guid ExerciseId,
+    string NewQuestion,
+    string NewSlug,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseCorrectAnswerUpdatedEvent(
+    Guid ExerciseId,
+    string NewCorrectAnswer,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseDifficultyUpdatedEvent(
+    Guid ExerciseId,
+    string NewDifficulty,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseContextUpdatedEvent(
+    Guid ExerciseId,
+    string NewContext,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseAudioUrlUpdatedEvent(
+    Guid ExerciseId,
+    string NewAudioUrl,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseImageUrlUpdatedEvent(
+    Guid ExerciseId,
+    string NewImageUrl,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseExplanationUpdatedEvent(
+    Guid ExerciseId,
+    string NewExplanation,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseOptionsUpdatedEvent(
+    Guid ExerciseId,
+    List<ExerciseOption> NewOptions,
+    DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
 /// <summary>
