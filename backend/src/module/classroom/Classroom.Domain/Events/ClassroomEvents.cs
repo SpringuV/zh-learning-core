@@ -78,16 +78,53 @@ public sealed record ClassroomStatusChangedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record ClassroomUpdatedEvent(
+// Granular Classroom events
+public sealed record ClassroomTitleUpdatedEvent(
     Guid ClassroomId,
-    string? NewTitle,
-    string? NewDescription,
-    int? NewHskLevel,
-    DateTime? NewStartDate,
-    DateTime? NewEndDate,
-    string? NewScheduleInfo,
-    float? NewPrice,
-    Currency? NewPriceCurrency,
+    string NewTitle,
+    string NewSlug,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomDescriptionUpdatedEvent(
+    Guid ClassroomId,
+    string NewDescription,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomHskLevelUpdatedEvent(
+    Guid ClassroomId,
+    int NewHskLevel,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomStartDateUpdatedEvent(
+    Guid ClassroomId,
+    DateTime NewStartDate,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomEndDateUpdatedEvent(
+    Guid ClassroomId,
+    DateTime NewEndDate,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomScheduleInfoUpdatedEvent(
+    Guid ClassroomId,
+    string NewScheduleInfo,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomPriceUpdatedEvent(
+    Guid ClassroomId,
+    float NewPrice,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ClassroomPriceCurrencyUpdatedEvent(
+    Guid ClassroomId,
+    string NewCurrency,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
@@ -199,15 +236,41 @@ public sealed record AssignmentPublishedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record AssignmentUpdatedEvent(
+// Granular Assignment events
+public sealed record AssignmentTitleUpdatedEvent(
     Guid AssignmentId,
-    string? NewTitle,
-    string? NewDescription,
-    DateTime? NewDueDate,
-    string? NewAssignmentType,
-    string? NewSkillFocus,
-    bool? NewIsTimedAssignment,     // Timed assignment status
-    DurationTimeMinutes? NewDurationMinutes,        // Duration in minutes
+    string NewTitle,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record AssignmentDescriptionUpdatedEvent(
+    Guid AssignmentId,
+    string NewDescription,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record AssignmentDueDateUpdatedEvent(
+    Guid AssignmentId,
+    DateTime NewDueDate,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record AssignmentSkillFocusUpdatedEvent(
+    Guid AssignmentId,
+    string NewSkillFocus,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record AssignmentTypeUpdatedEvent(
+    Guid AssignmentId,
+    string NewAssignmentType,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record AssignmentDurationUpdatedEvent(
+    Guid AssignmentId,
+    string? NewDuration,
+    bool IsTimedAssignment,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 

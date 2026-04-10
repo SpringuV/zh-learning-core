@@ -55,9 +55,9 @@ public class ClassroomAggregate : BaseAggregateRoot
             PriceCurrency = priceCurrency,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
+            Slug = GenerateSlug(title),
             ClassroomStatus = Status.Upcoming
         };
-        classroom.Slug = classroom.GenerateSlug(title);
 
         // Emit domain event for new classroom creation
         classroom.AddDomainEvent(new ClassroomCreatedEvent(
@@ -93,44 +93,70 @@ public class ClassroomAggregate : BaseAggregateRoot
         ));
     }
 
-    public void UpdateClassroom (string? newTitle, string? newDescription, int? newHskLevel, DateTime? newStartDate, DateTime? newEndDate, string? newScheduleInfo, float? newPrice, Currency? newPriceCurrency)
+    public void UpdateTitle(string newTitle)
     {
-        if (newTitle is not null)
-        {
-            if (string.IsNullOrWhiteSpace(newTitle)) throw new ArgumentException("Tiêu đề lớp học không được để trống.", nameof(newTitle));
-            Title = newTitle;
-            Slug = GenerateSlug(newTitle);
-        }
-        if (newDescription != null) Description = newDescription;
-        if (newHskLevel.HasValue)
-        {
-            if (newHskLevel < 1 || newHskLevel > 6) throw new ArgumentException("Cấp độ HSK phải là một số từ 1 đến 6.", nameof(newHskLevel));
-            HskLevel = newHskLevel.Value;
-        }
-        if (newStartDate.HasValue) StartDate = newStartDate;
-        if (newEndDate.HasValue) EndDate = newEndDate;
-        if (newScheduleInfo != null) ScheduleInfo = newScheduleInfo;
-        if (newPrice.HasValue)
-        {
-            if (newPrice < 0) throw new ArgumentException("Giá không được âm.", nameof(newPrice));
-            Price = newPrice.Value;
-        }
-        if (newPriceCurrency.HasValue) PriceCurrency = newPriceCurrency.Value;
-
+        if (string.IsNullOrWhiteSpace(newTitle))
+            throw new ArgumentException("Tiêu đề lớp học không được để trống.", nameof(newTitle));
+        
+        Title = newTitle;
+        Slug = GenerateSlug(newTitle);
         UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomTitleUpdatedEvent(ClassroomId, newTitle, Slug, UpdatedAt));
+    }
 
-        AddDomainEvent(new ClassroomUpdatedEvent(
-            ClassroomId,
-            newTitle,
-            newDescription,
-            newHskLevel,
-            newStartDate,
-            newEndDate,
-            newScheduleInfo,
-            newPrice,
-            newPriceCurrency,
-            UpdatedAt
-        ));
+    public void UpdateDescription(string newDescription)
+    {
+        Description = newDescription ?? string.Empty;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomDescriptionUpdatedEvent(ClassroomId, newDescription, UpdatedAt));
+    }
+
+    public void UpdateHskLevel(int newHskLevel)
+    {
+        if (newHskLevel < 1 || newHskLevel > 6)
+            throw new ArgumentException("Cấp độ HSK phải là một số từ 1 đến 6.", nameof(newHskLevel));
+        
+        HskLevel = newHskLevel;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomHskLevelUpdatedEvent(ClassroomId, newHskLevel, UpdatedAt));
+    }
+
+    public void UpdateStartDate(DateTime newStartDate)
+    {
+        StartDate = newStartDate;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomStartDateUpdatedEvent(ClassroomId, newStartDate, UpdatedAt));
+    }
+
+    public void UpdateEndDate(DateTime newEndDate)
+    {
+        EndDate = newEndDate;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomEndDateUpdatedEvent(ClassroomId, newEndDate, UpdatedAt));
+    }
+
+    public void UpdateScheduleInfo(string newScheduleInfo)
+    {
+        ScheduleInfo = newScheduleInfo ?? string.Empty;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomScheduleInfoUpdatedEvent(ClassroomId, newScheduleInfo, UpdatedAt));
+    }
+
+    public void UpdatePrice(float newPrice)
+    {
+        if (newPrice < 0)
+            throw new ArgumentException("Giá không được âm.", nameof(newPrice));
+        
+        Price = newPrice;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomPriceUpdatedEvent(ClassroomId, newPrice, UpdatedAt));
+    }
+
+    public void UpdatePriceCurrency(Currency newPriceCurrency)
+    {
+        PriceCurrency = newPriceCurrency;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ClassroomPriceCurrencyUpdatedEvent(ClassroomId, newPriceCurrency.ToString(), UpdatedAt));
     }
     
     public void AddStudent(Guid studentId)

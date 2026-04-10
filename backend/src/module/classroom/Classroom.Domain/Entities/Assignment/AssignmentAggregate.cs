@@ -108,65 +108,73 @@ public class AssignmentAggregate : BaseAggregateRoot
         return assignment;
     }
 
-    public void UpdateAssignment(string? newTitle, string? newDescription, DateTime? newDueDate, SkillFocus? newSkillFocus, AssignmentType? newAssignmentType, DurationTimeMinutes? newDurationMinutes)
+    public void UpdateTitle(string newTitle)
     {
         if (IsPublished)
             throw new InvalidOperationException("Cannot update details of a published assignment.");
-        bool hasChanges = false;
+        if (string.IsNullOrWhiteSpace(newTitle))
+            throw new ArgumentException("Title cannot be empty.", nameof(newTitle));
+        
+        Title = newTitle;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentTitleUpdatedEvent(AssignmentId, newTitle, UpdatedAt));
+    }
 
-        if (!string.IsNullOrWhiteSpace(newTitle) && newTitle != Title)
-        {
-            Title = newTitle;
-            hasChanges = true;
-        }
-        if (!string.IsNullOrWhiteSpace(newDescription) && newDescription != Description)
-        {
-            Description = newDescription;
-            hasChanges = true;
-        }
-        if (newDueDate.HasValue && newDueDate.Value != DueDate)
-        {
-            if (newDueDate.Value <= DateTime.UtcNow)
-                throw new ArgumentException("Ngày hết hạn phải lớn hơn ngày hiện tại.", nameof(newDueDate));
-            DueDate = newDueDate.Value;
-            hasChanges = true;
-        }
-        if (newSkillFocus.HasValue && newSkillFocus.Value != SkillFocus)
-        {
-            SkillFocus = newSkillFocus.Value;
-            hasChanges = true;
-        }
-        if (newAssignmentType.HasValue && newAssignmentType.Value != AssignmentType)
-        {
-            if (newAssignmentType.Value == AssignmentType.Individual && Recipients.Count == 0)
-                throw new InvalidOperationException("Cannot change to Individual type without recipients.");
-            AssignmentType = newAssignmentType.Value;
-            hasChanges = true;
-        }
-        // Update duration
-        if (newDurationMinutes != DurationMinutes)
-        {
-            if (newDurationMinutes.HasValue && newDurationMinutes <= DurationTimeMinutes.None)
-                throw new ArgumentException("Thời gian làm bài phải là số dương.", nameof(newDurationMinutes));
-            DurationMinutes = newDurationMinutes;
-            IsTimedAssignment = newDurationMinutes.HasValue;
-            hasChanges = true;
-        }
-        if (hasChanges)
-        {
-            UpdatedAt = DateTime.UtcNow;
-            AddDomainEvent(new AssignmentUpdatedEvent(
-                AssignmentId,
-                Title,
-                Description,
-                DueDate,
-                AssignmentType.ToString(),
-                SkillFocus.ToString(),
-                IsTimedAssignment,
-                DurationMinutes,
-                UpdatedAt
-            ));
-        }
+    public void UpdateDescription(string newDescription)
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Cannot update details of a published assignment.");
+        
+        Description = newDescription ?? string.Empty;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentDescriptionUpdatedEvent(AssignmentId, newDescription, UpdatedAt));
+    }
+
+    public void UpdateDueDate(DateTime newDueDate)
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Cannot update details of a published assignment.");
+        if (newDueDate <= DateTime.UtcNow)
+            throw new ArgumentException("Due date must be greater than current time.", nameof(newDueDate));
+        
+        DueDate = newDueDate;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentDueDateUpdatedEvent(AssignmentId, newDueDate, UpdatedAt));
+    }
+
+    public void UpdateSkillFocus(SkillFocus newSkillFocus)
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Cannot update details of a published assignment.");
+        
+        SkillFocus = newSkillFocus;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentSkillFocusUpdatedEvent(AssignmentId, newSkillFocus.ToString(), UpdatedAt));
+    }
+
+    public void UpdateAssignmentType(AssignmentType newAssignmentType)
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Cannot update details of a published assignment.");
+        if (newAssignmentType == AssignmentType.Individual && _recipients.Count == 0)
+            throw new InvalidOperationException("Cannot change to Individual type without recipients.");
+        
+        AssignmentType = newAssignmentType;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentTypeUpdatedEvent(AssignmentId, newAssignmentType.ToString(), UpdatedAt));
+    }
+
+    public void UpdateDurationMinutes(DurationTimeMinutes? newDurationMinutes)
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Cannot update details of a published assignment.");
+        if (newDurationMinutes.HasValue && newDurationMinutes <= DurationTimeMinutes.None)
+            throw new ArgumentException("Duration must be positive.", nameof(newDurationMinutes));
+        
+        DurationMinutes = newDurationMinutes;
+        IsTimedAssignment = newDurationMinutes.HasValue;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new AssignmentDurationUpdatedEvent(AssignmentId, newDurationMinutes?.ToString(), IsTimedAssignment, UpdatedAt));
     }
 
     /// <summary>

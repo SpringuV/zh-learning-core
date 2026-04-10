@@ -3,3 +3,4 @@ global using Lesson.Domain.Entities.Events;
 
 global using Lesson.Domain.Entities.Exercise;
 global using MediatR;
+global using System.Text.Json.Serialization;

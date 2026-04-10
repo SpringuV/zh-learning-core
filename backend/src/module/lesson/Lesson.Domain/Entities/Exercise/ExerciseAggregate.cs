@@ -1,7 +1,3 @@
-using System.Text.Json.Serialization;
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Domain.Entities.Exercise;
 
 public enum ExerciseType
