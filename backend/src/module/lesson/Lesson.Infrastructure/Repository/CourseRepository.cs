@@ -11,11 +11,6 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
         throw new NotImplementedException();
     }
 
-    public async Task<bool> ExistsOrderIndexAsync(int orderIndex, CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.Courses.AnyAsync(c => c.OrderIndex == orderIndex, cancellationToken);
-    }
-
     public async Task AddAsync(CourseAggregate course, CancellationToken cancellationToken = default)
     {
         try
@@ -78,5 +73,52 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
         }
     }
 
+    public async Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return await _dbContext.Courses.MaxAsync(c => (int?)c.OrderIndex ?? 0, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting max OrderIndex");
+            throw new RepositoryException("Không thể lấy OrderIndex tối đa", ex);
+        }
+    }
+
+    public async Task<IEnumerable<CourseAggregate>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        try
+        {
+            // Sử dụng Where để lọc các khóa học có CourseId nằm trong danh sách ids, 
+            // sau đó chuyển kết quả thành List, nó sẽ chạy một truy vấn SQL với điều kiện IN 
+            // để lấy tất cả các khóa học có ID khớp trong một lần truy vấn.
+            return await _dbContext.Courses.Where(c => ids.Contains(c.CourseId)).ToListAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting courses by IDs");
+            throw new RepositoryException("Không thể lấy khóa học theo IDs", ex);
+        }
+    }
+
+    public Task UpdateRangeAsync(IEnumerable<CourseAggregate> courses, CancellationToken ct = default)
+    {
+        try
+        {
+            _dbContext.Courses.UpdateRange(courses);
+            return Task.CompletedTask;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error when updating courses range");
+            throw new RepositoryException("Không thể cập nhật khóa học", ex);
+        }
+         catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error updating courses range");
+            throw;
+        }
+    }
 }
 

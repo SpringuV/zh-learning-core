@@ -10,8 +10,12 @@ public class LessonService(IMediator mediator) : ILessonService
             Title: request.Title,
             Description: request.Description,
             HskLevel: request.HskLevel,
-            OrderIndex: request.OrderIndex,
             Slug: request.Slug
         ), cancellationToken);
+    }
+
+    public Task<Result> ReorderCoursesAsync(CourseReorderRequestDTO request, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

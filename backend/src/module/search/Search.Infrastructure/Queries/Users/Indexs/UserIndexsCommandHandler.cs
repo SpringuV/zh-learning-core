@@ -1,21 +1,22 @@
-using Search.Infrastructure;
-namespace Search.Application.Queries.Users.Indexs;
+namespace Search.Infrastructure.Queries.Users.Indexs;
 
-public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, UserIndexResponse>
+public record UserIndexsCommand(
+    Guid Id,
+    string Email,
+    string Username,
+    bool IsActive,
+    string? PhoneNumber,
+    DateTime CreatedAt,
+    DateTime UpdatedAt) : IRequest<UserIndexResponse>;
+
+public class UserCreateIndexCommandHandler(
+    ElasticsearchClient client,
+    ILogger<UserCreateIndexCommandHandler> logger) : IRequestHandler<UserIndexsCommand, UserIndexResponse>
 {
-    private readonly ElasticsearchClient _client;
-    private readonly ILogger<UserCreateIndexCommandHandler> _logger;
+    private readonly ElasticsearchClient _client = client;
+    private readonly ILogger<UserCreateIndexCommandHandler> _logger = logger;
 
-    public UserCreateIndexCommandHandler(
-        ElasticsearchClient client,
-        ILogger<UserCreateIndexCommandHandler> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
-
-
-    public async Task<UserIndexResponse> Handle(UserIndexsQueries request, CancellationToken cancellationToken)
+    public async Task<UserIndexResponse> Handle(UserIndexsCommand request, CancellationToken cancellationToken)
     {
         ValidateRequest(request);
 
@@ -28,7 +29,7 @@ public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, 
 
             // Create UserSearch entity
             var userSearch = new UserSearch(
-                Id: request.Id.ToString(),
+                Id: request.Id,
                 Email: request.Email,
                 Username: request.Username,
                 PhoneNumber: request.PhoneNumber,
@@ -39,7 +40,7 @@ public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, 
             // Index to Elasticsearch
             var response = await _client.IndexAsync(userSearch, i => i
                 .Index(ConstantIndexElastic.UserIndex)
-                .Id(userSearch.Id), cancellationToken);
+                .Id(userSearch.Id), cancellationToken); // Use userSearch.Id to ensure the document ID in Elasticsearch matches the user ID
 
             if (!response.IsValidResponse)
             {
@@ -60,7 +61,7 @@ public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, 
         }
     }
 
-    private static void ValidateRequest(UserIndexsQueries request)
+    private static void ValidateRequest(UserIndexsCommand request)
     {
         if (request.Id == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty", nameof(request.Id));
@@ -86,7 +87,23 @@ public class UserCreateIndexCommandHandler : IRequestHandler<UserIndexsQueries, 
             return;
         }
 
-        var createResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.UserIndex, cancellationToken: cancellationToken);
+        // Create explicit mapping to keep search/sort behavior stable across environments.
+        var createResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.UserIndex, c => c
+            .Mappings<UserSearch>(m => m
+                .Properties(p => p
+                    .Text(u => u.Id, t => t.Fields(f => f.Keyword("keyword")))
+                    .Text(u => u.Email, t => t.Fields(f => f.Keyword("keyword")))
+                    .Text(u => u.Username, t => t.Fields(f => f.Keyword("keyword")))
+                    .Text(u => u.PhoneNumber, t => t.Fields(f => f.Keyword("keyword")))
+                    .Boolean(u => u.IsActive)
+                    .Date(u => u.CreatedAt)
+                    .Date(u => u.UpdatedAt)
+                    .IntegerNumber(u => u.CurrentLevel)
+                    .Date(u => u.LastLogin)
+                    .Keyword(u => u.AvatarUrl)
+                )
+            ), cancellationToken: cancellationToken);
+        
         if (!createResponse.IsValidResponse)
         {
             throw new InvalidOperationException(

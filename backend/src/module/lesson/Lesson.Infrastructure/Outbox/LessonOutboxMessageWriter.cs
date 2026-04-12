@@ -1,7 +1,3 @@
-using HanziAnhVu.Shared.Application;
-using HanziAnhVu.Shared.EventBus;
-using Shared.Infrastructure.Outbox;
-
 namespace Lesson.Infrastructure.Outbox;
 
 public class LessonOutboxMessageWriter(

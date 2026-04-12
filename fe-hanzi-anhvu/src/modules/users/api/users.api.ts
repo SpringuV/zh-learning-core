@@ -19,15 +19,9 @@ export interface UserListQueryParams {
     isActive?: boolean;
     phoneNumber?: string;
     take?: number;
-    searchAfterCreatedAt?: string;
+    searchAfterValues?: string | null;
     sortBy?: UserSortBy;
     orderByDescending?: boolean;
-    emailOrder?: SortDirection;
-    usernameOrder?: SortDirection;
-    phoneNumberOrder?: SortDirection;
-    currentLevelOrder?: SortDirection;
-    startCreatedAt?: string;
-    endCreatedAt?: string;
 }
 
 export interface UserListItem {

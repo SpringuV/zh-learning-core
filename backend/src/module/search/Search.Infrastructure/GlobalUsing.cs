@@ -16,3 +16,4 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Search.Application.EventHandlers.Users;
 global using Search.Infrastructure.Services;
+global using Search.Infrastructure.Queries.Common;

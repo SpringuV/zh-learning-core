@@ -4,23 +4,25 @@ import {
 } from "@/modules/users/api/users.api";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-export const useUserList = (params: UserListQueryParams = {}) => {
+type UserListBaseQueryParams = Omit<UserListQueryParams, "searchAfterValues">;
+
+export const useInfiniteUserList = (params: UserListBaseQueryParams = {}) => {
     return useInfiniteQuery({
         queryKey: ["users", params],
+        initialPageParam: undefined as string | undefined,
         queryFn: async ({ pageParam }) => {
             return await usersApi.getListUsers({
                 ...params,
-                searchAfterCreatedAt: pageParam,
+                searchAfterValues: pageParam,
             });
         },
-        initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => {
-            if (!lastPage.data.hasNextPage) {
+            const payload = lastPage.data;
+            if (!payload.hasNextPage || !payload.nextCursor) {
                 return undefined;
             }
 
-            const nextCursor = lastPage.data.nextCursor;
-            return nextCursor || undefined;
+            return payload.nextCursor;
         },
         retry: 2, // Thử lại tối đa 2 lần nếu có lỗi
         staleTime: 5 * 60 * 1000, // 5 phút

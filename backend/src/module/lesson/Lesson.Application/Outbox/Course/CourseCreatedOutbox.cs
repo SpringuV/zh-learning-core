@@ -12,8 +12,12 @@ public sealed class CourseCreatedOutbox(ILessonOutboxWriter outboxWriter)
                 notification.CourseId,
                 notification.Title, 
                 notification.Description, 
+                notification.HskLevel,
                 notification.OrderIndex, 
                 notification.Slug,
+                notification.TotalStudentsEnrolled,
+                notification.TotalTopics,
+                notification.IsPublished,
                 notification.CreatedAt,
                 notification.UpdatedAt
             ),

@@ -30,16 +30,14 @@ public sealed class UpdatedCourseDescriptionOutbox(ILessonOutboxWriter outboxWri
             cancellationToken);
 }
 
-public sealed class UpdatedCourseOrderIndexOutbox(ILessonOutboxWriter outboxWriter)
-    : INotificationHandler<CourseOrderIndexUpdatedEvent>
+public sealed class CourseReOrderedOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<CourseReOrderedEvent>
 {
-    public Task Handle(CourseOrderIndexUpdatedEvent notification, CancellationToken cancellationToken)
+    public Task Handle(CourseReOrderedEvent notification, CancellationToken cancellationToken)
         => outboxWriter.EnqueueAsync(
             new CourseOrderIndexUpdatedIntegrationEvent(
-                notification.CourseId,
-                notification.NewOrderIndex,
-                notification.UpdatedAt
+                OrderedCourseIds: notification.OrderedCourseIds,
+                UpdatedAt: notification.UpdatedAt
             ),
             cancellationToken);
 }
-

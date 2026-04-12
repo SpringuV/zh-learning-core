@@ -1,11 +1,25 @@
 namespace Search.Infrastructure.Queries.Users.Patch;
 
-public class UserPatchQueriesHandler(ElasticsearchClient client, ILogger<UserPatchQueriesHandler> logger) : IRequestHandler<UserPatchQueries, UserSearchPatchDocumentResponse>
+public record UserPatchCommand(
+    Guid Id,
+    string? Email = null,
+    string? Username = null,
+    string? PhoneNumber = null,
+    bool? IsActive = null,
+    DateTime? LastLogin = null,
+    int? CurrentLevel = null,
+    DateTime? LastActivityAt = null,
+    string? AvatarUrl = null,
+    DateTime? UpdatedAt = null,
+    CancellationToken Cancel = default
+) : IRequest<UserSearchPatchDocumentResponse>;
+
+public class UserPatchCommandHandler(ElasticsearchClient client, ILogger<UserPatchCommandHandler> logger) : IRequestHandler<UserPatchCommand, UserSearchPatchDocumentResponse>
 {
     private readonly ElasticsearchClient _client = client;
-    private readonly ILogger<UserPatchQueriesHandler> _logger = logger;
+    private readonly ILogger<UserPatchCommandHandler> _logger = logger;
 
-    public async Task<UserSearchPatchDocumentResponse> Handle(UserPatchQueries request, CancellationToken cancellationToken)
+    public async Task<UserSearchPatchDocumentResponse> Handle(UserPatchCommand request, CancellationToken cancellationToken)
     {
         var partialDocument = new Dictionary<string, object>();
         if (request.Email is not null) partialDocument["email"] = request.Email;

@@ -59,7 +59,8 @@ public class AssignmentSearch
 
     /// <summary>
     /// Factory method to create AssignmentSearch from assignment data
-    /// Typically called when assignment is published or created
+    /// Note: Validation is performed in event handlers (Source of truth: Classroom module)
+    /// This entity is a denormalized read model - trust the data from source
     /// </summary>
     public static AssignmentSearch FromAssignment(
         Guid assignmentId,
@@ -76,10 +77,6 @@ public class AssignmentSearch
         DateTime createdAt,
         DateTime updatedAt)
     {
-        ValidateTitle(title);
-        ValidateDueDate(dueDate);
-        ValidateExerciseCount(exerciseCount);
-
         return new AssignmentSearch
         {
             Id = assignmentId.ToString(),
@@ -100,7 +97,6 @@ public class AssignmentSearch
 
     public void UpdateTitle(string newTitle, DateTime updatedAt)
     {
-        ValidateTitle(newTitle);
         Title = newTitle;
         UpdatedAt = updatedAt;
     }
@@ -113,7 +109,6 @@ public class AssignmentSearch
 
     public void UpdateDueDate(DateTime newDueDate, DateTime updatedAt)
     {
-        ValidateDueDate(newDueDate);
         DueDate = newDueDate;
         UpdatedAt = updatedAt;
     }
@@ -132,47 +127,13 @@ public class AssignmentSearch
 
     public void UpdateExerciseCount(int count, DateTime updatedAt)
     {
-        ValidateExerciseCount(count);
         ExerciseCount = count;
         UpdatedAt = updatedAt;
     }
 
     public void UpdateRecipientCount(int count, DateTime updatedAt)
     {
-        if (count < 0)
-            throw new ArgumentException("Số lượng người nhận không thể là số âm.", nameof(count));
-
         RecipientCount = count;
         UpdatedAt = updatedAt;
-    }
-
-    /// <summary>
-    /// Validates assignment title
-    /// </summary>
-    private static void ValidateTitle(string title)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException("Tiêu đề bài tập không thể để trống.", nameof(title));
-
-        if (title.Length > 500)
-            throw new ArgumentException("Tiêu đề bài tập không thể vượt quá 500 ký tự.", nameof(title));
-    }
-
-    /// <summary>
-    /// Validates due date
-    /// </summary>
-    private static void ValidateDueDate(DateTime dueDate)
-    {
-        if (dueDate < DateTime.UtcNow)
-            throw new ArgumentException("Ngày hết hạn không thể ở trong quá khứ.", nameof(dueDate));
-    }
-
-    /// <summary>
-    /// Validates exercise count
-    /// </summary>
-    private static void ValidateExerciseCount(int count)
-    {
-        if (count < 1)
-            throw new ArgumentException("Bài tập phải chứa ít nhất 1 bài tập.", nameof(count));
     }
 }

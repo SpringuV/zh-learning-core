@@ -1,8 +1,4 @@
 namespace Lesson.Application.MediatR.Command.Course;
-
-using HanziAnhVu.Shared.Contracts;
-using HanziAnhVu.Shared.Contracts.Enums;
-
 public record UpdateCourseCommand(
     Guid CourseId,
     string? Title,

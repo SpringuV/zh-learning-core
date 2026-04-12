@@ -17,7 +17,7 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
 
     public async Task<UserIndexResponse> IndexAsync(UserSearchIndexQueriesRequest request, CancellationToken cancellationToken = default)
     {
-        var command = new UserIndexsQueries(
+        var command = new UserIndexsCommand(
             Id: request.Id,
             Email: request.Email,
             Username: request.Username,
@@ -36,7 +36,7 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
             throw new ArgumentException("UserId không được để trống.", nameof(id));
         }
         ArgumentNullException.ThrowIfNull(patch); // Nếu patch có thể null thì bỏ dòng này và handle null trong code tiếp theo
-        var command = new UserPatchQueries(
+        var command = new UserPatchCommand(
              Id: id,
              Email: patch?.Email,
              Username: patch?.Username,
@@ -85,7 +85,7 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
             request.IsActive,
             request.PhoneNumber,
             request.Take,
-            request.SearchAfterCreatedAt,
+            request.SearchAfterValues,
             request.SortBy,
             request.OrderByDescending,
             request.StartCreatedAt,

@@ -15,7 +15,8 @@ export type FilterState = {
     username: string;
     phoneNumber: string;
     isActive: "all" | "true" | "false";
-    sortMode: "az" | "za" | "newest" | "oldest";
+    sortBy: "Email" | "Username" | "CreatedAt" | "UpdatedAt" | "CurrentLevel";
+    orderBy: "asc" | "desc";
 };
 
 export const defaultFilters: FilterState = {
@@ -23,7 +24,8 @@ export const defaultFilters: FilterState = {
     username: "",
     phoneNumber: "",
     isActive: "all",
-    sortMode: "newest",
+    sortBy: "CreatedAt",
+    orderBy: "desc",
 };
 
 type UserManagementFiltersProps = {
@@ -133,28 +135,57 @@ export const UserManagementFilters = ({
 
             <div className="space-y-1.5 xl:col-span-3">
                 <Label
-                    htmlFor="filter-sort-mode"
+                    htmlFor="filter-sort-by"
                     className="text-xs font-medium text-muted-foreground"
                 >
-                    Sắp xếp
+                    Trường sắp xếp
                 </Label>
                 <Select
-                    value={value.sortMode}
-                    onValueChange={(sortMode: FilterState["sortMode"]) =>
+                    value={value.sortBy}
+                    onValueChange={(sortBy: FilterState["sortBy"]) =>
                         onChange({
                             ...value,
-                            sortMode,
+                            sortBy,
                         })
                     }
                 >
-                    <SelectTrigger id="filter-sort-mode" className="h-8">
-                        <SelectValue placeholder="Chọn kiểu sắp xếp" />
+                    <SelectTrigger id="filter-sort-by" className="h-8">
+                        <SelectValue placeholder="Chọn trường" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="az">A-Z (Username)</SelectItem>
-                        <SelectItem value="za">Z-A (Username)</SelectItem>
-                        <SelectItem value="newest">Mới nhất</SelectItem>
-                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                        <SelectItem value="CreatedAt">Ngày tạo</SelectItem>
+                        <SelectItem value="UpdatedAt">Ngày cập nhật</SelectItem>
+                        <SelectItem value="Email">Email</SelectItem>
+                        <SelectItem value="Username">Username</SelectItem>
+                        <SelectItem value="CurrentLevel">Level</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-1.5 xl:col-span-3">
+                <Label
+                    htmlFor="filter-order-by"
+                    className="text-xs font-medium text-muted-foreground"
+                >
+                    Thứ tự
+                </Label>
+                <Select
+                    value={value.orderBy}
+                    onValueChange={(orderBy: FilterState["orderBy"]) =>
+                        onChange({
+                            ...value,
+                            orderBy,
+                        })
+                    }
+                >
+                    <SelectTrigger id="filter-order-by" className="h-8">
+                        <SelectValue placeholder="Chọn thứ tự" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="asc">Tăng dần (A-Z, 1-9)</SelectItem>
+                        <SelectItem value="desc">
+                            Giảm dần (Z-A, 9-1)
+                        </SelectItem>
                     </SelectContent>
                 </Select>
             </div>

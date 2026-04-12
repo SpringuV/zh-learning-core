@@ -1,38 +1,24 @@
-﻿
-namespace Search.Infrastructure.Queries.Users.Search;
+﻿namespace Search.Infrastructure.Queries.Users.Search;
 
+public record UserSearchQueries(
+    string? Email = null,
+    string? Username = null,
+    bool? IsActive = null,
+    string? PhoneNumber = null,
+    int Take = 30,
+    // Keyset pagination: JSON array của [sortValue, userId]
+    // Ví dụ: "[5, \"user-123\"]" khi sort by CurrentLevel
+    // Ensures stable pagination khi sort field thay đổi
+    string? SearchAfterValues = null,
+    UserSortBy SortBy = UserSortBy.CreatedAt,
+    bool OrderByDescending = true,
+    DateTime? StartCreatedAt = null,
+    DateTime? EndCreatedAt = null) : IRequest<SearchQueryResult<UserSearchItemResponse>>;
 public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, ElasticsearchClient client) : IRequestHandler<UserSearchQueries, SearchQueryResult<UserSearchItemResponse>>
 {
     private readonly ElasticsearchClient _client = client;
     private readonly ILogger<UserSearchQueriesHandler> _logger = logger;
     public async Task<SearchQueryResult<UserSearchItemResponse>> Handle(UserSearchQueries request, CancellationToken cancellationToken)
-    {
-        var searchResult = await SearchInternalAsync(
-            request,
-            cancellationToken: cancellationToken);
-
-        var items = searchResult.Items
-            .Select(user => new UserSearchItemResponse(
-                Id: user.Id,
-                Email: user.Email,
-                Username: user.Username,
-                PhoneNumber: user.PhoneNumber,
-                IsActive: user.IsActive,
-                CreatedAt: user.CreatedAt,
-                UpdatedAt: user.UpdatedAt,
-                CurrentLevel: user.CurrentLevel))
-            .ToList();
-
-        return new SearchQueryResult<UserSearchItemResponse>(
-            Total: searchResult.Total,
-            Items: items,
-            HasNextPage: searchResult.HasNextPage,
-            NextCursor: searchResult.NextCursor);
-    }
-
-    private async Task<SearchQueryResult<UserSearch>> SearchInternalAsync(
-        UserSearchQueries request,
-        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -42,7 +28,7 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
             if (!indexExistsResponse.Exists)
             {
                 _logger.LogInformation("Index {IndexName} does not exist. Returning empty search result.", ConstantIndexElastic.UserIndex);
-                return new SearchQueryResult<UserSearch>(
+                return new SearchQueryResult<UserSearchItemResponse>(
                     Total: 0,
                     Items: [],
                     HasNextPage: false,
@@ -94,55 +80,38 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
                         })));
                     }
 
-                    if (!string.IsNullOrWhiteSpace(request.SearchAfterCreatedAt) && DateTime.TryParse(request.SearchAfterCreatedAt, out var searchAfterCreatedAt))
-                    {
-                        b.Filter(f => f.Range(r => r.Date(dr =>
-                        {
-                            dr.Field(u => u.CreatedAt);
-                            if (request.OrderByDescending)
-                            {
-                                dr.Lt(searchAfterCreatedAt);
-                            }
-                            else
-                            {
-                                dr.Gt(searchAfterCreatedAt);
-                            }
-
-                        })));
-                    }
                 }));
 
-                s.Sort(sort =>
+                var primaryOrder = request.OrderByDescending
+                    ? SortOrder.Desc
+                    : SortOrder.Asc;
+
+                Action<SortOptionsDescriptor<UserSearch>> primarySort = request.SortBy switch
                 {
-                    switch (request.SortBy)
+                    UserSortBy.Email => so => so.Field(u => u.Email.Suffix("keyword"), primaryOrder),
+                    UserSortBy.Username => so => so.Field(u => u.Username.Suffix("keyword"), primaryOrder),
+                    UserSortBy.UpdatedAt => so => so.Field(u => u.UpdatedAt, primaryOrder),
+                    UserSortBy.CurrentLevel => so => so.Field(u => u.CurrentLevel, primaryOrder),
+                    _ => so => so.Field(u => u.CreatedAt, primaryOrder)
+                };
+
+                // Important: emit two sort options to match search_after [sortValue, userId].
+                s.Sort(
+                    primarySort,
+                    so => so.Field("id.keyword", SortOrder.Asc));
+
+                // Keyset pagination: SearchAfter [sortValue, userId]
+                if (!string.IsNullOrWhiteSpace(request.SearchAfterValues))
+                {
+                    if (SearchAfterCursorHelper.TryParseSearchAfterValues(request.SearchAfterValues, out var fieldValues))
                     {
-                        case UserSortBy.Email:
-                            sort.Field(f => f.Field(u => u.Email).Order(request.OrderByDescending
-                                ? SortOrder.Desc
-                                : SortOrder.Asc));
-                            break;
-                        case UserSortBy.Username:
-                            sort.Field(f => f.Field(u => u.Username).Order(request.OrderByDescending
-                                ? SortOrder.Desc
-                                : SortOrder.Asc));
-                            break;
-                        case UserSortBy.UpdatedAt:
-                            sort.Field(f => f.Field(u => u.UpdatedAt).Order(request.OrderByDescending
-                                ? SortOrder.Desc
-                                : SortOrder.Asc));
-                            break;
-                        case UserSortBy.CurrentLevel:
-                            sort.Field(f => f.Field(u => u.CurrentLevel).Order(request.OrderByDescending
-                                ? SortOrder.Desc
-                                : SortOrder.Asc));
-                            break;
-                        default:
-                            sort.Field(f => f.Field(u => u.CreatedAt).Order(request.OrderByDescending
-                                ? SortOrder.Desc
-                                : SortOrder.Asc));
-                            break;
+                        s.SearchAfter(fieldValues);
                     }
-                });
+                    else
+                    {
+                        _logger.LogWarning("Invalid SearchAfterValues format: {SearchAfterValues}", request.SearchAfterValues);
+                    }
+                }
             }, cancellationToken);
 
             if (!response.IsValidResponse)
@@ -150,7 +119,20 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
                 throw new Exception($"Failed to search users: {response.DebugInformation}");
             }
 
-            var documents = response.Documents.ToList();
+            // Select + ToList mapping immediately
+            var results = response.Documents
+                .Take(request.Take + 1) // Fetch one extra for pagination check
+                .Select(user => new UserSearchItemResponse(
+                    Id: user.Id,
+                    Email: user.Email,
+                    Username: user.Username,
+                    PhoneNumber: user.PhoneNumber,
+                    IsActive: user.IsActive,
+                    CreatedAt: user.CreatedAt,
+                    UpdatedAt: user.UpdatedAt,
+                    CurrentLevel: user.CurrentLevel))
+                .ToList();
+
             var totalHits = response.HitsMetadata?.Total;
             long? totalMatched = null;
             if (totalHits is not null)
@@ -159,7 +141,7 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
                     hitCount => hitCount?.Value ?? 0,
                     value => value);
             }
-            return BuildPagedResult(documents, request.Take, totalMatched);
+            return BuildPagedResult(results, request.Take, totalMatched, request.SortBy);
         }
         catch (Exception ex)
         {
@@ -168,19 +150,52 @@ public class UserSearchQueriesHandler(ILogger<UserSearchQueriesHandler> logger, 
         }
     }
 
-    private SearchQueryResult<UserSearch> BuildPagedResult(List<UserSearch> documents, int take, long? totalMatched = null)
+    private SearchQueryResult<UserSearchItemResponse> BuildPagedResult(
+        List<UserSearchItemResponse> results, 
+        int take, 
+        long? totalMatched = null, 
+        UserSortBy sortBy = UserSortBy.CreatedAt)
     {
-        _logger.LogInformation("Query executed successfully: {DocumentCount} documents returned", documents.Count);
+        _logger.LogInformation("Query executed successfully: {DocumentCount} results returned", results.Count);
 
-        var hasNextPage = documents.Count > take;
-        var results = documents.Take(take).ToList();
+        // hasNextPage: check if we have more docs than take (We fetched take + 1)
+        var hasNextPage = results.Count > take;
+        if (hasNextPage)
+        {
+            // Trim sentinel document in-place to avoid allocating an extra list.
+            results.RemoveAt(results.Count - 1);
+        }
+
+        // totalMatched from response metadata is always accurate (total matching docs)
         var total = totalMatched ?? results.Count;
 
-        return new SearchQueryResult<UserSearch>(
+        var nextCursor = string.Empty;
+        if (hasNextPage && results.Count > 0)
+        {
+            // Get lastDoc from original documents for accurate sort value
+            var lastDoc = results[^1];
+            var sortValue = GetSortValue(lastDoc, sortBy);
+            var cursorJson = SearchAfterCursorHelper.BuildCursor(sortValue, lastDoc.Id);
+            nextCursor = cursorJson;
+        }
+
+        return new SearchQueryResult<UserSearchItemResponse>(
             Total: total,
             Items: results,
             HasNextPage: hasNextPage,
-            NextCursor: hasNextPage && results.Count > 0 ? results.Last().CreatedAt.ToString("O") : string.Empty);
+            NextCursor: nextCursor);
+    }
+
+    private static object GetSortValue(UserSearchItemResponse user, UserSortBy sortBy)
+    {
+        return sortBy switch
+        {
+            UserSortBy.Email => user.Email,
+            UserSortBy.Username => user.Username,
+            UserSortBy.UpdatedAt => user.UpdatedAt,
+            UserSortBy.CurrentLevel => user.CurrentLevel,
+            _ => user.CreatedAt
+        };
     }
 
 }

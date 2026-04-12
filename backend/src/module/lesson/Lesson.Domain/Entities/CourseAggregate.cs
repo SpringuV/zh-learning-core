@@ -48,6 +48,9 @@ public class CourseAggregate : BaseAggregateRoot
             course.HskLevel,
             course.OrderIndex,
             course.Slug,
+            0, // TotalStudentsEnrolled
+            0, // TotalTopics
+            false, // IsPublished
             course.CreatedAt,
             course.UpdatedAt));
 
@@ -73,7 +76,6 @@ public class CourseAggregate : BaseAggregateRoot
         if (newOrderIndex < 1) throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "Chỉ số thứ tự phải lớn hơn hoặc bằng 1.");
         OrderIndex = newOrderIndex;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new CourseOrderIndexUpdatedEvent(CourseId, newOrderIndex, UpdatedAt));
     }
 
     public void UpdateDescription(string newDescription)

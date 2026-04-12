@@ -1,5 +1,5 @@
 namespace Search.Infrastructure.Queries.Users.Delete;
-
+public record UserDeleteCommand(Guid Id) : IRequest<bool>;
 public class UserDeleteCommandHandler(
     ElasticsearchClient client,
     ILogger<UserDeleteCommandHandler> logger) : IRequestHandler<UserDeleteCommand, bool>

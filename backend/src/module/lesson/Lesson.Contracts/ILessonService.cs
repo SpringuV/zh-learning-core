@@ -6,4 +6,7 @@ namespace Lesson.Contracts;
 public interface ILessonService
 {
     Task<Result<CreateCourseResponseDTO>> CreateCourseAsync(CreateCourseRequestDTO request, CancellationToken cancellationToken);
+
+    Task<Result> ReorderCoursesAsync(CourseReorderRequestDTO request, CancellationToken cancellationToken);
+
 }

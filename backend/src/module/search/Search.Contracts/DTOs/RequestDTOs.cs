@@ -72,6 +72,7 @@ public sealed record AssignmentSearchPatchDocumentRequest(
     int? RecipientCount = null,
     DateTime? UpdatedAt = null);
 
+#region User Search DTOs
 public sealed record UserSearchPatchDocumentRequest(
     string? Email = null,
     string? Username = null,
@@ -89,8 +90,8 @@ public sealed record UserSearchQueryRequest(
     bool? IsActive = null,
     string? PhoneNumber = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterCreatedAt = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    // Keyset cursor: JSON array [sortValue, userId]
+    string? SearchAfterValues = null,
     UserSortBy SortBy = UserSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
@@ -104,4 +105,39 @@ public enum UserSortBy
     Email,
     Username,
 }
+#endregion
 
+#region Course Search DTOs
+public sealed record CourseSearchIndexQueriesRequest(
+    Guid CourseId,
+    string Title,
+    string Description,
+    int HskLevel,
+    int OrderIndex,
+    string Slug,
+    long TotalStudentsEnrolled,
+    long TotalTopics,
+    bool IsPublished,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+public enum CourseSortBy
+{
+    CreatedAt,
+    UpdatedAt,
+    Title,
+    HskLevel,
+    OrderIndex,
+    TotalStudentsEnrolled,
+    TotalTopics
+}
+public sealed record CourseSearchQueryAdminRequest(
+    string? Title = null,
+    int Take = 30,
+    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
+    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    CourseSortBy SortBy = CourseSortBy.CreatedAt,
+    bool OrderByDescending = true,
+    DateTime? StartCreatedAt = null,
+    DateTime? EndCreatedAt = null
+);
+#endregion

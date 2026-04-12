@@ -88,6 +88,9 @@ public record CourseCreatedEvent(
     int HskLevel,
     int OrderIndex,
     string Slug,
+    long TotalStudentsEnrolled,
+    long TotalTopics,
+    bool IsPublished,
     DateTime CreatedAt,
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
@@ -108,9 +111,8 @@ public sealed record CourseDescriptionUpdatedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record CourseOrderIndexUpdatedEvent(
-    Guid CourseId,
-    int NewOrderIndex,
+public sealed record CourseReOrderedEvent(
+    List<Guid> OrderedCourseIds,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 

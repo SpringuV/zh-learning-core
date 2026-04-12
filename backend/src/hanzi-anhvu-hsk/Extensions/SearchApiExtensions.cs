@@ -15,7 +15,7 @@ public static class SearchApiExtensions
 
     public static RouteGroupBuilder MapSearchLessonApi(this RouteGroupBuilder group)
     {
-        group.MapGet("/lessons", LessonSearchApi.SearchLessons).RequireAuthorization();
+        group.MapGet("/courses", LessonSearchApi.SearchCourses).RequireAuthorization();
 
         return group;
     }
@@ -25,4 +25,5 @@ public static class SearchApiExtensions
 
         return group;
     }
+
 }

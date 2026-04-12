@@ -4,7 +4,6 @@ public record CreateCourseCommand(
     string Title,
     string Description,
     int HskLevel,
-    int OrderIndex,
     string Slug
 ) : IRequest<Result<CreateCourseResponseDTO>>;
 
@@ -24,17 +23,12 @@ public class CreateCourseHandler(
         try
         {
             CourseAggregate courseAggregate = null!;
-            _logger.LogInformation("[CreateCourseHandler] Starting course creation - Title: {Title}, HskLevel: {HskLevel}, OrderIndex: {OrderIndex}", 
-                request.Title, request.HskLevel, request.OrderIndex);
+            _logger.LogInformation("[CreateCourseHandler] Starting course creation - Title: {Title}, HskLevel: {HskLevel}", 
+                request.Title, request.HskLevel);
 
-            if (await _courseRepository.ExistsOrderIndexAsync(request.OrderIndex, cancellationToken))
-            {
-                return Result<CreateCourseResponseDTO>.FailureResult(
-                    $"OrderIndex {request.OrderIndex} đã tồn tại. Vui lòng chọn thứ tự khác.",
-                    (int)ErrorCode.DUPLICATE
-                );
-            }
-            
+            var maxOrder = await _courseRepository.GetMaxOrderIndexAsync(cancellationToken);
+            _logger.LogInformation("[CreateCourseHandler] Current max order index: {MaxOrderIndex}", maxOrder);
+
             // Create aggregate + publish domain events (write outbox) + save DB in one transaction
             await _unitOfWork.SaveChangeAsync(async () =>
             {
@@ -42,15 +36,13 @@ public class CreateCourseHandler(
                     request.Title,
                     request.Description,
                     request.HskLevel,
-                    request.OrderIndex,
+                    (maxOrder ?? 0) + 1,
                     request.Slug
                 );
-                _logger.LogInformation("[CreateCourseHandler] Aggregate created - CourseId: {CourseId}", courseAggregate.CourseId);
 
                 await _courseRepository.AddAsync(courseAggregate, cancellationToken);
                 _logger.LogInformation("[CreateCourseHandler] Aggregate added to repository");
 
-                _logger.LogInformation("[CreateCourseHandler] Publishing {EventCount} domain events in-transaction", courseAggregate.DomainEvents.Count);
                 foreach (var domainEvent in courseAggregate.DomainEvents)
                 {
                     _logger.LogInformation("[CreateCourseHandler] Publishing {EventType} for {AggregateId}", domainEvent.GetType().Name, courseAggregate.CourseId);
@@ -58,9 +50,7 @@ public class CreateCourseHandler(
                 }
                 courseAggregate.PopDomainEvents();
             }, cancellationToken);
-            
-            _logger.LogInformation("[CreateCourseHandler] COMPLETED - Data and outbox committed atomically");
-            
+                    
             // Phase 3: Return success result
             return Result<CreateCourseResponseDTO>.SuccessResult(
                 new CreateCourseResponseDTO(courseAggregate.CourseId),

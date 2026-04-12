@@ -52,10 +52,7 @@ Users.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, build
 Notification.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 
 // search dependency
-Search.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
-
-// add elasticsearch service
-builder.AddElasticsearchClient("elastic-hanzi");
+Search.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services, builder);
 
 // add in-memory event bus
 builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();

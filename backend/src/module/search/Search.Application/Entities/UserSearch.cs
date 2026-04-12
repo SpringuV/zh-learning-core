@@ -3,7 +3,7 @@ namespace Search.Application.Entities;
 public class UserSearch
 {
     // auth user
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; } = Guid.Empty;
     public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
@@ -21,7 +21,7 @@ public class UserSearch
     public UserSearch() { }
 
     public UserSearch(
-        string Id,
+        Guid Id,
         string Email,
         string Username,
         string? PhoneNumber,
@@ -53,11 +53,9 @@ public class UserSearch
         DateTime updatedAt,
         bool isActive)
     {
-        ValidateEmail(email);
-        
         return new UserSearch
         {
-            Id = id.ToString(),
+            Id = id,
             Email = email,
             Username = username,
             PhoneNumber = phoneNumber,
@@ -69,7 +67,6 @@ public class UserSearch
 
     public void UpdateEmail(string newEmail, DateTime updatedAt)
     {
-        ValidateEmail(newEmail);
         Email = newEmail;
         UpdatedAt = updatedAt;
     }
@@ -83,18 +80,12 @@ public class UserSearch
 
     public void UpdatePhoneNumber(string? phoneNumber, DateTime updatedAt)
     {
-        if (!string.IsNullOrEmpty(phoneNumber) && phoneNumber.Length < 10)
-            throw new ArgumentException("Số điện thoại không hợp lệ. Số điện thoại phải có ít nhất 10 ký tự.", nameof(phoneNumber));
-        
         PhoneNumber = phoneNumber;
         UpdatedAt = updatedAt;
     }
 
     public void UpdateUserProgress(int currentLevel, DateTime lastActivityAt, DateTime updatedAt)
     {
-        if (currentLevel < 0)
-            throw new ArgumentException("Cấp độ hiện tại không thể là số âm.", nameof(currentLevel));
-        
         CurrentLevel = currentLevel;
         UpdatedAt = updatedAt;
     }
@@ -103,17 +94,5 @@ public class UserSearch
     {
         LastLogin = lastLogin;
         UpdatedAt = updatedAt;
-    }
-
-    /// <summary>
-    /// Validates email format
-    /// </summary>
-    private static void ValidateEmail(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email không thể để trống.", nameof(email));
-        
-        if (!email.Contains("@"))
-            throw new ArgumentException("Định dạng email không hợp lệ.", nameof(email));
     }
 }

@@ -6,7 +6,7 @@ import {
     type FilterState,
     UserManagementFilters,
 } from "@/modules/users/components/user.management.filters";
-import { useUserList } from "@/modules/users/hooks/use.user.query";
+import { useInfiniteUserList } from "@/modules/users/hooks/use.user.query";
 import { cn } from "@/shared/lib/utils";
 import { Filter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -34,56 +34,47 @@ const formatDate = (value: string) => {
 
 const UserManagementComponent = () => {
     const [isFilterVisible, setIsFilterVisible] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(50);
     const [draftFilters, setDraftFilters] =
         useState<FilterState>(defaultFilters);
     const [appliedFilters, setAppliedFilters] =
         useState<FilterState>(defaultFilters);
 
-    const queryParams = useMemo<UserListQueryParams>(() => {
+    // Keep only current page state, cursor chain is managed by useInfiniteQuery.
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const queryParams = useMemo<
+        Omit<UserListQueryParams, "searchAfterValues">
+    >(() => {
         const mappedIsActive =
             appliedFilters.isActive === "all"
                 ? undefined
                 : appliedFilters.isActive === "true";
 
-        const sortBy =
-            appliedFilters.sortMode === "az" || appliedFilters.sortMode === "za"
-                ? "Username"
-                : "CreatedAt";
-
-        const orderByDescending =
-            appliedFilters.sortMode === "za" ||
-            appliedFilters.sortMode === "newest";
+        const orderByDescending = appliedFilters.orderBy === "desc";
 
         return {
             email: appliedFilters.email,
             username: appliedFilters.username,
             phoneNumber: appliedFilters.phoneNumber,
             isActive: mappedIsActive,
-            sortBy,
+            sortBy: appliedFilters.sortBy,
             orderByDescending,
-            take: 150,
+            take: itemsPerPage,
         };
-    }, [appliedFilters]);
+    }, [appliedFilters, itemsPerPage]);
 
-    const userManagementData = useUserList(queryParams);
-    const users =
-        userManagementData.data?.pages.flatMap((page) => page.data.items) ?? [];
-    // pagination
-    const totalDocs =
-        userManagementData.data?.pages[0]?.data.total ?? users.length;
-    const totalItems = totalDocs;
-    const totalPages = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedUsers = users.slice(startIndex, endIndex);
-
-    useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
-        }
-    }, [currentPage, totalPages]);
+    const userManagementData = useInfiniteUserList(queryParams);
+    const pages = userManagementData.data?.pages ?? [];
+    const loadedPages = pages.length;
+    const firstPageData = pages[0]?.data;
+    const currentPageData = pages[currentPage - 1]?.data;
+    const users = currentPageData?.items ?? [];
+    const totalDocs = firstPageData?.total ?? 0;
+    const canLoadMore =
+        loadedPages > 0
+            ? (pages[loadedPages - 1]?.data?.hasNextPage ?? false)
+            : false;
 
     const handleApplyFilters = () => {
         setAppliedFilters(draftFilters);
@@ -100,35 +91,48 @@ const UserManagementComponent = () => {
         userManagementData.refetch();
     };
 
+    // Compute pagination values for CustomPagination component
+    // With infinite query, total pages = loaded pages + (one virtual next page when hasNextPage=true).
+    const estimatedPages = loadedPages + (canLoadMore ? 1 : 0);
+    const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + users.length, totalDocs);
+    const totalItems = totalDocs;
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
     const handlePageChange = useCallback(
-        async (page: number) => {
-            // Ensure the requested page is within bounds: ex: if totalPages is 5, clamp page to [1, 5]
-            const safePage = Math.max(1, Math.min(page, totalPages));
-            // Calculate how many items we need to have loaded to display the requested page
-            const requiredItems = safePage * itemsPerPage;
+        (page: number) => {
+            // Validate page number
+            if (page < 1 || page === currentPage) return;
 
-            let loadedItems = users.length;
-            let hasMore = Boolean(userManagementData.hasNextPage);
-
-            while (loadedItems < requiredItems && hasMore) {
-                const result = await userManagementData.fetchNextPage();
-                const pages = result.data?.pages ?? [];
-                loadedItems = pages.reduce(
-                    (sum, current) => sum + current.data.items.length,
-                    0,
-                );
-                hasMore = Boolean(result.hasNextPage);
+            // Page already loaded -> switch immediately.
+            if (page <= loadedPages) {
+                setCurrentPage(page);
+                return;
             }
 
-            setCurrentPage(safePage);
+            // Cursor-based pagination can only fetch one next page at a time.
+            if (
+                page === loadedPages + 1 &&
+                canLoadMore &&
+                !userManagementData.isFetchingNextPage
+            ) {
+                void userManagementData.fetchNextPage().then((result) => {
+                    const fetchedPageCount =
+                        result.data?.pages.length ?? loadedPages;
+                    if (fetchedPageCount >= page) {
+                        setCurrentPage(page);
+                    }
+                });
+            }
         },
-        [
-            totalPages,
-            itemsPerPage,
-            users.length,
-            userManagementData.hasNextPage,
-            userManagementData.fetchNextPage,
-        ],
+        [currentPage, loadedPages, canLoadMore, userManagementData],
     );
 
     return (
@@ -179,10 +183,7 @@ const UserManagementComponent = () => {
                                 Danh sách users
                             </h2>
                             <span className="text-sm text-slate-500">
-                                Tổng:{" "}
-                                {userManagementData.data?.pages[0]?.data
-                                    .total ?? 0}{" "}
-                                người dùng
+                                Tổng: {totalDocs ?? 0} người dùng
                             </span>
                         </div>
 
@@ -207,7 +208,7 @@ const UserManagementComponent = () => {
                                 />
                             </div>
                         ) : (
-                            <div className="max-h-[58vh] max-w-[80vw] overflow-y-auto">
+                            <div className="max-h-[58vh] max-w-[80vw] overflow-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="border-b border-slate-200/50 bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
@@ -236,7 +237,7 @@ const UserManagementComponent = () => {
                                     </TableHeader>
                                     <TableBody>
                                         {users.length > 0 ? (
-                                            paginatedUsers.map((user, idx) => (
+                                            users.map((user, idx) => (
                                                 <tr
                                                     key={user.id}
                                                     className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"

@@ -7,8 +7,12 @@ public sealed record CourseCreatedIntegrationEvent(
     Guid CourseId,
     string Title,
     string Description,
+    int HskLevel,
     int OrderIndex,
     string Slug,
+    long TotalStudentsEnrolled,
+    long TotalTopics,
+    bool IsPublished,
     DateTime CreatedAt,
     DateTime UpdatedAt
 ): IntegrationEvent;
@@ -27,8 +31,7 @@ public sealed record CourseDescriptionUpdatedIntegrationEvent(
 ): IntegrationEvent;
 
 public sealed record CourseOrderIndexUpdatedIntegrationEvent(
-    Guid CourseId,
-    int NewOrderIndex,
+    List<Guid> OrderedCourseIds,
     DateTime UpdatedAt
 ): IntegrationEvent;
 

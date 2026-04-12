@@ -1,9 +1,3 @@
-using Auth.Contracts;
-using HanziAnhVu.Shared.EventBus.Abstracts;
-using Microsoft.Extensions.Logging;
-using Search.Contracts.DTOs;
-using Search.Contracts.Interfaces;
-
 namespace Search.Application.EventHandlers.Users;
 
 public class UserRegisteredEventHandler : IIntegrationEventHandler<UserRegisteredIntegrationEvent>

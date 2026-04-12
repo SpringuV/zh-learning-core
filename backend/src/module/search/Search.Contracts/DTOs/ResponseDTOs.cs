@@ -51,7 +51,7 @@ public sealed record UserSearchPatchDocumentResponse(
     DateTime? UpdatedAt = null);
 
 public sealed record UserSearchItemResponse(
-	string Id,
+	Guid Id,
 	string Email,
 	string Username,
 	string? PhoneNumber,
@@ -72,3 +72,21 @@ public sealed record UserSearchResponse (
     string? AvatarUrl,
     DateTime? LastLogin
 );
+
+#region Course Search DTOs
+public sealed record CourseIndexResponse(
+    Guid CourseId,
+    DateTime CreatedAt);
+
+public sealed record CourseSearchItemAdminResponse(
+    Guid Id,
+    string Title,
+    int HskLevel,
+    int OrderIndex,
+    long TotalTopics,
+    long TotalStudentsEnrolled,
+    bool IsPublished,
+    string Slug,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+#endregion
