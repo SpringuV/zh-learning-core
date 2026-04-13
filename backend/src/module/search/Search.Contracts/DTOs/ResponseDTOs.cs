@@ -90,3 +90,22 @@ public sealed record CourseSearchItemAdminResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 #endregion
+
+#region  Topic Search DTOs
+
+public sealed record TopicIndexResponse(
+    Guid TopicId,
+    DateTime CreatedAt);
+
+public sealed record TopicSearchItemAdminResponse(
+    Guid Id,
+    string Title,
+    int OrderIndex,
+    string TopicType,
+    int? ExamYear,
+    string? ExamCode,
+    bool IsPublished,
+    long TotalExercises,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+#endregion

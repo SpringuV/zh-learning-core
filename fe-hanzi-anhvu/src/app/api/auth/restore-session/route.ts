@@ -6,6 +6,26 @@ import { cookies } from "next/headers";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const CookieNameIdentity = "HanziAnhVu.Identity";
 const CookieNameRefresh = "HanziAnhVu.Refresh";
+
+function buildLoginRedirectResponse(request: NextRequest, callbackUrl: string) {
+    const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", callbackUrl);
+
+    const response = NextResponse.redirect(loginUrl);
+    const expiredAt = new Date(0);
+
+    response.cookies.set(CookieNameIdentity, "", {
+        path: "/",
+        expires: expiredAt,
+    });
+    response.cookies.set(CookieNameRefresh, "", {
+        path: "/",
+        expires: expiredAt,
+    });
+
+    return response;
+}
+
 function normalizeCallbackUrl(rawCallbackUrl: string, requestUrl: URL): string {
     try {
         const parsed = new URL(rawCallbackUrl, requestUrl);
@@ -90,6 +110,8 @@ async function applySetCookieHeaders(
 }
 
 export async function GET(request: NextRequest) {
+    // Đầu tiên xác định callback URL để redirect sau khi restore session thành công,
+    // ưu tiên theo thứ tự: query param > referer header > "/"
     const callbackFromQuery = request.nextUrl.searchParams.get("callbackUrl");
     const referer = request.headers.get("referer");
 
@@ -167,9 +189,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!identityToken) {
-        const loginUrl = new URL("/auth/login", request.url);
-        loginUrl.searchParams.set("callbackUrl", callbackUrl);
-        return NextResponse.redirect(loginUrl);
+        return buildLoginRedirectResponse(request, callbackUrl);
     }
 
     try {
@@ -180,8 +200,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.redirect(new URL(callbackUrl, request.url));
     } catch {
-        const loginUrl = new URL("/auth/login", request.url);
-        loginUrl.searchParams.set("callbackUrl", callbackUrl);
-        return NextResponse.redirect(loginUrl);
+        return buildLoginRedirectResponse(request, callbackUrl);
     }
 }

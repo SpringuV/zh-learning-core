@@ -3,6 +3,32 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var redisConnectionString =
+    builder.Configuration.GetConnectionString("redis-hanzi")
+    ?? builder.Configuration["Redis:ConnectionString"];
+
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+    throw new InvalidOperationException("Missing Redis connection string. Configure ConnectionStrings__redis-hanzi or Redis:ConnectionString.");
+}
+
+// Keep one canonical connection key so both AddStackExchangeRedisCache 
+// and AddRedisClient("redis-hanzi") work.
+builder.Configuration["ConnectionStrings:redis-hanzi"] = redisConnectionString;
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "hanzi-anhvu:";
+});
+
+// Add MediatR pipeline behaviors (validation, caching, logging)
+// Đăng ký các pipeline behaviors cho MediatR, đảm bảo chúng được áp dụng 
+// cho tất cả các request handlers trong ứng dụng.
+// phải đặt sau khi đăng ký các handlers trong từng module để đảm bảo pipeline behaviors được áp dụng cho tất cả handlers.
+builder.Services.AddMediatRPipelineBehaviors();
+// add redis client
+builder.AddRedisClient("redis-hanzi");
 // Configure CORS to allow frontend
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -150,8 +176,7 @@ builder.Services.AddAuthentication("Bearer")
             });
             services.AddSingleton(typeof(ICache<>), typeof(RedisCacheAdapter<>));
      */
-// add redis client
-builder.AddRedisClient("redis-hanzi");
+
 
 
 

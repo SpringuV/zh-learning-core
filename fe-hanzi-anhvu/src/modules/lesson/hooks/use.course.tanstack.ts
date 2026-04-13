@@ -47,10 +47,11 @@ export const useCreateCourse = () => {
             const response = await courseApi.createCourse(payload);
             return response.data;
         },
-        onSuccess: (data) => {
-            console.log("Course created successfully:", data);
-            // Invalidate the list course query to fetch the updated list
-            queryClient.invalidateQueries({ queryKey: ["list-course"] });
+        onSuccess: (_) => {
+            // delay một chút để đảm bảo rằng dữ liệu đã được cập nhật trên server trước khi refetch
+            setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ["list-course"] });
+            }, 1500);
         },
         onError: (err) => {
             console.error("Create course error:", err);

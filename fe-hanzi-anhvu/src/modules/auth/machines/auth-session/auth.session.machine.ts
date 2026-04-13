@@ -83,6 +83,10 @@ export const authSessionMachine = setup({
                     // actions để thực hiện khi sự kiện xảy ra, ở đây là xóa lỗi refresh
                     actions: "clearRefreshError",
                 },
+                TOKEN_REFRESH_FAILED: {
+                    target: "unauthenticated",
+                    actions: "markRefreshFailed",
+                },
             },
         },
         unauthenticated: {

@@ -68,11 +68,13 @@ public sealed record TopicCreatedIntegrationEvent(
     string Slug,
     string TopicType,
     int EstimatedTimeMinutes,
-    int? ExamYear,
+    int ExamYear,
     string ExamCode,
     int OrderIndex,
     bool IsPublished,
-    DateTime CreatedAt
+    long TotalExercises,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
 ): IntegrationEvent;
 
 public sealed record TopicTitleUpdatedIntegrationEvent(

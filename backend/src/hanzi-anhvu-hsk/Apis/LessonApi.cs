@@ -39,6 +39,7 @@ public class LessonApi
     }
     #endregion
 
+    #region Course API
     public static async Task<IResult> CreateCourse(
         [FromBody] CreateCourseRequestDTO request, 
         ILessonService lessonService, 
@@ -70,4 +71,23 @@ public class LessonApi
             return Results.StatusCode(499);
         }
     }
+    #endregion
+
+    #region Topic API
+    public static async Task<IResult> CreateTopic(
+        [FromBody] TopicCreateRequestDTO request, 
+        ILessonService lessonService, 
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.CreateTopicAsync(request, ct);
+            return result.Success ? Results.Ok(result) : HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
 }

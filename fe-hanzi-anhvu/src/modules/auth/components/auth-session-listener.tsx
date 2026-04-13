@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
     sendAuthSessionEvent,
     startAuthSessionRuntime,
@@ -14,6 +14,7 @@ export const AuthSessionListener = () => {
     const router = useRouter();
     const pathname = usePathname();
     const { status } = useSession();
+    const isSigningOutRef = useRef(false);
 
     useEffect(() => {
         startAuthSessionRuntime();
@@ -31,11 +32,24 @@ export const AuthSessionListener = () => {
                 return;
             }
 
-            if (pathname !== "/auth/login") {
-                router.replace("/auth/login");
+            if (isSigningOutRef.current) {
+                return;
             }
 
-            sendAuthSessionEvent({ type: "REDIRECT_HANDLED" });
+            isSigningOutRef.current = true;
+
+            (async () => {
+                try {
+                    await signOut({ redirect: false });
+                } finally {
+                    if (pathname !== "/auth/login") {
+                        router.replace("/auth/login");
+                    }
+
+                    sendAuthSessionEvent({ type: "REDIRECT_HANDLED" });
+                    isSigningOutRef.current = false;
+                }
+            })();
         });
     }, [pathname, router]);
 

@@ -107,6 +107,24 @@ public enum UserSortBy
 }
 #endregion
 
+#region Topic Search DTOs
+public sealed record TopicSearchIndexQueriesRequest(
+    Guid TopicId,
+    Guid CourseId,
+    string Title,
+    string Description,
+    int OrderIndex,
+    string TopicType,
+    string Slug,
+    long EstimatedTimeMinutes,
+    int ExamYear,
+    string ExamCode,
+    bool IsPublished,
+    long TotalExercises,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+#endregion
+
 #region Course Search DTOs
 public sealed record CourseSearchIndexQueriesRequest(
     Guid CourseId,
@@ -140,4 +158,27 @@ public sealed record CourseSearchQueryAdminRequest(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null
 );
+#endregion
+
+
+#region Topic Search DTOs
+public enum TopicSortBy
+{
+    CreatedAt,
+    UpdatedAt,
+    OrderIndex,
+    ExamYear,
+    TotalExercises
+}
+public sealed record TopicSearchQueryRequest(
+    string? Title = null,
+    bool? IsPublished = null,
+    string? TopicType = null,
+    DateTime? StartCreatedAt = null,
+    DateTime? EndCreatedAt = null,
+    int Take = 30,
+    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
+    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    TopicSortBy SortBy = TopicSortBy.CreatedAt,
+    bool OrderByDescending = true);
 #endregion

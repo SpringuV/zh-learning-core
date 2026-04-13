@@ -40,33 +40,4 @@ public class CourseSearch
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
     }
-    public static CourseSearch FromCourse(
-        Guid courseId,
-        string title,
-        string description,
-        int orderIndex,
-        int hskLevel,
-        string slug,
-        long totalTopics,
-        long totalStudentsEnrolled,
-        bool isPublished,
-        DateTime createdAt,
-        DateTime updatedAt)
-    {
-        return new CourseSearch
-        {
-            CourseId = courseId,
-            Title = title,
-            Description = description,
-            OrderIndex = orderIndex,
-            HskLevel = hskLevel,
-            Slug = slug,
-            TotalTopics = totalTopics,
-            TotalStudentsEnrolled = totalStudentsEnrolled,
-            IsPublished = isPublished,
-            CreatedAt = createdAt,
-            UpdatedAt = updatedAt
-        };
-    }
-
 }

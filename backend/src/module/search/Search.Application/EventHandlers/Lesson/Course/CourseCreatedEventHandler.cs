@@ -2,7 +2,10 @@ using Lesson.Contracts;
 
 namespace Search.Application.EventHandlers.Lesson.Course;
 
-public class CourseCreatedEventHandler(ICourseSearchQueriesService courseSearchService, ILogger<CourseCreatedEventHandler> logger) : IIntegrationEventHandler<CourseCreatedIntegrationEvent>
+public class CourseCreatedEventHandler(
+        ICourseSearchQueriesService courseSearchService, 
+        ILogger<CourseCreatedEventHandler> logger) 
+    : IIntegrationEventHandler<CourseCreatedIntegrationEvent>
 {
     private readonly ICourseSearchQueriesService _courseSearchService = courseSearchService;
     private readonly ILogger<CourseCreatedEventHandler> _logger = logger;

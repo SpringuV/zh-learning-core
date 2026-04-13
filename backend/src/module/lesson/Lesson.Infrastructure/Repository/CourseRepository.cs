@@ -6,11 +6,6 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
     private readonly LessonDbContext _dbContext = dbContext;
     private readonly ILogger<CourseRepository> _logger = logger;
 
-    public Task<IEnumerable<CourseAggregate>> GetAllAsync(CancellationToken ct = default)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task AddAsync(CourseAggregate course, CancellationToken cancellationToken = default)
     {
         try
@@ -106,7 +101,9 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
     {
         try
         {
-            _dbContext.Courses.UpdateRange(courses);
+            _dbContext.Courses.UpdateRange(courses); // UpdateRange sẽ đánh dấu tất cả các entity
+            //  trong danh sách là đã được sửa đổi (Modified) 
+            // và sẽ cập nhật chúng trong database khi SaveChangesAsync được gọi.
             return Task.CompletedTask;
         }
         catch (DbUpdateException ex)

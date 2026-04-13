@@ -18,6 +18,7 @@ public record TopicCreatedEvent(
     int? ExamYear,
     string ExamCode,
     int OrderIndex,
+    long TotalExercises,
     DateTime CreatedAt,
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;

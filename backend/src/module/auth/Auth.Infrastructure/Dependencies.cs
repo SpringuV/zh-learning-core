@@ -1,10 +1,4 @@
-﻿using Auth.Infrastructure.Services;
-using HanziAnhVu.Shared.Infrastructure;
-using Auth.Contracts;
-using Auth.Application.Command.Login;
-using HanziAnhVu.Shared.Application;
-
-namespace Auth.Infrastructure;
+﻿namespace Auth.Infrastructure;
 
 public static class Dependencies
 {
@@ -42,12 +36,14 @@ public static class Dependencies
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(typeof(LoginUserCommand).Assembly));
 
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(Constants.POLICY_ADMIN_ONLY, policy => policy.RequireRole(Constants.ADMINISTRATORS));
-            options.AddPolicy(Constants.POLICY_USER_ONLY, policy => policy.RequireRole(Constants.USERS));
-            options.AddPolicy(Constants.POLICY_ADMIN_OR_MANAGER, policy => policy.RequireRole(Constants.ADMINISTRATORS, "Manager"));
-        });
+        // Register validators for ValidationBehavior.
+        services.AddTransient<IValidator<LoginUserCommand>, LoginUserCommandValidator>();
+        services.AddTransient<IValidator<RegisterUserCommand>, RegisterUserCommandValidator>();
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(Constants.POLICY_ADMIN_ONLY, policy => policy.RequireRole(Constants.ADMINISTRATORS))
+            .AddPolicy(Constants.POLICY_USER_ONLY, policy => policy.RequireRole(Constants.USERS))
+            .AddPolicy(Constants.POLICY_ADMIN_OR_MANAGER, policy => policy.RequireRole(Constants.ADMINISTRATORS, "Manager"));
 
         // Auth services
         services.AddScoped<IIdentityService, IdentityService>();

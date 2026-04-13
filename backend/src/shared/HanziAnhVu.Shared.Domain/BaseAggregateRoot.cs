@@ -1,4 +1,7 @@
 ﻿
+using System.Globalization;
+using System.Text;
+
 namespace HanziAnhVu.Shared.Domain;
 
 public abstract class BaseAggregateRoot: IAggregateRoot
@@ -41,28 +44,49 @@ public abstract class BaseAggregateRoot: IAggregateRoot
     {
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
-        
-        // Normalize & lowercase
-        var slug = text.ToLower()
-            .Replace(" ", "-")
-            .Replace("--", "-")
-            .Trim('-');
-        
-        // Remove special characters (keep only alphanumeric + hyphen)
-        var chars = new char[slug.Length];
-        for (int i = 0; i < slug.Length; i++)
+
+        // Remove diacritics first so slug remains ASCII-only (e.g., "tiếp" -> "tiep").
+        var normalized = text.Normalize(NormalizationForm.FormD);
+        var noDiacriticsBuilder = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
         {
-            var c = slug[i];
-            if (char.IsLetterOrDigit(c) || c == '-')
-                chars[i] = c;
-            else
-                chars[i] = '-';
+            var category = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (category == UnicodeCategory.NonSpacingMark)
+            {
+                continue;
+            }
+
+            noDiacriticsBuilder.Append(c switch
+            {
+                'đ' => 'd',
+                'Đ' => 'D',
+                _ => c
+            });
         }
-        
-        slug = new string(chars)
-            .Replace("--", "-")
-            .Trim('-');
-        
-        return slug;
+
+        var sanitized = noDiacriticsBuilder
+            .ToString()
+            .Normalize(NormalizationForm.FormC)
+            .ToLowerInvariant();
+
+        var slugBuilder = new StringBuilder(sanitized.Length);
+        var lastWasDash = false;
+        foreach (var c in sanitized)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                slugBuilder.Append(c);
+                lastWasDash = false;
+                continue;
+            }
+
+            if (!lastWasDash)
+            {
+                slugBuilder.Append('-');
+                lastWasDash = true;
+            }
+        }
+
+        return slugBuilder.ToString().Trim('-');
     }
 }

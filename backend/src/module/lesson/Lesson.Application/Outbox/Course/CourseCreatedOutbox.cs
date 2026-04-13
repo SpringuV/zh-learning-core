@@ -1,4 +1,3 @@
-using Lesson.Contracts;
 using Lesson.Domain.Entities.Events;
 
 namespace Lesson.Application.Outbox.Course;

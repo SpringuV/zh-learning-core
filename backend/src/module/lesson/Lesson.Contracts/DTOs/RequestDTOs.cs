@@ -1,5 +1,6 @@
 namespace Lesson.Contracts.DTOs;
 
+#region Course DTOs
 public sealed record CreateCourseRequestDTO(
     string Title,
     string Description,
@@ -7,7 +8,15 @@ public sealed record CreateCourseRequestDTO(
     string Slug
 );
 
-public sealed record CreateTopicRequestDTO(
+public sealed record CourseReorderRequestDTO(
+    List<Guid> OrderedCourseIds
+);
+
+#endregion
+
+#region Topic DTOs
+public sealed record TopicCreateRequestDTO(
+    Guid CourseId,
     string Title,
     string Description,
     string TopicType,
@@ -16,6 +25,4 @@ public sealed record CreateTopicRequestDTO(
     string? ExamCode = null
 );
 
-public sealed record CourseReorderRequestDTO(
-    List<Guid> OrderedCourseIds
-);
+#endregion

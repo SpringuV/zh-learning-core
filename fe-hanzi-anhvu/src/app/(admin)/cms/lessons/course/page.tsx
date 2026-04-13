@@ -1,4 +1,4 @@
-import CourseCmsPage from "@/modules/lesson/components/course/course.client";
+import CourseCmsPage from "@/modules/lesson/components/course/course.management";
 import { Metadata } from "next";
 export const metadata: Metadata = {
     title: "Quản lý khóa học",

@@ -64,7 +64,7 @@ public class CourseIndexCommandHandler(ElasticsearchClient client, ILogger<Cours
         {
             return;
         }
-
+        
         // Create the index with a mapping
         var createResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.CourseIndex, c => c
             .Mappings<CourseSearch>(m => m

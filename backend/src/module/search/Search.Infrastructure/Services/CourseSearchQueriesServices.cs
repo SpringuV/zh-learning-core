@@ -1,5 +1,3 @@
-using Search.Infrastructure.Queries.Lesson.Indexs;
-
 namespace Search.Infrastructure.Services;
 
 public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> logger, IMediator mediator) : ICourseSearchQueriesService
@@ -24,7 +22,7 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
 
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
