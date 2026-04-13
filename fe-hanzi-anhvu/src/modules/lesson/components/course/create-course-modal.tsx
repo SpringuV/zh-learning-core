@@ -22,105 +22,125 @@ import {
     SelectValue,
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
-
-export type CreateCoursePayload = {
-    title: string;
-    description: string;
-    hskLevel: number;
-    orderIndex: number;
-    slug: string;
-};
+import {
+    CourseCreateRequest,
+    CourseCreateResponseApi,
+} from "@/modules/lesson/types/coure.type";
+import { useCreateCourse } from "@/modules/lesson/hooks/use.course.tanstack";
+import { createCourseMachine } from "@/modules/lesson/machines/create.course.machine";
+import { fromPromise } from "xstate";
+import { useMachine } from "@xstate/react";
 
 type CreateCourseModalProps = {
-    defaultOrderIndex?: number;
-    onCreate?: (payload: CreateCoursePayload) => void | Promise<void>;
+    onCreated?: (response: CourseCreateResponseApi) => void | Promise<void>;
 };
 
 type FormErrors = {
     title?: string;
-    orderIndex?: string;
+};
+
+type CreateCourseFormState = {
+    title: string;
+    description: string;
+    hskLevel: string;
 };
 
 const toSlug = (value: string) => {
     return value
         .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .replace(/-{2,}/g, "-");
+        .normalize("NFD") // tách chữ và dấu
+        .replace(/[\u0300-\u036f]/g, "") // loại bỏ dấu
+        .replace(/đ/g, "d") // loại bỏ ký tự đặc biệt
+        .replace(/[^a-z0-9]+/g, "-") // thay thế khoảng trắng và ký tự đặc biệt bằng dấu gạch ngang
+        .replace(/^-+|-+$/g, "") // loại bỏ dấu gạch ngang ở đầu và cuối
+        .replace(/-{2,}/g, "-"); // thay thế nhiều dấu gạch ngang liên tiếp bằng một dấu gạch ngang duy nhất
 };
 
-export function CreateCourseModal({
-    defaultOrderIndex = 1,
-    onCreate,
-}: CreateCourseModalProps) {
+export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
+    const getInitialFormState = (): CreateCourseFormState => ({
+        title: "",
+        description: "",
+        hskLevel: "1",
+    });
+    // #region State
+    // State quản lý form và lỗi
     const [open, setOpen] = useState(false);
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [hskLevel, setHskLevel] = useState("1");
-    const [orderIndex, setOrderIndex] = useState(String(defaultOrderIndex));
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [form, setForm] =
+        useState<CreateCourseFormState>(getInitialFormState);
     const [errors, setErrors] = useState<FormErrors>({});
+    // #endregion
 
-    const slugPreview = useMemo(() => toSlug(title), [title]);
+    // #region XState machine
+    // machine and mutations
+    const createMutation = useCreateCourse();
+    const machine = useMemo(
+        () =>
+            createCourseMachine.provide({
+                actors: {
+                    createCourse: fromPromise(
+                        async ({ input }: { input: CourseCreateRequest }) => {
+                            return await createMutation.mutateAsync(input);
+                        },
+                    ),
+                },
+            }),
+        [createMutation],
+    );
+    const [state, send] = useMachine(machine);
+
+    const isSubmitting = state.matches("submitting");
+
+    useEffect(() => {
+        if (!state.matches("success")) {
+            return;
+        }
+
+        if (state.context.messageResponse && onCreated) {
+            void Promise.resolve(onCreated(state.context.messageResponse));
+        }
+
+        setOpen(false);
+    }, [state, onCreated]);
+    // #endregion
+
+    const slugPreview = useMemo(() => toSlug(form.title), [form.title]);
 
     const resetForm = () => {
-        setTitle("");
-        setDescription("");
-        setHskLevel("1");
-        setOrderIndex(String(defaultOrderIndex));
+        setForm(getInitialFormState());
         setErrors({});
     };
 
     useEffect(() => {
         if (!open) {
             resetForm();
-            return;
+            send({ type: "RESET" });
         }
+    }, [open, send]);
 
-        setOrderIndex(String(defaultOrderIndex));
-    }, [open, defaultOrderIndex]);
-
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         const nextErrors: FormErrors = {};
-        const normalizedTitle = title.trim();
-        const parsedOrderIndex = Number(orderIndex);
-        const parsedHskLevel = Number(hskLevel);
+        const normalizedTitle = form.title.trim();
+        const parsedHskLevel = Number(form.hskLevel);
 
         if (!normalizedTitle) {
             nextErrors.title = "Tên khóa học không được để trống.";
         }
-
-        if (!Number.isInteger(parsedOrderIndex) || parsedOrderIndex < 1) {
-            nextErrors.orderIndex = "Thứ tự hiển thị phải lớn hơn hoặc bằng 1.";
-        }
-
         setErrors(nextErrors);
 
         if (Object.keys(nextErrors).length > 0) {
             return;
         }
 
-        const payload: CreateCoursePayload = {
-            title: normalizedTitle,
-            description: description.trim(),
-            hskLevel: parsedHskLevel,
-            orderIndex: parsedOrderIndex,
-            slug: slugPreview || `khoa-hoc-${Date.now()}`,
+        const payload: CourseCreateRequest = {
+            Title: normalizedTitle,
+            Description: form.description.trim(),
+            HskLevel: parsedHskLevel,
+            Slug: slugPreview || `khoa-hoc-${Date.now()}`,
         };
 
-        setIsSubmitting(true);
-
-        try {
-            await onCreate?.(payload);
-            setOpen(false);
-        } finally {
-            setIsSubmitting(false);
-        }
+        send({ type: "SUBMIT", input: payload });
     };
 
     return (
@@ -148,8 +168,13 @@ export function CreateCourseModal({
                         <Label htmlFor="course-title">Tên khóa học *</Label>
                         <Input
                             id="course-title"
-                            value={title}
-                            onChange={(event) => setTitle(event.target.value)}
+                            value={form.title}
+                            onChange={(event) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    title: event.target.value,
+                                }))
+                            }
                             placeholder="Ví dụ: HSK 4 - Nâng cao"
                         />
                         {errors.title && (
@@ -173,8 +198,13 @@ export function CreateCourseModal({
                         <div className="space-y-2">
                             <Label>HSK Level *</Label>
                             <Select
-                                value={hskLevel}
-                                onValueChange={setHskLevel}
+                                value={form.hskLevel}
+                                onValueChange={(value) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        hskLevel: value,
+                                    }))
+                                }
                             >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Chọn cấp độ" />
@@ -190,40 +220,29 @@ export function CreateCourseModal({
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="course-order">
-                                Thứ tự hiển thị *
-                            </Label>
-                            <Input
-                                id="course-order"
-                                type="number"
-                                min={1}
-                                value={orderIndex}
-                                onChange={(event) =>
-                                    setOrderIndex(event.target.value)
-                                }
-                            />
-                            {errors.orderIndex && (
-                                <p className="text-xs text-red-600">
-                                    {errors.orderIndex}
-                                </p>
-                            )}
-                        </div>
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="course-description">Mô tả</Label>
                         <Textarea
                             id="course-description"
-                            value={description}
+                            value={form.description}
                             onChange={(event) =>
-                                setDescription(event.target.value)
+                                setForm((current) => ({
+                                    ...current,
+                                    description: event.target.value,
+                                }))
                             }
                             rows={4}
                             placeholder="Mô tả ngắn về nội dung và mục tiêu khóa học"
                         />
                     </div>
+
+                    {state.context.error && (
+                        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                            {state.context.error}
+                        </p>
+                    )}
 
                     <p className="rounded-md border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                         Khóa học mới sẽ ở trạng thái nháp. Bạn có thể xuất bản

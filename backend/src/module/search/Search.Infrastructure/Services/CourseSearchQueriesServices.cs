@@ -6,7 +6,7 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
 {
     private readonly ILogger<CourseSearchQueriesServices> _logger = logger;
     private readonly IMediator _mediator = mediator;
-    public Task<CourseIndexResponse> IndexAsync(CourseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default)
+    public async Task<CourseIndexResponse> IndexAsync(CourseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default)
     {
         var command = new CourseIndexCommand(
             Id: request.CourseId,
@@ -20,16 +20,16 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
             IsPublished: request.IsPublished,
             CreatedAt: request.CreatedAt,
             UpdatedAt: request.UpdatedAt);
-        return _mediator.Send(command, cancellationToken);
+        return await _mediator.Send(command, cancellationToken);
 
     }
 
-    public Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<SearchQueryResult<CourseSearchItemAdminResponse>> GetCourseSearchItemAdminAsync(CourseSearchQueryAdminRequest request, CancellationToken cancellationToken = default)
+    public async Task<SearchQueryResult<CourseSearchItemAdminResponse>> GetCourseSearchItemAdminAsync(CourseSearchQueryAdminRequest request, CancellationToken cancellationToken = default)
     {
         var query = new CourseSearchAdminQueries(
             Title: request.Title,
@@ -39,7 +39,6 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending,
             Take: request.Take);
-        return _mediator.Send(query, cancellationToken);
-
+        return await _mediator.Send(query, cancellationToken);
     }
 }

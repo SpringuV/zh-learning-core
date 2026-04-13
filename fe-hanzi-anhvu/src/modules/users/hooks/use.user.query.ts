@@ -27,6 +27,7 @@ export const useInfiniteUserList = (params: UserListBaseQueryParams = {}) => {
         retry: 2, // Thử lại tối đa 2 lần nếu có lỗi
         staleTime: 5 * 60 * 1000, // 5 phút
         gcTime: 10 * 60 * 1000, // 10 phút
-        refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
+        refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại,
+        // nó sẽ chỉ refetch khi người dùng cuộn đến cuối danh sách hoặc gọi hàm refetch thủ công
     });
 };

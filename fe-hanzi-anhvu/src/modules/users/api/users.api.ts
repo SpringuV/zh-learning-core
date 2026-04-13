@@ -44,8 +44,11 @@ export interface UserListResponse {
 
 function sanitizeQueryParams(params: UserListQueryParams) {
     return Object.fromEntries(
-        Object.entries(params).filter(([, value]) =>
-            value === false || value === 0 ? true : Boolean(value),
+        Object.entries(params).filter(
+            ([, value]) =>
+                value === false || value === 0 ? true : Boolean(value), // giữ lại nếu value là false hoặc 0,
+            // vì chúng có thể là giá trị hợp lệ mà người dùng muốn tìm kiếm,
+            //  ví dụ: isActive=false hoặc currentLevel=0
         ),
     );
 }

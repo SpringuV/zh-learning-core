@@ -9,7 +9,7 @@ public class CourseCreatedEventHandler(ICourseSearchQueriesService courseSearchS
 
     public async Task HandleAsync(CourseCreatedIntegrationEvent @event, CancellationToken ct = default!)
     {
-        _logger.LogDebug("Indexing course {CourseId} into Elasticsearch", @event.CourseId);
+        _logger.LogInformation("Indexing course {CourseId} into Elasticsearch", @event.CourseId);
         var request = new CourseSearchIndexQueriesRequest(
             CourseId: @event.CourseId,
             Title: @event.Title,
@@ -25,6 +25,6 @@ public class CourseCreatedEventHandler(ICourseSearchQueriesService courseSearchS
         );
 
         await _courseSearchService.IndexAsync(request, ct);
-        _logger.LogDebug("Course {CourseId} indexed successfully in Elasticsearch", @event.CourseId);
+        _logger.LogInformation("Course {CourseId} indexed successfully in Elasticsearch", @event.CourseId);
     }
 }

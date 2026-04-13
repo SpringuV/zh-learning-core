@@ -2,7 +2,7 @@ using AspireHanziAnhVu.AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var elasticPassword = builder.AddParameter("elastic-password", "6jg0KCgRXSZa!eTjZz}{6u", secret: true);
+var elasticPassword = builder.AddParameter("elastic-password", "elastic-test", secret: true);
 
 var redis = builder.AddRedis("redis-hanzi");
 var postgres = builder.AddPostgres("postgres")

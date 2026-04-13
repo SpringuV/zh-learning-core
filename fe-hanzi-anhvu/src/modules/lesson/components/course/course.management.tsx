@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PenSquare, FolderOpen } from "lucide-react";
-import {
-    CreateCourseModal,
-    type CreateCoursePayload,
-} from "@/modules/lesson/components/course/create-course-modal";
+import { CreateCourseModal } from "@/modules/lesson/components/course/create-course-modal";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
@@ -30,104 +27,129 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
+import { CustomPagination } from "@/shared/components/cms/custom-pagination";
+import { useGetListCourse } from "@/modules/lesson/hooks/use.course.tanstack";
+import { CourseListQueryParams } from "@/modules/lesson/api/course.api";
 
-// Mock data - replace with real API
-const initialCourses = [
-    {
-        id: "1",
-        title: "HSK 1 - Nhap mon",
-        slug: "hsk-1-starter",
-        description: "Ky tu va cum tu tieng Trung co ban",
-        level: 1,
-        orderIndex: 1,
-        topics: 12,
-        students: 234,
-        published: true,
-        updatedAt: "2025-04-05",
-    },
-    {
-        id: "2",
-        title: "HSK 2 - Co ban",
-        slug: "hsk-2-elementary",
-        description: "Hoi thoai hang ngay pho bien",
-        level: 2,
-        orderIndex: 2,
-        topics: 15,
-        students: 156,
-        published: true,
-        updatedAt: "2025-04-03",
-    },
-    {
-        id: "3",
-        title: "HSK 3 - Trung cap",
-        slug: "hsk-3-intermediate",
-        description: "Cau truc cau phuc tap hon",
-        level: 3,
-        orderIndex: 3,
-        topics: 18,
-        students: 89,
-        published: false,
-        updatedAt: "2025-04-01",
-    },
-];
+const initialCourseQueryParams: CourseListQueryParams = {
+    title: "",
+    orderByDescending: true,
+    sortBy: "CreatedAt",
+    take: 50,
+};
 
 export default function CourseCmsPage() {
-    const [courses, setCourses] = useState(initialCourses);
     const [activeTab, setActiveTab] = useState<"courses" | "stats">("courses");
-    const [searchTerm, setSearchTerm] = useState("");
+    const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [queryParams, setQueryParams] = useState<CourseListQueryParams>(
+        initialCourseQueryParams,
+    );
     const [levelFilter, setLevelFilter] = useState("all");
+    const [currentPage, setCurrentPage] = useState(1);
 
-    const totalCourses = courses.length;
-    const publishedCourses = courses.filter(
-        (course) => course.published,
+    const effectiveQueryParams = useMemo<CourseListQueryParams>(
+        () => ({
+            ...queryParams,
+            take: itemsPerPage,
+        }),
+        [queryParams, itemsPerPage],
+    );
+
+    const coursesQuery = useGetListCourse(effectiveQueryParams);
+
+    const pages = coursesQuery.data?.pages ?? [];
+    const loadedPages = pages.length;
+    const firstPageData = pages[0]?.data;
+    const currentPageData = pages[currentPage - 1]?.data;
+    const pageCourses = currentPageData?.items ?? [];
+    const loadedCourses = useMemo(
+        () => pages.flatMap((page) => page.data.items ?? []),
+        [pages],
+    );
+
+    const canLoadMore =
+        loadedPages > 0
+            ? (pages[loadedPages - 1]?.data?.hasNextPage ?? false)
+            : false;
+
+    const filteredCourses = useMemo(() => {
+        if (levelFilter === "all") {
+            return pageCourses;
+        }
+
+        return pageCourses.filter(
+            (course) => String(course.hskLevel) === levelFilter,
+        );
+    }, [pageCourses, levelFilter]);
+
+    const totalDocs = firstPageData?.total ?? 0;
+    const totalCourses = totalDocs;
+    const publishedCourses = loadedCourses.filter(
+        (course) => course.isPublished,
     ).length;
     const draftCourses = totalCourses - publishedCourses;
-    const totalTopics = courses.reduce((sum, course) => sum + course.topics, 0);
-    const totalStudents = courses.reduce(
-        (sum, course) => sum + course.students,
+    const totalTopics = loadedCourses.reduce(
+        (sum, course) => sum + course.totalTopics,
+        0,
+    );
+    const totalStudents = loadedCourses.reduce(
+        (sum, course) => sum + course.totalStudentsEnrolled,
         0,
     );
 
-    const filteredCourses = courses.filter((course) => {
-        const keyword = searchTerm.trim().toLowerCase();
-        const matchesKeyword =
-            keyword.length === 0 ||
-            course.title.toLowerCase().includes(keyword) ||
-            course.description.toLowerCase().includes(keyword) ||
-            course.slug.toLowerCase().includes(keyword);
+    const estimatedPages = loadedPages + (canLoadMore ? 1 : 0);
+    const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + filteredCourses.length, totalDocs);
+    const totalItems = totalDocs;
 
-        const matchesLevel =
-            levelFilter === "all" || String(course.level) === levelFilter;
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
-        return matchesKeyword && matchesLevel;
-    });
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [
+        queryParams.title,
+        queryParams.sortBy,
+        queryParams.orderByDescending,
+        itemsPerPage,
+    ]);
+
+    const handlePageChange = useCallback(
+        (page: number) => {
+            if (page < 1 || page === currentPage) return;
+
+            if (page <= loadedPages) {
+                setCurrentPage(page);
+                return;
+            }
+
+            if (
+                page === loadedPages + 1 &&
+                canLoadMore &&
+                !coursesQuery.isFetchingNextPage
+            ) {
+                void coursesQuery.fetchNextPage().then((result) => {
+                    const fetchedPageCount =
+                        result.data?.pages.length ?? loadedPages;
+                    if (fetchedPageCount >= page) {
+                        setCurrentPage(page);
+                    }
+                });
+            }
+        },
+        [currentPage, loadedPages, canLoadMore, coursesQuery],
+    );
 
     const formatDate = (value: string) => {
         return new Date(value).toLocaleDateString("vi-VN", {
             year: "numeric",
             month: "2-digit",
             day: "2-digit",
-        });
-    };
-
-    const handleCreateCourse = (payload: CreateCoursePayload) => {
-        setCourses((prev) => {
-            const newCourse = {
-                id: String(Date.now()),
-                title: payload.title,
-                slug: payload.slug,
-                description: payload.description || "Chưa có mô tả",
-                level: payload.hskLevel,
-                orderIndex: payload.orderIndex,
-                topics: 0,
-                students: 0,
-                published: false,
-                updatedAt: new Date().toISOString().slice(0, 10),
-            };
-
-            return [...prev, newCourse].sort(
-                (a, b) => a.orderIndex - b.orderIndex,
-            );
         });
     };
 
@@ -149,10 +171,7 @@ export default function CourseCmsPage() {
                                 Tạo và quản lý khóa học, chủ đề và bài tập
                             </p>
                         </div>
-                        <CreateCourseModal
-                            defaultOrderIndex={courses.length + 1}
-                            onCreate={handleCreateCourse}
-                        />
+                        <CreateCourseModal />
                     </div>
                 </div>
             </div>
@@ -166,7 +185,7 @@ export default function CourseCmsPage() {
                             {
                                 id: "courses",
                                 label: "Khóa học",
-                                count: courses.length,
+                                count: totalCourses,
                             },
                             { id: "stats", label: "Thống kê", count: null },
                         ].map((tab) => (
@@ -197,16 +216,19 @@ export default function CourseCmsPage() {
                         <div className="flex gap-3">
                             <Input
                                 type="text"
-                                value={searchTerm}
+                                value={queryParams.title || ""}
                                 onChange={(event) =>
-                                    setSearchTerm(event.target.value)
+                                    setQueryParams({
+                                        ...queryParams,
+                                        title: event.target.value,
+                                    })
                                 }
                                 placeholder="Tìm kiếm khóa học..."
                                 className="h-9 w-73 bg-white text-sm"
                             />
                             <Select
                                 value={levelFilter}
-                                onValueChange={setLevelFilter}
+                                onValueChange={(value) => setLevelFilter(value)}
                             >
                                 <SelectTrigger className="h-9 w-32.5 bg-white text-sm">
                                     <SelectValue placeholder="Tất cả" />
@@ -234,7 +256,7 @@ export default function CourseCmsPage() {
                                 <TableHeader className="bg-slate-50/50">
                                     <TableRow className="border-b border-slate-200/50 hover:bg-slate-50/50">
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider w-16">
-                                            #
+                                            Index
                                         </TableHead>
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                             Tên khóa học
@@ -243,16 +265,13 @@ export default function CourseCmsPage() {
                                             Slug
                                         </TableHead>
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Cấp độ
+                                            Hsk
                                         </TableHead>
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Chủ đề
+                                            Tổng Học viên
                                         </TableHead>
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Học viên
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Cập nhật
+                                            Tổng Topics
                                         </TableHead>
                                         <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                             Trạng thái
@@ -264,6 +283,29 @@ export default function CourseCmsPage() {
                                 </TableHeader>
 
                                 <TableBody>
+                                    {coursesQuery.isLoading && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell
+                                                colSpan={9}
+                                                className="h-24 text-center text-sm text-slate-500"
+                                            >
+                                                Đang tải danh sách khóa học...
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+
+                                    {coursesQuery.isError && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell
+                                                colSpan={9}
+                                                className="h-24 text-center text-sm text-red-600"
+                                            >
+                                                Không thể tải danh sách khóa
+                                                học.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+
                                     {filteredCourses.map((course) => (
                                         <TableRow
                                             key={course.id}
@@ -277,37 +319,29 @@ export default function CourseCmsPage() {
                                                     <p className="font-medium text-slate-900 text-sm">
                                                         {course.title}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 mt-0.5">
-                                                        {course.description}
-                                                    </p>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="px-4 py-3 text-xs text-slate-500 font-mono">
+                                            <TableCell className="px-4 py-3 text-sm text-slate-600">
                                                 {course.slug}
                                             </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                <Badge className="bg-amber-100 text-amber-700">
-                                                    HSK {course.level}
-                                                </Badge>
-                                            </TableCell>
                                             <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                {course.topics}
+                                                {course.hskLevel}
                                             </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                {course.students}
+                                            <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
+                                                {course.totalStudentsEnrolled}
                                             </TableCell>
-                                            <TableCell className="px-4 py-3 text-xs text-slate-500">
-                                                {formatDate(course.updatedAt)}
+                                            <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
+                                                {course.totalTopics}
                                             </TableCell>
                                             <TableCell className="px-4 py-3">
                                                 <Badge
                                                     className={`${
-                                                        course.published
+                                                        course.isPublished
                                                             ? "bg-green-100 text-green-700"
                                                             : "bg-slate-100 text-slate-600"
                                                     }`}
                                                 >
-                                                    {course.published
+                                                    {course.isPublished
                                                         ? "Đã xuất bản"
                                                         : "Nháp"}
                                                 </Badge>
@@ -360,20 +394,42 @@ export default function CourseCmsPage() {
                                         </TableRow>
                                     ))}
 
-                                    {filteredCourses.length === 0 && (
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableCell
-                                                colSpan={9}
-                                                className="h-24 text-center text-sm text-slate-500"
-                                            >
-                                                Không có khóa học phù hợp với bộ
-                                                lọc hiện tại.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
+                                    {!coursesQuery.isLoading &&
+                                        !coursesQuery.isError &&
+                                        filteredCourses.length === 0 && (
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableCell
+                                                    colSpan={9}
+                                                    className="h-24 text-center text-sm text-slate-500"
+                                                >
+                                                    Không có khóa học phù hợp
+                                                    với bộ lọc hiện tại.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
                                 </TableBody>
                             </Table>
                         </div>
+                        {!coursesQuery.isLoading &&
+                            !coursesQuery.isError &&
+                            pageCourses.length > 0 && (
+                                <div className="p-4 border-t border-slate-200/50 bg-white">
+                                    <CustomPagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        itemsPerPage={itemsPerPage}
+                                        startIndex={startIndex}
+                                        endIndex={endIndex}
+                                        totalItems={totalItems}
+                                        totalDocs={totalDocs}
+                                        onPageChange={handlePageChange}
+                                        onItemsPerPageChange={(value) => {
+                                            setItemsPerPage(value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                </div>
+                            )}
                     </div>
                 )}
 

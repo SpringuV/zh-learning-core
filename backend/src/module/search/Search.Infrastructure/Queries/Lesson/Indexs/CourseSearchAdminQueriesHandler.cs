@@ -76,7 +76,8 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                     CourseSortBy.UpdatedAt => s => s.Field(c => c.UpdatedAt, primaryOrder),
                     _ => s => s.Field(c => c.CreatedAt, primaryOrder)
                 };
-                s.Sort(primarySort, s => s.Field(f => f.CourseId, SortOrder.Asc)); // Secondary sort by CourseId for stable pagination
+                // suffix "keyword" để sort theo trường đã được keyword (không phân tích) đảm bảo thứ tự ổn định và chính xác
+                s.Sort(primarySort, s => s.Field(f => f.CourseId.Suffix("keyword"), SortOrder.Asc)); // Secondary sort by CourseId.keyword for stable pagination
                 if (!string.IsNullOrWhiteSpace(request.SearchAfterValues))
                 {
                     if (SearchAfterCursorHelper.TryParseSearchAfterValues(request.SearchAfterValues, out var fieldValues))
