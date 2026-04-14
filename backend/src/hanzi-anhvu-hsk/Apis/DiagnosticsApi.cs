@@ -128,9 +128,66 @@ public static class DiagnosticsApi
                 Notes: "Missing Redis connection string.");
         }
 
-        await using var mux = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
-        var endpoints = mux.GetEndPoints();
-        if (endpoints.Length == 0)
+        try
+        {
+            var redisOptions = ConfigurationOptions.Parse(redisConnectionString, true);
+            redisOptions.AllowAdmin = true; // Cần AllowAdmin để có thể gọi các lệnh INFO, DBSIZE, KEYS, v.v. để lấy thông tin chi tiết về Redis.
+
+            await using var mux = await ConnectionMultiplexer.ConnectAsync(redisOptions);
+            var endpoints = mux.GetEndPoints();
+            if (endpoints.Length == 0)
+            {
+                return new RedisStorageSummary(
+                    IsAvailable: false,
+                    DatabaseIndex: 0,
+                    TotalKeysInDatabase: 0,
+                    UsedMemoryBytes: 0,
+                    PeakUsedMemoryBytes: 0,
+                    ScopeBreakdown: [],
+                    Notes: "Redis endpoint not found.");
+            }
+
+            var server = mux.GetServer(endpoints[0]);
+            var db = mux.GetDatabase();
+
+            long usedMemoryBytes;
+            long peakUsedMemoryBytes;
+            long totalKeys;
+            try
+            {
+                usedMemoryBytes = ReadMemoryInfo(server, "used_memory");
+                peakUsedMemoryBytes = ReadMemoryInfo(server, "used_memory_peak");
+                totalKeys = server.DatabaseSize(db.Database);
+            }
+            catch (RedisCommandException ex)
+            {
+                return new RedisStorageSummary(
+                    IsAvailable: true,
+                    DatabaseIndex: db.Database,
+                    TotalKeysInDatabase: 0,
+                    UsedMemoryBytes: 0,
+                    PeakUsedMemoryBytes: 0,
+                    ScopeBreakdown: [],
+                    Notes: $"Redis admin commands unavailable: {ex.Message}");
+            }
+
+            var scopeBreakdown = new List<RedisScopeSummary>
+            {
+                await GetRedisScopeSummaryAsync(server, db, "search:course:admin", ct),
+                await GetRedisScopeSummaryAsync(server, db, "search:topic:admin", ct),
+                await GetRedisScopeSummaryAsync(server, db, "cache:scope-version", ct),
+            };
+
+            return new RedisStorageSummary(
+                IsAvailable: true,
+                DatabaseIndex: db.Database,
+                TotalKeysInDatabase: totalKeys,
+                UsedMemoryBytes: usedMemoryBytes,
+                PeakUsedMemoryBytes: peakUsedMemoryBytes,
+                ScopeBreakdown: scopeBreakdown,
+                Notes: $"Each prefix samples up to {MaxKeysPerPrefix} keys.");
+        }
+        catch (Exception ex)
         {
             return new RedisStorageSummary(
                 IsAvailable: false,
@@ -139,31 +196,8 @@ public static class DiagnosticsApi
                 UsedMemoryBytes: 0,
                 PeakUsedMemoryBytes: 0,
                 ScopeBreakdown: [],
-                Notes: "Redis endpoint not found.");
+                Notes: $"Redis diagnostics unavailable: {ex.Message}");
         }
-
-        var server = mux.GetServer(endpoints[0]);
-        var db = mux.GetDatabase();
-
-        var usedMemoryBytes = ReadMemoryInfo(server, "used_memory");
-        var peakUsedMemoryBytes = ReadMemoryInfo(server, "used_memory_peak");
-        var totalKeys = server.DatabaseSize(db.Database);
-
-        var scopeBreakdown = new List<RedisScopeSummary>
-        {
-            await GetRedisScopeSummaryAsync(server, db, "search:course:admin", ct),
-            await GetRedisScopeSummaryAsync(server, db, "search:topic:admin", ct),
-            await GetRedisScopeSummaryAsync(server, db, "cache:scope-version", ct),
-        };
-
-        return new RedisStorageSummary(
-            IsAvailable: true,
-            DatabaseIndex: db.Database,
-            TotalKeysInDatabase: totalKeys,
-            UsedMemoryBytes: usedMemoryBytes,
-            PeakUsedMemoryBytes: peakUsedMemoryBytes,
-            ScopeBreakdown: scopeBreakdown,
-            Notes: $"Each prefix samples up to {MaxKeysPerPrefix} keys.");
     }
 
     private static async Task<RedisScopeSummary> GetRedisScopeSummaryAsync(
