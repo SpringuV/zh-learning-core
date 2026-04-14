@@ -14,4 +14,8 @@ public interface ILessonService
     #region Topic
     Task<Result<CreateTopicResponseDTO>> CreateTopicAsync(TopicCreateRequestDTO request, CancellationToken cancellationToken);
     #endregion
+
+    #region Exercise
+    Task<Result<CreateExerciseResponseDTO>> CreateExerciseAsync(ExerciseCreateRequestDTO request, CancellationToken cancellationToken);
+    #endregion
 }

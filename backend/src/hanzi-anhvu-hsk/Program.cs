@@ -48,9 +48,31 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader(); // Allow all headers
     });
 });
-
+#region  OCR+R2 CDN+MailSettings configuration
 builder.Services.Configure<OcrServiceOptions>(
     builder.Configuration.GetSection(OcrServiceOptions.SectionName));
+builder.Services.AddHttpClient<IOcrClient, OcrClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<OcrServiceOptions>>()
+        .Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+});
+
+// Configure MediaUploadOptions and register R2MediaUploadSigner for media upload functionality
+builder.Services.Configure<MediaUploadOptions>(
+    builder.Configuration.GetSection(MediaUploadOptions.SectionName));
+// R2MediaUploadSigner sẽ được inject vào MediaUploadApi để tạo signed URL cho upload,
+// và sẽ sử dụng cấu hình MediaUploadOptions để biết endpoint, bucket, access key
+builder.Services.AddSingleton<IMediaUsageState, InMemoryMediaUsageState>();
+builder.Services.AddHttpClient("CloudflareApi", client =>
+{
+    client.BaseAddress = new Uri("https://api.cloudflare.com/client/v4/");
+    client.Timeout = TimeSpan.FromSeconds(15); // timeout ngắn hơn vì Cloudflare API thường phản hồi nhanh, và nếu chậm có thể là do sự cố mạng hoặc API, nên fail nhanh để không giữ tài nguyên lâu.
+});
+builder.Services.AddHostedService<CloudflareR2UsageSyncService>();
+builder.Services.AddSingleton<IMediaUploadSigner, R2MediaUploadSigner>();
 
 // Configure MailSettings for notification
 builder.Services.Configure<MailSettings>(
@@ -61,7 +83,8 @@ builder.Services.Configure<MailSettings>(
     // để tránh lỗi khi đổi tên section trong config
     builder.Configuration.GetSection(MailSettings.SectionName)
 );
-
+#endregion
+#region Module dependencies
 // khai báo các service trong module auth để có thể inject vào api mà không cần reference đến project auth
 // auth dependency
 Auth.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
@@ -80,20 +103,11 @@ Notification.Infrastructure.Dependencies.ConfigureServices(builder.Configuration
 
 // search dependency
 Search.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services, builder);
+#endregion
 
 // add in-memory event bus
 builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 
-builder.Services.AddHttpClient<IOcrClient, OcrClient>((serviceProvider, client) =>
-{
-    var options = serviceProvider
-        .GetRequiredService<Microsoft.Extensions.Options.IOptions<OcrServiceOptions>>()
-        .Value;
-    client.BaseAddress = new Uri(options.BaseUrl);
-    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-});
-
-builder.Services.AddScoped(typeof(IAppLogger<>), typeof(LoggingAdapter<>));
 
 // Trust reverse-proxy headers from Nginx (X-Forwarded-Proto/Host/For).
 // Keep KnownNetworks/KnownProxies restricted in stricter environments if possible.
@@ -107,7 +121,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-
+#region JWT Authentication Configuration
 var key = Encoding.ASCII.GetBytes(Auth.Infrastructure.Constants.JWT_SECRET_KEY);
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
@@ -167,7 +181,7 @@ builder.Services.AddAuthentication("Bearer")
             }
         };
     });
-
+#endregion
 var app = builder.Build();
 
 // Apply forwarded headers before auth/cookie/redirect logic so request scheme is accurate behind Nginx.
@@ -189,6 +203,7 @@ app.UseAuthorization();
 // add auth api trước để có thể sử dụng cookie authentication trong api sau (nếu có)
 app.MapAuthApi();
 app.MapOcrApi();
+app.MapMediaUploadApi();
 app.MapSearchApi();
 app.MapLessonApi();
 app.MapDiagnosticsApi();

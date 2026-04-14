@@ -10,3 +10,6 @@ global using HanziAnhVu.Shared.Contracts.Enums;
 global using Lesson.Application.MediatR.Command.Course;
 global using Lesson.Application.Abstractions;
 global using Lesson.Contracts;
+global using Lesson.Domain.Entities.Exercise;
+global using Lesson.Application.MediatR.Command.Exercise.Create;
+global using Lesson.Application.MediatR.Command.Topic;

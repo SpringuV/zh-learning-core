@@ -1,9 +1,53 @@
 namespace Search.Contracts.DTOs;
 
-/// <summary>
-/// Request to index an assignment in Elasticsearch
-/// Contains all denormalized data needed for search
-/// </summary>
+#region Exercise Search DTOs
+
+public sealed record ExerciseOptionIndexDTOs(string Id, string Text);
+public sealed record ExerciseSearchIndexQueriesRequest(
+    Guid ExerciseId,
+    Guid TopicId,
+    string Question,
+    int OrderIndex,
+    string Description,
+    string CorrectAnswer,
+    string ExerciseType,  // MultipleChoice, FillInTheBlank, TrueFalse, etc.
+    string SkillType,     // Reading, Writing, Listening, Speaking
+    string Difficulty,    // Easy, Medium, Hard
+    string Context,       // Vocabulary, Grammar, Conversation, etc.
+    string? AudioUrl,
+    string? ImageUrl,
+    string Slug,
+    string? Explanation,
+    bool IsPublished,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<ExerciseOptionIndexDTOs> Options);
+
+public enum ExerciseSortBy
+{
+    CreatedAt,
+    UpdatedAt,
+    OrderIndex
+}
+public sealed record ExerciseSearchQueryRequest(
+    Guid TopicId,
+    string? Question = null,
+    bool? IsPublished = null,
+    string? SkillType = null,
+    string? ExerciseType = null,
+    string? Difficulty = null,
+    string? Context = null,
+    DateTime? StartCreatedAt = null,
+    DateTime? EndCreatedAt = null,
+    int Take = 30,
+    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
+    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    ExerciseSortBy SortBy = ExerciseSortBy.CreatedAt,
+    bool OrderByDescending = true);
+#endregion
+
+
+#region Assignment Search DTOs
 public sealed record AssignmentSearchIndexQueriesRequest(
     Guid Id,
     Guid ClassroomId,
@@ -71,7 +115,7 @@ public sealed record AssignmentSearchPatchDocumentRequest(
     int? ExerciseCount = null,
     int? RecipientCount = null,
     DateTime? UpdatedAt = null);
-
+#endregion
 #region User Search DTOs
 public sealed record UserSearchPatchDocumentRequest(
     string? Email = null,
@@ -171,6 +215,7 @@ public enum TopicSortBy
     TotalExercises
 }
 public sealed record TopicSearchQueryRequest(
+    Guid CourseId,
     string? Title = null,
     bool? IsPublished = null,
     string? TopicType = null,

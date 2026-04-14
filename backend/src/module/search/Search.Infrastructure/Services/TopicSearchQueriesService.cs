@@ -1,6 +1,3 @@
-using Search.Infrastructure.Queries.Lesson.Indexs;
-using Search.Infrastructure.Queries.Lesson.Search;
-
 namespace Search.Infrastructure.Services;
 
 public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueriesService
@@ -34,6 +31,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
     public async Task<SearchQueryResult<TopicSearchItemAdminResponse>> SearchTopicAdminAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default)
     {
         var queries = new TopicSearchAdminQueries(
+            CourseId: request.CourseId,
             Title: request.Title,
             TopicType: request.TopicType,
             IsPublished: request.IsPublished,

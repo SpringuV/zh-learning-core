@@ -12,6 +12,7 @@ public enum ErrorCode: int
     INVALID_ID = 4002,
     INVALID_ENUM = 4007,
     REQUIRED_FIELD = 4006,
+    INVALID_ARGUMENT = 4000,
     
     // Not found errors (404x)
     NOTFOUND = 4041,

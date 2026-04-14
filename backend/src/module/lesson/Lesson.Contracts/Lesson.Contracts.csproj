@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.EventBus\HanziAnhVu.Shared.EventBus.csproj" />
     <ProjectReference Include="..\..\..\shared\HanziAnhVu.Shared.Contracts\HanziAnhVu.Shared.Contracts.csproj" />
+    <ProjectReference Include="..\Lesson.Domain\Lesson.Domain.csproj" />
   </ItemGroup>
 </Project>

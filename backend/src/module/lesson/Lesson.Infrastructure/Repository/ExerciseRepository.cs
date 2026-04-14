@@ -62,10 +62,11 @@ public class ExerciseRepository(
             topicId);
     }
 
-    public async Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default)
+    public async Task<int?> GetMaxOrderIndexByTopicIdAsync(Guid topicId, CancellationToken ct = default)
     {
         return await ExecuteAsync(
             async () => await _dbContext.Exercises
+                .Where(e => e.TopicId == topicId)
                 .Select(e => (int?)e.OrderIndex)
                 .MaxAsync(ct),
             "Database error getting max OrderIndex",

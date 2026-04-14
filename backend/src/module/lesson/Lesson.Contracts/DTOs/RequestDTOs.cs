@@ -1,5 +1,7 @@
 namespace Lesson.Contracts.DTOs;
 
+using HanziAnhVu.Shared.Domain;
+
 #region Course DTOs
 public sealed record CreateCourseRequestDTO(
     string Title,
@@ -25,4 +27,26 @@ public sealed record TopicCreateRequestDTO(
     string? ExamCode = null
 );
 
+#endregion
+
+#region Exercise DTOs
+public sealed record ExerciseCreateRequestDTO(
+    Guid TopicId,
+    string Question,
+    string Description,
+    ExerciseType ExerciseType,
+    ExerciseDifficulty Difficulty,
+    SkillType SkillType,
+    ExerciseContext ExerciseContext,
+    List<ExerciseOptionDTO>? Options, // Nullable để cho các loại bài tập không yêu cầu option
+    string CorrectAnswer, // Có thể là text hoặc option id tùy loại bài tập
+    string Explanation,
+    string? AudioUrl = null,
+    string? ImageUrl = null
+);
+
+public sealed record ExerciseOptionDTO(
+    string Id,
+    string Text
+);
 #endregion

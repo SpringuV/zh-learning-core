@@ -2,16 +2,15 @@
 flow in file:
     - TopicSearchAdminQueriesHandler.Handle() sẽ nhận request từ Mediator, 
         sau đó xây dựng query để tìm kiếm trong Elasticsearch
-    - Đầu tiên là kiểm tra xem index có tồn tại không, nếu không thì trả về kết quả rỗng
-    - Nếu index tồn tại, sẽ thực hiện tìm kiếm với các điều kiện filter và sort được xây dựng dựa trên request
-    - Kết quả trả về sẽ được map sang TopicSearchItemAdminResponse và xây dựng thành SearchQueryResult để trả về cho caller
-    - TopicSearchQueriesService sẽ gọi Mediator để gửi TopicSearchAdminQueries và nhận kết quả SearchQueryResult<TopicSearchItemAdminResponse> để trả về cho API controller
-    - API controller sẽ nhận SearchQueryResult<TopicSearchItemAdminResponse> và trả về cho client
-    - Client sẽ nhận kết quả và hiển thị danh sách topic, cùng với thông tin phân trang (hasNextPage, nextCursor) để client có thể gọi tiếp để lấy trang tiếp theo nếu cần
+    - 1: kiểm tra xem index có tồn tại không, nếu không thì trả về kết quả rỗng
+    - 2: Nếu index tồn tại, sẽ thực hiện tìm kiếm với các điều kiện filter và sort được xây dựng dựa trên request
+    - 3: Kết quả trả về sẽ được map sang TopicSearchItemAdminResponse và xây dựng thành SearchQueryResult để trả về cho caller
+    - 4: TopicSearchQueriesService sẽ gọi Mediator để gửi TopicSearchAdminQueries và nhận kết quả SearchQueryResult<TopicSearchItemAdminResponse> để trả về cho API controller
 */
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
 public sealed record TopicSearchAdminQueries(
+    Guid CourseId,
     string? Title = null,
     bool? IsPublished = null,
     string? TopicType = null,
@@ -27,7 +26,7 @@ public sealed record TopicSearchAdminQueries(
     ICacheScopeRequest
 {
     public string CacheKey =>
-        $"topic-search:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
+        $"topic-s-adm:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
 
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
 
@@ -65,6 +64,8 @@ public class TopicSearchAdminQueriesHandler(
                 // bool query để filter theo các field có trong request
                 s.Query(q => q.Bool(b =>
                 {
+                    // load courseId filter vào query để chỉ search trong topic của course đó
+                    b.Filter(f => f.Term(t => t.Field(t => t.CourseId).Value(request.CourseId.ToString())));
                     if(!string.IsNullOrWhiteSpace(request.Title))
                     {
                         b.Filter(f => f.Match(m => m.Field(t => t.Title.Suffix("keyword")).Query(request.Title)));

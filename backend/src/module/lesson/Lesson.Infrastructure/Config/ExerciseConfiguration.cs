@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Lesson.Infrastructure.Config;
 
 public class ExerciseConfiguration : IEntityTypeConfiguration<ExerciseAggregate>

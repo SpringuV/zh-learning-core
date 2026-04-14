@@ -6,4 +6,5 @@ public class ConstantIndexElastic
     public static readonly string CourseIndex = "hanzi_courses";
     public static readonly string LessonIndex = "hanzi_lessons";
     public static readonly string TopicIndex = "hanzi_topics";
+    public static readonly string ExerciseIndex = "hanzi_exercises";
 }

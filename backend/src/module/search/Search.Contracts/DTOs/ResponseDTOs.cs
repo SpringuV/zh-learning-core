@@ -1,5 +1,6 @@
 namespace Search.Contracts.DTOs;
 
+#region Assignment Search DTOs
 public sealed record AssignmentIndexResponse(
     Guid AssignmentId, 
     DateTime IndexedAt);
@@ -37,7 +38,8 @@ public sealed record AssignmentSearchPatchDocumentResponse(
     int? ExerciseCount = null,
     int? RecipientCount = null,
     DateTime? UpdatedAt = null);
-
+#endregion
+#region User Search DTOs
 public sealed record UserSearchPatchDocumentResponse(
     Guid? Id,
     string? Email = null,
@@ -72,7 +74,7 @@ public sealed record UserSearchResponse (
     string? AvatarUrl,
     DateTime? LastLogin
 );
-
+#endregion
 #region Course Search DTOs
 public sealed record CourseIndexResponse(
     Guid CourseId,
@@ -108,4 +110,23 @@ public sealed record TopicSearchItemAdminResponse(
     long TotalExercises,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+#endregion
+
+#region Exercise Search DTOs
+public sealed record ExerciseIndexResponse(
+    Guid ExerciseId,
+    DateTime CreatedAt);
+
+public sealed record ExerciseSearchItemAdminResponse(
+    Guid ExerciseId,
+    string Question,
+    string ExerciseType,
+    string SkillType,
+    string Difficulty,
+    string Context,
+    int OrderIndex,
+    bool IsPublished,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
 #endregion

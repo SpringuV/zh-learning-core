@@ -1,39 +1,4 @@
 namespace Lesson.Domain.Entities.Exercise;
-
-public enum ExerciseType
-{
-    ListenDialogueChoice, // Input: Audio + Multiple Choice Question
-    ListenFillBlank, // Input: Audio + Fill in the Blank
-    ListenSentenceJudge, // Input: Audio + True/False Question
-    ReadFillBlank, // Input: Text + Fill in the Blank
-    ReadComprehension, // Input: Text + Multiple Choice Question, Read passage, answer questions
-    ReadSentenceOrder, // Input: Text + Sentence Ordering Question, Order sentences correctly
-    ReadMatch, // Input: Text + Matching Question, Match phrases or definitions
-    WriteHanzi, // Input: Text + Hanzi Writing, Write Chinese character (stroke order)
-    WritePinyin, // Input: Text + Pinyin Writing,  Write pinyin for character
-    WriteSentence, // Input: Text + Sentence Writing,Write complete sentence (AI feedback)
-}
-public enum SkillType
-{
-    Reading,
-    Writing,
-    Listening,
-    Speaking
-}
-
-public enum ExerciseDifficulty
-{
-    Easy,
-    Medium,
-    Hard
-}
-
-public enum ExerciseContext
-{
-    Learning,   // Dành cho topic-based learning (self-paced)
-    Classroom,  // Dành cho assignment giao bài trong lớp
-    Mixed       // Có thể dùng cho cả hai
-}
 public class ExerciseAggregate: BaseAggregateRoot
 {
     public Guid ExerciseId { get; private set; }
@@ -61,10 +26,7 @@ public class ExerciseAggregate: BaseAggregateRoot
     {
         _options = options ?? [];
     }
-    
-    /// <summary>
-    /// Check if an option is the correct answer
-    /// </summary>
+    #region Helpers
     public bool IsOptionCorrect(string optionId) => CorrectAnswer == optionId;
     
     /// <summary>
@@ -115,6 +77,7 @@ public class ExerciseAggregate: BaseAggregateRoot
                exerciseType == ExerciseType.ListenSentenceJudge ||
                exerciseType == ExerciseType.ReadComprehension ||
                exerciseType == ExerciseType.ReadMatch ||
+               exerciseType == ExerciseType.ListenImageChoice ||
                exerciseType == ExerciseType.ReadSentenceOrder;
     }
 
@@ -134,7 +97,8 @@ public class ExerciseAggregate: BaseAggregateRoot
     }
     public IReadOnlyList<ExerciseOption> GetIncorrectOptions() =>
         [.. _options.Where(o => !IsOptionCorrect(o.Id))];
-
+    #endregion
+    #region Create
     public static ExerciseAggregate CreateExercise(
         Guid topicId,
         string description,
@@ -197,12 +161,12 @@ public class ExerciseAggregate: BaseAggregateRoot
             exercise.CreatedAt,
             exercise.UpdatedAt,
             exercise.IsPublished,
-            exercise.ExerciseType.ToString(),
-            exercise.SkillType.ToString(),
+            exercise.ExerciseType,
+            exercise.SkillType,
             exercise.Question,
             exercise.CorrectAnswer,
-            exercise.Difficulty.ToString(),
-            exercise.Context.ToString(),
+            exercise.Difficulty,
+            exercise.Context,
             exercise.AudioUrl,
             exercise.ImageUrl,
             exercise.Explanation,
@@ -212,6 +176,8 @@ public class ExerciseAggregate: BaseAggregateRoot
         
         return exercise;
     }
+    #endregion
+    #region Publish/Unpublish
     public void Publish()
     {
         if (IsPublished)
@@ -241,6 +207,9 @@ public class ExerciseAggregate: BaseAggregateRoot
             UpdatedAt
         ));
     }
+    #endregion
+
+    #region Update
     public void UpdateDescription(string newDescription)
     {
         if (string.IsNullOrWhiteSpace(newDescription))
@@ -286,14 +255,14 @@ public class ExerciseAggregate: BaseAggregateRoot
     {
         Difficulty = newDifficulty;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseDifficultyUpdatedEvent(ExerciseId, newDifficulty.ToString(), UpdatedAt));
+        AddDomainEvent(new ExerciseDifficultyUpdatedEvent(ExerciseId, newDifficulty, UpdatedAt));
     }
 
     public void UpdateContext(ExerciseContext newContext)
     {
         Context = newContext;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseContextUpdatedEvent(ExerciseId, newContext.ToString(), UpdatedAt));
+        AddDomainEvent(new ExerciseContextUpdatedEvent(ExerciseId, newContext, UpdatedAt));
     }
 
     public void UpdateAudioUrl(string newAudioUrl)
@@ -334,5 +303,6 @@ public class ExerciseAggregate: BaseAggregateRoot
         ValidateOptions();
         AddDomainEvent(new ExerciseOptionsUpdatedEvent(ExerciseId, [.. _options], UpdatedAt));
     }
+    #endregion
 }
    

@@ -5,8 +5,11 @@ public static class Dependencies
     public static void ConfigureServices(IConfiguration configuration, IServiceCollection services)
     {
         // Register MediatR handlers
+        // chỉ cần đăng ký assembly của module này, MediatR sẽ tự động tìm tất cả handlers trong assembly mà không cần phải đăng ký từng handler một cách thủ công.
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateCourseHandler).Assembly));
-        
+        // Register validators for MediatR ValidationBehavior.
+        services.AddTransient<IValidator<CreateExerciseCommand>, ValidatorCreateCommand>();
+
         // Register DbContext
         // DB cho Lesson module
         var connectionString = configuration.GetConnectionString("LessonDbConnection")

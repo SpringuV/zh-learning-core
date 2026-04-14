@@ -23,5 +23,6 @@ global using Lesson.Application.Services;
 global using Lesson.Application.Abstractions;
 global using Lesson.Contracts;
 global using Lesson.Application.MediatR.Command.Course;
-
+global using FluentValidation;
 global using HanziAnhVu.Shared.EventBus;
+global using Lesson.Application.MediatR.Command.Exercise.Create;

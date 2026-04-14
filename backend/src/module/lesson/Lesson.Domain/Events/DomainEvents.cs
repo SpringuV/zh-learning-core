@@ -142,11 +142,6 @@ public record TopicAddedToCourseDomainEvent(
 
 #endregion
 // ============= EXERCISE EVENTS =============
-
-/// <summary>
-/// Event: Exercise created
-/// Published to Search module for caching exercise metadata
-/// </summary>
 public sealed record ExerciseCreatedEvent(
     Guid ExerciseId,
     Guid TopicId,
@@ -155,12 +150,12 @@ public sealed record ExerciseCreatedEvent(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     bool IsPublished,
-    string ExerciseType,
-    string SkillType,
+    ExerciseType ExerciseType,
+    SkillType SkillType,
     string Question,
     string CorrectAnswer,
-    string Difficulty,
-    string Context,
+    ExerciseDifficulty Difficulty,
+    ExerciseContext Context,
     string AudioUrl,
     string ImageUrl,
     string Explanation,
@@ -196,13 +191,13 @@ public sealed record ExerciseCorrectAnswerUpdatedEvent(
 
 public sealed record ExerciseDifficultyUpdatedEvent(
     Guid ExerciseId,
-    string NewDifficulty,
+    ExerciseDifficulty NewDifficulty,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
 public sealed record ExerciseContextUpdatedEvent(
     Guid ExerciseId,
-    string NewContext,
+    ExerciseContext NewContext,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 

@@ -1,6 +1,6 @@
-namespace Lesson.Domain.Entities.Exercise;
+using System.Text.Json.Serialization;
 
-
+namespace HanziAnhVu.Shared.Domain;
 // Value Object cho option
 // ExerciseOption sẽ được lưu trực tiếp trong ExerciseAggregate dưới dạng JSON, 
 // cái option này có tác dụng là để lưu trữ các lựa chọn cho bài tập dạng multiple choice, 
@@ -9,6 +9,7 @@ namespace Lesson.Domain.Entities.Exercise;
 //  ReadMatch (Matching pairs)
 //  ListenSentenceJudge
 //  ListenDialogueChoice
+
 /// <summary>
 /// Value Object for Exercise Options
 /// Used for multiple choice, matching, ordering exercises, etc.

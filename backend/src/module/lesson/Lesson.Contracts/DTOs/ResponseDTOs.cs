@@ -28,3 +28,7 @@ public sealed record PublishTopicResponseDTO(
 );
 
 #endregion
+
+#region Exercise DTOs
+public sealed record CreateExerciseResponseDTO(Guid ExerciseId);
+#endregion

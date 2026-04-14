@@ -26,6 +26,7 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
     {
         try
         {
+            // Validate topic type trước khi indexing để tránh lỗi không mong muốn khi lưu vào Elasticsearch
             if (!Enum.TryParse<TopicType>(request.TopicType, true, out var parsedTopicType) ||
                 !Enum.IsDefined(parsedTopicType))
             {
@@ -53,7 +54,9 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
                 UpdatedAt = request.UpdatedAt
             };
 
-            var response = await _client.IndexAsync(topicDocument, i => i.Index(ConstantIndexElastic.TopicIndex).Id(topicDocument.TopicId), cancellationToken);
+            var response = await _client.IndexAsync(topicDocument, i => i
+                    .Index(ConstantIndexElastic.TopicIndex)
+                    .Id(topicDocument.TopicId), cancellationToken);
             if (!response.IsValidResponse)
             {
                 throw new Exception($"Failed to index topic {request.TopicId}: {response.DebugInformation}");
@@ -91,7 +94,7 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
                         .Text(tp => tp.Title, t => t.Fields(f => f.Keyword("keyword")))
                         .Text(tp => tp.Description, t => t.Fields(f => f.Keyword("keyword")))
                         .Text(tp => tp.Slug, t => t.Fields(f => f.Keyword("keyword")))
-                        .Keyword(tp => tp.TopicType)
+                        .Keyword(tp => tp.TopicType) // Lưu topic type dưới dạng keyword để dễ dàng filter và tránh lỗi khi parse enum
                         .IntegerNumber(tp => tp.EstimatedTimeMinutes)
                         .IntegerNumber(tp => tp.ExamYear)
                         .Text(tp => tp.ExamCode, t => t.Fields(f => f.Keyword("keyword")))

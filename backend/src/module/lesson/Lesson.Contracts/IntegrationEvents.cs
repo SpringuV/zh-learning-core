@@ -1,4 +1,6 @@
+using HanziAnhVu.Shared.Domain;
 using HanziAnhVu.Shared.EventBus;
+using Lesson.Domain.Entities.Exercise;
 
 namespace Lesson.Contracts;
 
@@ -145,21 +147,22 @@ public sealed record ExerciseRemovedFromTopicIntegrationEvent(
 public sealed record ExerciseCreatedIntegrationEvent(
     Guid ExerciseId,
     Guid TopicId,
-    Guid CourseId,
     string Description,
     int OrderIndex,
-    string ExerciseType,
-    string SkillType,
+    ExerciseType ExerciseType,
+    SkillType SkillType,
     string Question,
     string CorrectAnswer,
-    string Difficulty,
-    string Context,
+    ExerciseDifficulty Difficulty,
+    ExerciseContext Context,
     string AudioUrl,
     string ImageUrl,
     string Explanation,
     string Slug,
     bool IsPublished,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    IReadOnlyList<ExerciseOption> Options
 ): IntegrationEvent;
 
 public sealed record ExerciseDescriptionUpdatedIntegrationEvent(
@@ -194,14 +197,14 @@ public sealed record ExerciseCorrectAnswerUpdatedIntegrationEvent(
 public sealed record ExerciseDifficultyUpdatedIntegrationEvent(
     Guid ExerciseId,
     Guid TopicId,
-    string NewDifficulty,
+    ExerciseDifficulty NewDifficulty,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
 public sealed record ExerciseContextUpdatedIntegrationEvent(
     Guid ExerciseId,
     Guid TopicId,
-    string NewContext,
+    ExerciseContext NewContext,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
@@ -239,7 +242,7 @@ public sealed record ExerciseUnpublishedIntegrationEvent(
 ): IntegrationEvent;
 #endregion
 
-#region Exercise Session Events
+#region Session Exercise Events
 public sealed record UserTopicExerciseSessionStartedIntegrationEvent(
     Guid SessionId,
     Guid UserId,
@@ -265,7 +268,7 @@ public sealed record UserTopicExerciseSessionAbandonedIntegrationEvent(
 ): IntegrationEvent;
 #endregion
 
-#region Exercise Attempt Events
+#region Attempt Exercise Events
 public sealed record ExerciseAttemptCreatedIntegrationEvent(
     Guid AttemptId,
     Guid SessionId,
@@ -273,9 +276,9 @@ public sealed record ExerciseAttemptCreatedIntegrationEvent(
     Guid? TopicId,
     Guid ExerciseId,
     string Question,
-    string ExerciseType,
-    string SkillType,
-    string Difficulty,
+    ExerciseType ExerciseType,
+    SkillType SkillType,
+    ExerciseDifficulty Difficulty,
     string Answer,
     float InitialScore,
     bool IsCorrect,
@@ -287,7 +290,7 @@ public sealed record ExerciseAttemptScoredIntegrationEvent(
     Guid SessionId,
     Guid UserId,
     Guid ExerciseId,
-    string SkillType,
+    SkillType SkillType,
     float Score,
     bool IsCorrect,
     DateTime ScoredAt
