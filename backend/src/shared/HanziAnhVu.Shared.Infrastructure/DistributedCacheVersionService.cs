@@ -38,6 +38,8 @@ public class DistributedCacheVersionService(
         return Encoding.UTF8.GetString(raw);
     }
 
+    // invalidate scope bằng cách tạo một version token 
+    // mới và lưu vào cache với key version của scope đó,
     public async Task InvalidateScopeAsync(string scope, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(scope))
@@ -50,9 +52,9 @@ public class DistributedCacheVersionService(
         var nextToken = Guid.NewGuid().ToString("N");
 
         await _distributedCache.SetAsync(
-            scopeKey,
-            Encoding.UTF8.GetBytes(nextToken),
-            ScopeVersionCacheOptions,
+            scopeKey, // key version của scope để invalidate theo nhóm cache
+            Encoding.UTF8.GetBytes(nextToken), // token mới để tất cả cache key có version token cũ sẽ trở nên không hợp lệ
+            ScopeVersionCacheOptions, // đảm bảo token sẽ tự động hết hạn sau một khoảng thời gian dài để tránh cache bẩn nếu không có invalidate nào được gọi trong thời gian dài
             ct);
 
         _logger.LogInformation("Cache scope invalidated: {CacheScope}", scope);

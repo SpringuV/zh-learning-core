@@ -23,3 +23,5 @@ global using Microsoft.Extensions.Hosting;
 global using Search.Application.EventHandlers.Lesson.Course;
 global using Search.Infrastructure.Queries.Lesson.Search;
 global using Search.Infrastructure.Queries.Lesson.Indexs;
+global using HanziAnhVu.Shared.Application;
+global using Search.Contracts;

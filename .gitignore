@@ -486,3 +486,5 @@ $RECYCLE.BIN/
 .ai-context/
 /agent-skill/
 **/deploy/
+AGENTS.md
+AGENT_WORKFLOW_PLAYBOOK.md

@@ -1,6 +1,3 @@
-using HanziAnhVu.Shared.Application;
-using Search.Contracts;
-
 /*
 flow in file:
     - TopicSearchAdminQueriesHandler.Handle() sẽ nhận request từ Mediator, 
@@ -25,7 +22,9 @@ public sealed record TopicSearchAdminQueries(
     string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true
-) : IRequest<SearchQueryResult<TopicSearchItemAdminResponse>>, ICacheableRequest<SearchQueryResult<TopicSearchItemAdminResponse>>, ICacheScopeRequest
+) : IRequest<SearchQueryResult<TopicSearchItemAdminResponse>>, 
+    ICacheableRequest<SearchQueryResult<TopicSearchItemAdminResponse>>, 
+    ICacheScopeRequest
 {
     public string CacheKey =>
         $"topic-search:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
