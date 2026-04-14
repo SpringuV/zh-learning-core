@@ -42,7 +42,14 @@ public sealed class CloudflareR2UsageSyncService(
                 _logger.LogWarning(ex, "Unexpected error while syncing Cloudflare R2 usage metrics.");
             }
 
-            await Task.Delay(interval, stoppingToken);
+            try
+            {
+                await Task.Delay(interval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 

@@ -65,7 +65,7 @@ public class TopicSearchAdminQueriesHandler(
                 s.Query(q => q.Bool(b =>
                 {
                     // load courseId filter vào query để chỉ search trong topic của course đó
-                    b.Filter(f => f.Term(t => t.Field(t => t.CourseId).Value(request.CourseId.ToString())));
+                    b.Filter(f => f.Term(t => t.Field(t => t.CourseId.Suffix("keyword")).Value(request.CourseId.ToString("D"))));
                     if(!string.IsNullOrWhiteSpace(request.Title))
                     {
                         b.Filter(f => f.Match(m => m.Field(t => t.Title.Suffix("keyword")).Query(request.Title)));
@@ -99,12 +99,12 @@ public class TopicSearchAdminQueriesHandler(
                 var primaryOrder = request.OrderByDescending ? SortOrder.Desc : SortOrder.Asc;
                 Action<SortOptionsDescriptor<TopicSearch>> primarySort = request.SortBy switch
                 {
-                    TopicSortBy.TotalExercises => so => so.Field(f => f.Field(t => t.TotalExercises)),
-                    TopicSortBy.UpdatedAt => so => so.Field(f => f.Field(t => t.UpdatedAt)),
-                    TopicSortBy.ExamYear => so => so.Field(f => f.Field(t => t.ExamYear)),
-                    TopicSortBy.OrderIndex => so => so.Field(f => f.Field(t => t.OrderIndex)),
-                    TopicSortBy.CreatedAt => so => so.Field(f => f.Field(t => t.CreatedAt)),
-                    _ => s => s.Field(f => f.Field(t => t.CreatedAt))
+                    TopicSortBy.TotalExercises => so => so.Field(f => f.Field(t => t.TotalExercises).Order(primaryOrder)),
+                    TopicSortBy.UpdatedAt => so => so.Field(f => f.Field(t => t.UpdatedAt).Order(primaryOrder)),
+                    TopicSortBy.ExamYear => so => so.Field(f => f.Field(t => t.ExamYear).Order(primaryOrder)),
+                    TopicSortBy.OrderIndex => so => so.Field(f => f.Field(t => t.OrderIndex).Order(primaryOrder)),
+                    TopicSortBy.CreatedAt => so => so.Field(f => f.Field(t => t.CreatedAt).Order(primaryOrder)),
+                    _ => s => s.Field(f => f.Field(t => t.CreatedAt).Order(primaryOrder))
                 };
                 s.Sort(primarySort, s => s.Field(f => f.TopicId.Suffix("keyword"), SortOrder.Asc)); 
                 // Secondary sort by TopicId.keyword for stable pagination

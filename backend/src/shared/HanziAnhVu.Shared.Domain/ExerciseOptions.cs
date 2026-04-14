@@ -20,9 +20,9 @@ public class ExerciseOption : ValueObject
     public string Id { get; private set; } = string.Empty; // Id để phân biệt các option, có thể là "A", "B", "C", hoặc "1", "2", v.v. tùy theo loại bài tập
     public string Text { get; private set; } = string.Empty; // Text của option, có thể là câu trả lời, hoặc nội dung của lựa chọn, v.v.
     
-    [JsonConstructor]
     public ExerciseOption() { }
-    
+
+    [JsonConstructor]
     public ExerciseOption(string id, string text)
     {
         if (string.IsNullOrWhiteSpace(id))

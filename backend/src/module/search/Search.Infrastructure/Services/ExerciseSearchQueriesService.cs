@@ -32,7 +32,7 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
         throw new NotImplementedException();
     }
 
-    public async Task<SearchQueryResult<ExerciseSearchItemAdminResponse>> GetExerciseSearchItemAdminAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default)
+    public async Task<SearchQueryResult<ExerciseSearchItemAdminResponse>> SearchExerciseItemAdminAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default)
     {
         var queries = new ExerciseSearchAdminQueries(
             TopicId: request.TopicId,

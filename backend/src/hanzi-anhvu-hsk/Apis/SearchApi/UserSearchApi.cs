@@ -1,7 +1,7 @@
 namespace HanziAnhVuHsk.Apis.SearchApi;
 public static class UserSearchApi
 {
-    public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
+    public static async Task<IResult> SearchUsers([AsParameters] UserSearchQueryRequest request, [FromServices] IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
     {
         /*
         [Controller/API] 
@@ -32,7 +32,7 @@ public static class UserSearchApi
         }
     }
 
-    public static async Task<IResult> GetUser([FromRoute] string id, IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
+    public static async Task<IResult> GetUser([FromRoute] string id, [FromServices] IUserSearchQueriesServices userSearchQueries, CancellationToken ct)
     {
         try
         {

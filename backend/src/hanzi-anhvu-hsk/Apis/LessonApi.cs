@@ -1,3 +1,5 @@
+using FluentValidation;
+
 namespace HanziAnhVuHsk.Apis;
 
 public class LessonApi
@@ -83,6 +85,45 @@ public class LessonApi
         {
             var result = await lessonService.CreateTopicAsync(request, ct);
             return result.Success ? Results.Ok(result) : HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
+
+    #region Exercise API
+    public static async Task<IResult> CreateExercise(
+        [FromBody] ExerciseCreateRequestDTO request, 
+        ILessonService lessonService,
+        ILogger<LessonApi> logger,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.CreateExerciseAsync(request, ct);
+            return result.Success ? Results.Ok(result) : HandleFailureResult(result);
+        }
+        catch (ValidationException ex)
+        {
+            var errors = ex.Errors
+                .GroupBy(e => string.IsNullOrWhiteSpace(e.PropertyName) ? "request" : e.PropertyName)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(e => e.ErrorMessage).Distinct().ToArray());
+
+            logger.LogWarning(
+                ex,
+                "Validation failed in CreateExercise for TopicId {TopicId}, ExerciseType {ExerciseType}",
+                request.TopicId,
+                request.ExerciseType);
+
+            return Results.ValidationProblem(
+                errors,
+                title: "Validation failed",
+                detail: "One or more validation errors occurred.",
+                statusCode: StatusCodes.Status400BadRequest);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

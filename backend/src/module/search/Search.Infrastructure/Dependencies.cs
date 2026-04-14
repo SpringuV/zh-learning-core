@@ -1,3 +1,4 @@
+using Search.Application.EventHandlers.Lesson.Exercise;
 using Search.Application.EventHandlers.Lesson.Topic;
 using Search.Infrastructure.Queries.Lesson.Search.Validator;
 
@@ -27,10 +28,14 @@ public static class Dependencies
         // Register topic-specific search service
         services.AddScoped<ITopicSearchQueriesService, TopicSearchQueriesService>();
 
+        // Register exercise-specific search service
+        services.AddScoped<IExerciseSearchQueriesService, ExerciseSearchQueriesService>();
+
         // Register event handlers
         services.AddScoped<IIntegrationEventHandler<UserRegisteredIntegrationEvent>, UserRegisteredEventHandler>();
         services.AddScoped<IIntegrationEventHandler<UserProfileUpdatedIntegrationEvent>, UserProfileUpdatedEventHandler>();
         services.AddScoped<IIntegrationEventHandler<CourseCreatedIntegrationEvent>, CourseCreatedEventHandler>();
         services.AddScoped<IIntegrationEventHandler<TopicCreatedIntegrationEvent>, TopicCreatedEventHandler>();
+        services.AddScoped<IIntegrationEventHandler<ExerciseCreatedIntegrationEvent>, ExerciseCreatedEventHandler>();
     }
 }

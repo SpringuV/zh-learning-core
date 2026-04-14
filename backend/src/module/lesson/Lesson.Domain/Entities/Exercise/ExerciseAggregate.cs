@@ -77,6 +77,8 @@ public class ExerciseAggregate: BaseAggregateRoot
                exerciseType == ExerciseType.ListenSentenceJudge ||
                exerciseType == ExerciseType.ReadComprehension ||
                exerciseType == ExerciseType.ReadMatch ||
+               exerciseType == ExerciseType.ReadFillBlank ||
+               exerciseType == ExerciseType.ListenFillBlank ||
                exerciseType == ExerciseType.ListenImageChoice ||
                exerciseType == ExerciseType.ReadSentenceOrder;
     }
@@ -145,7 +147,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             Explanation = explanation,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            IsPublished = false,
+            IsPublished = false
         };
 
         // Enforce option rules ngay từ bước create để tránh tạo draft sai cấu trúc.

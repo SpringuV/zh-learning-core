@@ -12,6 +12,7 @@ public static class LessonApiExtensions
     {
         group.MapPost("/course", LessonApi.CreateCourse).WithName("CreateCourse");
         group.MapPost("/topic", LessonApi.CreateTopic).WithName("CreateTopic");
+        group.MapPost("/exercise", LessonApi.CreateExercise).WithName("CreateExercise");
         return group;
     }
 }

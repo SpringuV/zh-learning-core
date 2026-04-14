@@ -3,6 +3,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Allow API clients to send enum values as strings in JSON request bodies.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
+
 var redisConnectionString =
     builder.Configuration.GetConnectionString("redis-hanzi")
     ?? builder.Configuration["Redis:ConnectionString"];

@@ -46,6 +46,25 @@ public class ExerciseIndexCommandHandler(ElasticsearchClient client, ILogger<Exe
             {
                 throw new ArgumentException($"Context '{request.Context}' không hợp lệ. Giá trị hỗ trợ: {string.Join(", ", Enum.GetNames<ExerciseContext>())}.", nameof(request.Context));
             }
+            // Validate và normalize options nếu có, đảm bảo rằng mỗi option đều có Id và Text hợp lệ, tránh lỗi khi indexing vào Elasticsearch. Nếu request.Options là null thì normalizedOptions sẽ là null, nếu request.Options có giá trị thì sẽ validate và convert từng phần tử sang ExerciseOption và tạo thành một List<ExerciseOption>.
+            var normalizedOptions = request.Options
+                .Select((o, index) =>
+                {
+                    if (string.IsNullOrWhiteSpace(o.Id))
+                    {
+                        throw new ArgumentException($"Options[{index}].Id cannot be empty.", nameof(request.Options));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(o.Text))
+                    {
+                        throw new ArgumentException($"Options[{index}].Text cannot be empty.", nameof(request.Options));
+                    }
+
+                    return new ExerciseOption(
+                        id: o.Id.Trim(),
+                        text: o.Text.Trim());
+                })
+                .ToList();
             #endregion
 
             #region index and check exists
@@ -69,11 +88,7 @@ public class ExerciseIndexCommandHandler(ElasticsearchClient client, ILogger<Exe
                 isPublished: request.IsPublished,
                 createdAt: request.CreatedAt,
                 updatedAt: request.UpdatedAt,
-                options: [..request.Options.Select(o => new ExerciseOption
-                (
-                    id: o.Id,
-                    text: o.Text
-                ))]
+                options: normalizedOptions
             );
             var response = await _client.IndexAsync(exerciseDocument, i => i
                     .Index(ConstantIndexElastic.ExerciseIndex)
@@ -89,14 +104,19 @@ public class ExerciseIndexCommandHandler(ElasticsearchClient client, ILogger<Exe
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while indexing exercise");
-            throw new NotImplementedException();
+            _logger.LogError(ex, "Error occurred while indexing exercise {ExerciseId}", request.ExerciseId);
+            throw;
         }
     }
     private async Task EnsureExerciseIndexExistsAsync(CancellationToken cancellationToken)
     {
         var existsResponse = await _client.Indices.ExistsAsync(ConstantIndexElastic.ExerciseIndex, cancellationToken);
         if (!existsResponse.IsValidResponse)
+        {
+            throw new Exception($"Failed to check index {ConstantIndexElastic.ExerciseIndex} existence: {existsResponse.DebugInformation}");
+        }
+
+        if (!existsResponse.Exists)
         {
             var createIndexResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.ExerciseIndex, c => c
                 .Mappings<ExerciseSearch>(m=> m
@@ -118,7 +138,6 @@ public class ExerciseIndexCommandHandler(ElasticsearchClient client, ILogger<Exe
                         .Boolean(e => e.IsPublished)
                         .Date(e => e.CreatedAt)
                         .Date(e => e.UpdatedAt)
-                        .Text(e => e.Options)
 
                     )), cancellationToken);
             if (!createIndexResponse.IsValidResponse) {
