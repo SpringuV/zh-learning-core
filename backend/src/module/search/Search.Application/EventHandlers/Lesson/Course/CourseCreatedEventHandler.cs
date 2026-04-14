@@ -1,13 +1,13 @@
-using Lesson.Contracts;
-
 namespace Search.Application.EventHandlers.Lesson.Course;
 
 public class CourseCreatedEventHandler(
         ICourseSearchQueriesService courseSearchService, 
+        ICacheVersionService cacheVersionService,
         ILogger<CourseCreatedEventHandler> logger) 
     : IIntegrationEventHandler<CourseCreatedIntegrationEvent>
 {
     private readonly ICourseSearchQueriesService _courseSearchService = courseSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
     private readonly ILogger<CourseCreatedEventHandler> _logger = logger;
 
     public async Task HandleAsync(CourseCreatedIntegrationEvent @event, CancellationToken ct = default!)
@@ -28,6 +28,7 @@ public class CourseCreatedEventHandler(
         );
 
         await _courseSearchService.IndexAsync(request, ct);
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.CourseAdminSearch, ct);
         _logger.LogInformation("Course {CourseId} indexed successfully in Elasticsearch", @event.CourseId);
     }
 }

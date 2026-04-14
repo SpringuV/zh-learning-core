@@ -18,11 +18,6 @@ var classroomDb = postgres.AddDatabase("classrooms-hanzi");
 var elasticsearch = builder
     .AddElasticsearchWithKibana("elastic-hanzi", elasticPassword)
     .WithElasticsearchSetup();
-// var kibana = builder
-//     .AddContainer("kibana", "docker.elastic.co/kibana/kibana", "8.17.0")
-//     .WithEnvironment("ELASTICSEARCH_HOSTS", elasticsearch.GetEndpoint("http"))
-//     .WithEnvironment("ELASTICSEARCH_USERNAME", "kibana_system")
-//     .WithEnvironment("ELASTICSEARCH_PASSWORD", elasticPassword);
 
 // add project api vào
 builder.AddProject<Projects.HanziAnhVuHsk_Api>("hanzi-anhvu-hsk-api")

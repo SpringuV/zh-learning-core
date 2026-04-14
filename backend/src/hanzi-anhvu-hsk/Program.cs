@@ -21,6 +21,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = redisConnectionString;
     options.InstanceName = "hanzi-anhvu:";
 });
+builder.Services.AddSingleton<ICacheVersionService, DistributedCacheVersionService>();
 
 // Add MediatR pipeline behaviors (validation, caching, logging)
 // Đăng ký các pipeline behaviors cho MediatR, đảm bảo chúng được áp dụng 
@@ -167,29 +168,16 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
-    /*
-        var redisConnectionString = configuration["Redis:ConnectionString"];
-        services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = redisConnectionString;
-                options.InstanceName = "TodoListLegend:"; // instance name để phân biệt với các ứng dụng khác nếu cùng dùng Redis
-            });
-            services.AddSingleton(typeof(ICache<>), typeof(RedisCacheAdapter<>));
-     */
-
-
-
-
 var app = builder.Build();
 
 // Apply forwarded headers before auth/cookie/redirect logic so request scheme is accurate behind Nginx.
 app.UseForwardedHeaders();
 
-//if (app.Environment.IsDevelopment())
-//{
-app.UseSwagger();
-app.UseSwaggerUI();
-//}
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // Enable CORS before routing
 app.UseCors(MyAllowSpecificOrigins);
@@ -203,6 +191,7 @@ app.MapAuthApi();
 app.MapOcrApi();
 app.MapSearchApi();
 app.MapLessonApi();
+app.MapDiagnosticsApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok", service = "hanzi-anhvu-hsk-api" }));
 
 app.Run();

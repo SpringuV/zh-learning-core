@@ -1,13 +1,13 @@
-using Lesson.Contracts;
-
 namespace Search.Application.EventHandlers.Lesson.Topic;
 
 public class TopicCreatedEventHandler(
         ITopicSearchQueriesService topicSearchService, 
+        ICacheVersionService cacheVersionService,
         ILogger<TopicCreatedEventHandler> logger) 
     : IIntegrationEventHandler<TopicCreatedIntegrationEvent>
 {
     private readonly ITopicSearchQueriesService _topicSearchService = topicSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
     private readonly ILogger<TopicCreatedEventHandler> _logger = logger;
 
     public async Task HandleAsync(TopicCreatedIntegrationEvent @event, CancellationToken ct = default!)
@@ -31,6 +31,7 @@ public class TopicCreatedEventHandler(
         );
 
         await _topicSearchService.IndexAsync(request, ct);
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.TopicAdminSearch, ct);
         _logger.LogInformation("Topic {TopicId} indexed successfully in Elasticsearch", @event.TopicId);
     }
 }

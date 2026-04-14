@@ -1,4 +1,5 @@
 using HanziAnhVu.Shared.Application;
+using Search.Contracts;
 
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
@@ -13,13 +14,14 @@ public sealed record CourseSearchAdminQueries(
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null
-): IRequest<SearchQueryResult<CourseSearchItemAdminResponse>>, ICacheableRequest<SearchQueryResult<CourseSearchItemAdminResponse>>
+): IRequest<SearchQueryResult<CourseSearchItemAdminResponse>>, ICacheableRequest<SearchQueryResult<CourseSearchItemAdminResponse>>, ICacheScopeRequest
 {
     public string CacheKey =>
     // kí tự O trong format string để serialize DateTime theo chuẩn ISO 8601 đảm bảo cache key ổn định và chính xác khi có trường DateTime
         $"course-search:{Title}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
-
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
+
+    public string CacheScope => SearchCacheScopes.CourseAdminSearch;
 }
 
 public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger<CourseSearchAdminQueriesHandler> logger) : IRequestHandler<CourseSearchAdminQueries, SearchQueryResult<CourseSearchItemAdminResponse>>
