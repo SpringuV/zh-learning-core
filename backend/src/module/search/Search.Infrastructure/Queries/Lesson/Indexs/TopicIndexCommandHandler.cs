@@ -89,8 +89,9 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
             var createIndexResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.TopicIndex, c => c
                 .Mappings<TopicSearch>(m => m
                     .Properties(p => p
-                        .Text(tp => tp.TopicId, t => t.Fields(f => f.Keyword("keyword")))
-                        .Text(tp => tp.CourseId, t => t.Fields(f => f.Keyword("keyword")))
+                        // keyword để filter chính xác theo id, tránh lỗi do analyzer khi index (GUID có dấu gạch ngang sẽ bị cắt thành nhiều token)
+                        .Keyword(tp => tp.TopicId, k => k.Fields(f => f.Keyword("keyword")))
+                        .Keyword(tp => tp.CourseId, k => k.Fields(f => f.Keyword("keyword")))
                         .Text(tp => tp.Title, t => t.Fields(f => f.Keyword("keyword")))
                         .Text(tp => tp.Description, t => t.Fields(f => f.Keyword("keyword")))
                         .Text(tp => tp.Slug, t => t.Fields(f => f.Keyword("keyword")))

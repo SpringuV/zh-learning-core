@@ -28,7 +28,7 @@ public sealed record TopicSearchAdminQueries(
     public string CacheKey =>
         $"topic-s-adm:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
 
-    public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
+    public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 
     public string CacheScope => SearchCacheScopes.TopicAdminSearch;
 }

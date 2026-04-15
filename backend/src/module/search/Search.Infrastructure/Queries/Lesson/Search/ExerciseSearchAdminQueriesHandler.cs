@@ -25,7 +25,7 @@ public sealed record ExerciseSearchAdminQueries(
         $"{ExerciseType}:" +
         $"{SkillType}:" +
         $"{Context}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
-    public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
+    public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 }
 
 public class ExerciseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger<ExerciseSearchAdminQueriesHandler> logger) : IRequestHandler<ExerciseSearchAdminQueries, SearchQueryResult<ExerciseSearchItemAdminResponse>>
@@ -58,11 +58,11 @@ public class ExerciseSearchAdminQueriesHandler(ElasticsearchClient client, ILogg
                 // bool query để filter theo các field có trong request
                 s.Query(q => q.Bool(b =>
                 {
-                    // load topicId filter vào query để chỉ search trong exercise của topic đó
-                    b.Filter(f => f.Term(t => t.Field(t => t.TopicId).Value(request.TopicId.ToString())));
+                    // Chỉ dùng topicId.keyword để filter chính xác theo GUID
+                    b.Filter(f => f.Term(t => t.Field(e => e.TopicId.Suffix("keyword")).Value(request.TopicId.ToString("D"))));
                     if (!string.IsNullOrWhiteSpace(request.Question))
                     {
-                        b.Filter(f => f.Match(m => m.Field(t => t.Question.Suffix("keyword")).Query(request.Question)));
+                        b.Filter(f => f.Match(m => m.Field(t => t.Question).Query(request.Question)));
                     }
                     if (!string.IsNullOrWhiteSpace(request.ExerciseType))
                     {
@@ -76,6 +76,10 @@ public class ExerciseSearchAdminQueriesHandler(ElasticsearchClient client, ILogg
                     if (!string.IsNullOrWhiteSpace(request.Context))
                     {
                         b.Filter(f => f.Term(t => t.Field(t => t.Context).Value(request.Context)));
+                    }
+                    if (!string.IsNullOrWhiteSpace(request.Difficulty))
+                    {
+                        b.Filter(f => f.Term(t => t.Field(t => t.Difficulty).Value(request.Difficulty)));
                     }
                     if (request.IsPublished.HasValue)
                     {

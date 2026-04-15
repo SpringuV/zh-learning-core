@@ -15,7 +15,7 @@ public class DistributedCacheVersionService(
     // đảm bảo rằng các token sẽ tự động hết hạn sau một khoảng thời gian dài 
     private static readonly DistributedCacheEntryOptions ScopeVersionCacheOptions = new()
     {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15) // token sẽ tự động hết hạn sau 15 phút nếu không có invalidate nào được gọi, tránh cache bẩn
     };
 
     private readonly IDistributedCache _distributedCache = distributedCache;

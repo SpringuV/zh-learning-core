@@ -69,7 +69,7 @@ public class CourseIndexCommandHandler(ElasticsearchClient client, ILogger<Cours
         var createResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.CourseIndex, c => c
             .Mappings<CourseSearch>(m => m
                 .Properties(p => p
-                    .Text(c => c.CourseId, t => t.Fields(f => f.Keyword("keyword")))
+                    .Keyword(c => c.CourseId, k => k.Fields(f => f.Keyword("keyword")))
                     .Text(c => c.Title, t => t.Fields(f => f.Keyword("keyword")))
                     .Text(c => c.Description, t => t.Fields(f => f.Keyword("keyword")))
                     .IntegerNumber(c => c.OrderIndex)

@@ -121,8 +121,8 @@ public class ExerciseIndexCommandHandler(ElasticsearchClient client, ILogger<Exe
             var createIndexResponse = await _client.Indices.CreateAsync(ConstantIndexElastic.ExerciseIndex, c => c
                 .Mappings<ExerciseSearch>(m=> m
                     .Properties(p => p
-                        .Text(e => e.ExerciseId, t => t.Fields(f => f.Keyword("keyword"))) // dùng keyword để filter chính xác theo id
-                        .Text(e => e.TopicId, t => t.Fields(f => f.Keyword("keyword")))
+                        .Keyword(e => e.ExerciseId, k => k.Fields(f => f.Keyword("keyword"))) // dùng keyword để filter chính xác theo id
+                        .Keyword(e => e.TopicId, k => k.Fields(f => f.Keyword("keyword")))
                         .Text(e => e.Question, t => t.Fields(f => f.Keyword("keyword")))
                         .Text(e => e.Description)
                         .Text(e => e.CorrectAnswer)

@@ -51,15 +51,15 @@ public class UnPublishCourseHandler(ICourseRepository courseRepository, ILessonU
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Course with ID {CourseId} is already published.", request.CourseId);
+            _logger.LogWarning(ex, "Course with ID {CourseId} is already unpublished.", request.CourseId);
             return Result.FailureResult(
-                "Khóa học đã được xuất bản trước đó.",
-                (int)ErrorCode.ALREADY_PUBLISHED
+                "Khóa học đã được chưa được xuất bản.",
+                (int)ErrorCode.NOT_PUBLISHED
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error publishing course with ID: {CourseId}", request.CourseId);
+            _logger.LogError(ex, "Unexpected error unpublishing course with ID: {CourseId}", request.CourseId);
             return Result.FailureResult(
                 "Đã xảy ra lỗi khi hủy xuất bản khóa học.",
                 (int)ErrorCode.INTERNAL_ERROR
