@@ -54,7 +54,7 @@ public class UnPublishTopicHandler(ITopicRepository topicRepository, ILessonUnit
         {
             _logger.LogWarning(ex, "Topic with ID {TopicId} is already published.", request.TopicId);
             return Result.FailureResult(
-                "Chủ đề với ID " + request.TopicId + " chưa được xuất bản.",
+                "Chủ đề chưa được xuất bản.",
                 (int)ErrorCode.NOT_PUBLISHED
             );
         }

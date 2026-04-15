@@ -53,7 +53,7 @@ public class PublishTopicHandler(ITopicRepository topicRepository, ILessonUnitOf
         {
             _logger.LogWarning(ex, "Topic with ID {TopicId} is already published.", request.TopicId);
             return Result.FailureResult(
-                "Chủ đề với ID " + request.TopicId + " đã được xuất bản.",
+                "Chủ đề đã được xuất bản.",
                 (int)ErrorCode.ALREADY_PUBLISHED
             );
         }

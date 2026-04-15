@@ -1,3 +1,5 @@
+using Lesson.Application.MediatR.Command.Course.Create;
+
 namespace Lesson.Infrastructure;
 
 public static class Dependencies
@@ -8,6 +10,7 @@ public static class Dependencies
         // chỉ cần đăng ký assembly của module này, MediatR sẽ tự động tìm tất cả handlers trong assembly mà không cần phải đăng ký từng handler một cách thủ công.
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateCourseHandler).Assembly));
         // Register validators for MediatR ValidationBehavior.
+        services.AddTransient<IValidator<CreateCourseCommand>, ValidatorCreate>();
         services.AddTransient<IValidator<CreateExerciseCommand>, ValidatorCreateCommand>();
         services.AddTransient<IValidator<UpdateExerciseCommand>, ValidatorUpdateExercise>();
         services.AddTransient<IValidator<UpdateTopicCommand>, ValidatorUpdateTopic>();

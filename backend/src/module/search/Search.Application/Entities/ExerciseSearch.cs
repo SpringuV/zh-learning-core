@@ -4,24 +4,24 @@ namespace Search.Application.Entities;
 
 public class ExerciseSearch
 {
-    public Guid ExerciseId { get; private set; }
-    public Guid TopicId { get; private set; }
-    public string Question { get; private set; } = null!;
-    public string Description { get; private set; } = null!;
-    public string CorrectAnswer { get; private set; } = null!;
-    public ExerciseType ExerciseType { get; private set; }
-    public SkillType SkillType { get; private set; }
-    public ExerciseDifficulty Difficulty { get; private set; }
-    public ExerciseContext Context { get; private set; }
-    public string? AudioUrl { get; private set; }
-    public string Slug { get; private set; } = null!;
-    public int OrderIndex { get; private set; }
-    public string? ImageUrl { get; private set; }
-    public string? Explanation { get; private set; }
-    public bool IsPublished { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public DateTime UpdatedAt { get; private set; }
-    public List<ExerciseOption> Options { get; private set; } = null!;
+    public Guid ExerciseId { get; set; }
+    public Guid TopicId { get; set; }
+    public string Question { get; set; } = null!;
+    public string Description { get; set; } = null!;
+    public string CorrectAnswer { get; set; } = null!;
+    public ExerciseType ExerciseType { get; set; }
+    public SkillType SkillType { get; set; }
+    public ExerciseDifficulty Difficulty { get; set; }
+    public ExerciseContext Context { get; set; }
+    public string? AudioUrl { get; set; }
+    public string Slug { get; set; } = null!;
+    public int OrderIndex { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Explanation { get; set; }
+    public bool IsPublished { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<ExerciseOption> Options { get; set; } = null!;
 
     public ExerciseSearch() { }
     public ExerciseSearch(

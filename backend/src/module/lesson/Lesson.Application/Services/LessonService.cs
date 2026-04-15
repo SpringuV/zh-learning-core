@@ -1,3 +1,5 @@
+using Lesson.Application.MediatR.Command.Course.Create;
+
 namespace Lesson.Application.Services;
 
 public class LessonService(IMediator mediator) : ILessonService

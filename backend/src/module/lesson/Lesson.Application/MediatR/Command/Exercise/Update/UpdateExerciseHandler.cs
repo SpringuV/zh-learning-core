@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-
 namespace Lesson.Application.MediatR.Command.Exercise.Update;
 
 public record UpdateExerciseCommand(

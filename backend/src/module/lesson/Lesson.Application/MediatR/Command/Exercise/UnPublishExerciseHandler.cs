@@ -51,7 +51,7 @@ public class UnPublishExerciseHandler(IExerciseRepository exerciseRepository, IL
         {
             _logger.LogWarning(ex, "Exercise with ID {ExerciseId} is already published.", request.ExerciseId);
             return Result.FailureResult(
-                "Bài tập với ID " + request.ExerciseId + " chưa được xuất bản.",
+                "Bài tập chưa được xuất bản.",
                 (int)ErrorCode.NOT_PUBLISHED
             );
         }

@@ -1,4 +1,4 @@
-namespace Lesson.Application.MediatR.Command.Course;
+namespace Lesson.Application.MediatR.Command.Course.Create;
 
 public record CreateCourseCommand(
     string Title,
