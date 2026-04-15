@@ -2,6 +2,7 @@ import {
     CourseCreateRequest,
     CourseCreateResponseApi,
 } from "@/modules/lesson/types/coure.type";
+import { AdminBaseListResponse } from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
 
 export type CourseSortBy =
@@ -13,10 +14,11 @@ export type CourseSortBy =
     | "TotalStudentsEnrolled"
     | "TotalTopics";
 
-export type SortDirection = "Asc" | "Desc";
 export interface CourseListQueryParams {
     title?: string;
     take?: number;
+    startCreatedAt?: Date | string;
+    endCreatedAt?: Date | string;
     searchAfterValues?: string | null;
     sortBy?: CourseSortBy;
     orderByDescending?: boolean;
@@ -33,13 +35,6 @@ export interface CourseListItem {
     slug: string;
     createdAt: string;
     updatedAt: string;
-}
-
-export interface CourseListResponse {
-    total: number;
-    items: CourseListItem[];
-    hasNextPage: boolean;
-    nextCursor: string;
 }
 
 function sanitizeQueryParams(params: CourseListQueryParams) {
@@ -68,8 +63,11 @@ export const courseApi = {
         );
     },
     async getListCourse(payload: CourseListQueryParams = {}) {
-        return await http.get<CourseListResponse>(endPoints.listCourse, {
-            params: sanitizeQueryParams(payload),
-        });
+        return await http.get<AdminBaseListResponse<CourseListItem>>(
+            endPoints.listCourse,
+            {
+                params: sanitizeQueryParams(payload),
+            },
+        );
     },
 };

@@ -94,6 +94,23 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
 
     }
 
+    public async Task<TopicSearchWithCourseMetadataResponse> SearchTopicAdminWithCourseMetadataAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default)
+    {
+        var queries = new CourseTopicsOverviewAdminQueries(
+            CourseId: request.CourseId,
+            Title: request.Title,
+            TopicType: request.TopicType,
+            IsPublished: request.IsPublished,
+            StartCreatedAt: request.StartCreatedAt,
+            EndCreatedAt: request.EndCreatedAt,
+            Take: request.Take,
+            SearchAfterValues: request.SearchAfterValues,
+            SortBy: request.SortBy,
+            OrderByDescending: request.OrderByDescending
+        );
+        return await _mediator.Send(queries, cancellationToken);
+    }
+
     public async Task UnPublishAsync(TopicUnPublishedRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new TopicUnPublishedSearchCommand(

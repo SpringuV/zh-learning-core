@@ -39,6 +39,7 @@ const initialCourseQueryParams: CourseListQueryParams = {
 };
 
 export default function CourseCmsPage() {
+    // #region State
     const [activeTab, setActiveTab] = useState<"courses" | "stats">("courses");
     const [itemsPerPage, setItemsPerPage] = useState(50);
     const [queryParams, setQueryParams] = useState<CourseListQueryParams>(
@@ -46,7 +47,9 @@ export default function CourseCmsPage() {
     );
     const [levelFilter, setLevelFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    // #endregion
 
+    // Memoized effective query params to avoid unnecessary refetches
     const effectiveQueryParams = useMemo<CourseListQueryParams>(
         () => ({
             ...queryParams,
@@ -55,6 +58,7 @@ export default function CourseCmsPage() {
         [queryParams, itemsPerPage],
     );
 
+    // #region Data Fetching
     const coursesQuery = useGetListCourse(effectiveQueryParams);
 
     const pages = coursesQuery.data?.pages ?? [];
@@ -103,7 +107,9 @@ export default function CourseCmsPage() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + filteredCourses.length, totalDocs);
     const totalItems = totalDocs;
+    //#endregion
 
+    // #region Effects and Callbacks
     useEffect(() => {
         if (currentPage > totalPages) {
             setCurrentPage(totalPages);
@@ -144,7 +150,7 @@ export default function CourseCmsPage() {
         },
         [currentPage, loadedPages, canLoadMore, coursesQuery],
     );
-
+    // #endregion
     const formatDate = (value: string) => {
         return new Date(value).toLocaleDateString("vi-VN", {
             year: "numeric",
@@ -157,7 +163,7 @@ export default function CourseCmsPage() {
         <div className="bg-linear-to-br from-slate-50 via-white to-slate-50">
             {/* Top Navigation Bar */}
             <div className="sticky top-0 z-40 border-b border-slate-200/50 bg-white/80 backdrop-blur-lg">
-                <div className="max-w-[80vw] mx-auto px-5 py-4">
+                <div className="w-full px-5 py-4">
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-light tracking-tight">
@@ -177,7 +183,7 @@ export default function CourseCmsPage() {
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-5 py-6">
+            <div className="w-full min-w-0">
                 {/* Tabs */}
                 <div className="mb-5 flex items-center justify-between">
                     <div className="flex gap-1 bg-slate-100/50 p-1 rounded-lg w-fit">
@@ -413,22 +419,20 @@ export default function CourseCmsPage() {
                         {!coursesQuery.isLoading &&
                             !coursesQuery.isError &&
                             pageCourses.length > 0 && (
-                                <div className="p-4 border-t border-slate-200/50 bg-white">
-                                    <CustomPagination
-                                        currentPage={currentPage}
-                                        totalPages={totalPages}
-                                        itemsPerPage={itemsPerPage}
-                                        startIndex={startIndex}
-                                        endIndex={endIndex}
-                                        totalItems={totalItems}
-                                        totalDocs={totalDocs}
-                                        onPageChange={handlePageChange}
-                                        onItemsPerPageChange={(value) => {
-                                            setItemsPerPage(value);
-                                            setCurrentPage(1);
-                                        }}
-                                    />
-                                </div>
+                                <CustomPagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    itemsPerPage={itemsPerPage}
+                                    startIndex={startIndex}
+                                    endIndex={endIndex}
+                                    totalItems={totalItems}
+                                    totalDocs={totalDocs}
+                                    onPageChange={handlePageChange}
+                                    onItemsPerPageChange={(value) => {
+                                        setItemsPerPage(value);
+                                        setCurrentPage(1);
+                                    }}
+                                />
                             )}
                     </div>
                 )}

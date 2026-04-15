@@ -33,7 +33,6 @@ export interface CourseCreateRequest {
     Title: string;
     Description: string;
     HskLevel: number;
-    Slug: string;
 }
 interface CourseCreateResponse {
     Id: string;

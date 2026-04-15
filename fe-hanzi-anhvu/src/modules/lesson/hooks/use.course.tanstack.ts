@@ -34,7 +34,6 @@ export const useGetListCourse = (params: CourseListBaseQueryParams = {}) => {
             if (!payload.hasNextPage || !payload.nextCursor) {
                 return undefined;
             }
-
             return payload.nextCursor;
         },
     });

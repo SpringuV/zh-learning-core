@@ -110,6 +110,22 @@ public sealed record TopicSearchItemAdminResponse(
     long TotalExercises,
     DateTime CreatedAt,
     DateTime UpdatedAt);
+
+public sealed record CourseMetadataForTopicAdminResponse(
+    Guid Id,
+    string Title,
+    int HskLevel,
+    bool IsPublished,
+    string Slug,
+    long TotalTopics,
+    long TotalStudentsEnrolled);
+
+public sealed record TopicSearchWithCourseMetadataResponse(
+    CourseMetadataForTopicAdminResponse? Course,
+    long Total,
+    IReadOnlyList<TopicSearchItemAdminResponse> Items,
+    bool HasNextPage,
+    string NextCursor);
 #endregion
 
 #region Exercise Search DTOs

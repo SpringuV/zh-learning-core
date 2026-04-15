@@ -137,7 +137,6 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
             Title: normalizedTitle,
             Description: form.description.trim(),
             HskLevel: parsedHskLevel,
-            Slug: slugPreview || `khoa-hoc-${Date.now()}`,
         };
 
         send({ type: "SUBMIT", input: payload });
@@ -184,14 +183,13 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="course-slug">Slug xem trước</Label>
-                        <Input
-                            id="course-slug"
-                            value={slugPreview || "(chưa có)"}
-                            readOnly
-                            className="text-slate-500"
-                        />
+                    <div className="space-y-2 flex gap-2 items-center">
+                        <Label htmlFor="course-slug" className="mb-0">
+                            Slug xem trước
+                        </Label>
+                        <span id="course-slug" className="text-slate-500">
+                            {slugPreview || "(chưa có)"}
+                        </span>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
