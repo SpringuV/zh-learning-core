@@ -23,9 +23,15 @@ public record TopicCreatedEvent(
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
 
+public record TopicTotalExercisesUpdatedEvent(
+    Guid TopicId,
+    long TotalExercises,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
 // Granular Topic events
 public record TopicTitleUpdatedEvent(
     Guid TopicId,
+    Guid CourseId,
     string NewTitle,
     string NewSlug,
     DateTime UpdatedAt
@@ -33,24 +39,27 @@ public record TopicTitleUpdatedEvent(
 
 public record TopicDescriptionUpdatedEvent(
     Guid TopicId,
+    Guid CourseId,
     string NewDescription,
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
 
 public record TopicEstimatedTimeUpdatedEvent(
     Guid TopicId,
+    Guid CourseId,
     int NewEstimatedTimeMinutes,
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
 
-public record TopicOrderIndexUpdatedEvent(
-    Guid TopicId,
-    int NewOrderIndex,
+public record TopicReOrderedEvent(
+    Guid CourseId,
+    IReadOnlyList<Guid> OrderedTopicIds,
     DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
 
 public record TopicExamInfoUpdatedEvent(
     Guid TopicId,
+    Guid CourseId,
     int NewExamYear,
     string NewExamCode,
     DateTime UpdatedAt
@@ -112,6 +121,12 @@ public sealed record CourseDescriptionUpdatedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
+public sealed record CourseHskLevelUpdatedEvent(
+    Guid CourseId,
+    int NewHskLevel,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
 public sealed record CourseReOrderedEvent(
     List<Guid> OrderedCourseIds,
     DateTime UpdatedAt
@@ -133,14 +148,15 @@ public record CourseUnpublishedDomainEvent(
     DateTime UnpublishedAt
 ): BaseDomainEvent, INotification;
 
-public record TopicAddedToCourseDomainEvent(
+public record CourseTotalTopicsUpdatedEvent(
     Guid CourseId,
-    Guid TopicId,
-    int OrderIndex,
-    DateTime AddedAt
+    long TotalTopics,
+    DateTime UpdatedAt
 ): BaseDomainEvent, INotification;
 
 #endregion
+
+#region Exercise events
 // ============= EXERCISE EVENTS =============
 public sealed record ExerciseCreatedEvent(
     Guid ExerciseId,
@@ -170,9 +186,10 @@ public sealed record ExerciseDescriptionUpdatedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record ExerciseOrderIndexUpdatedEvent(
-    Guid ExerciseId,
-    int NewOrderIndex,
+
+public sealed record ExerciseReOrderedEvent(
+    Guid TopicId,
+    IReadOnlyList<Guid> OrderedExerciseIds,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
@@ -180,6 +197,21 @@ public sealed record ExerciseQuestionUpdatedEvent(
     Guid ExerciseId,
     string NewQuestion,
     string NewSlug,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseTypeUpdatedEvent(
+    Guid ExerciseId,
+    Guid TopicId,
+    ExerciseType NewExerciseType,
+    string NewSlug,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseSkillTypeUpdatedEvent(
+    Guid ExerciseId,
+    Guid TopicId,
+    SkillType NewSkillType,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
@@ -197,6 +229,7 @@ public sealed record ExerciseDifficultyUpdatedEvent(
 
 public sealed record ExerciseContextUpdatedEvent(
     Guid ExerciseId,
+    Guid TopicId,
     ExerciseContext NewContext,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
@@ -241,6 +274,8 @@ public sealed record ExerciseUnpublishedEvent(
     Guid ExerciseId,
     DateTime UnpublishedAt
 ) : BaseDomainEvent, INotification;
+
+#endregion
 // ============= USER EXERCISE SESSION EVENTS =============
 
 /// <summary>
@@ -395,7 +430,7 @@ public record UserTopicProgressResetEvent(
 ) : BaseDomainEvent, INotification;
 
 // ============= FLASHCARD EVENTS =============
-
+#region Flashcard events
 /// <summary>
 /// Event: Flashcard created
 /// Rich: Contains full flashcard context for Search/SRS module
@@ -490,4 +525,4 @@ public sealed record FlashcardDeletedEvent(
     Guid TopicId,
     DateTime DeletedAt
 ) : BaseDomainEvent, INotification;
-
+#endregion

@@ -3,8 +3,7 @@ namespace Lesson.Application.MediatR.Command.Course;
 public record CreateCourseCommand(
     string Title,
     string Description,
-    int HskLevel,
-    string Slug
+    int HskLevel
 ) : IRequest<Result<CreateCourseResponseDTO>>;
 
 public class CreateCourseHandler(
@@ -36,8 +35,7 @@ public class CreateCourseHandler(
                     request.Title,
                     request.Description,
                     request.HskLevel,
-                    (maxOrder ?? 0) + 1,
-                    request.Slug
+                    (maxOrder ?? 0) + 1
                 );
 
                 await _courseRepository.AddAsync(courseAggregate, cancellationToken);

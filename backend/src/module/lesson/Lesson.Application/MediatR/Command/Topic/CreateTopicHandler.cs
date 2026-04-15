@@ -10,9 +10,15 @@ public sealed record CreateTopicCommand(
     string? ExamCode = null
 ) : IRequest<Result<CreateTopicResponseDTO>>;
 
-public class CreateTopicHandler(ITopicRepository topicRepository, ILogger<CreateTopicHandler> logger, IPublisher publisher, ILessonUnitOfWork unitOfWork) : IRequestHandler<CreateTopicCommand, Result<CreateTopicResponseDTO>>
+public class CreateTopicHandler(
+    ITopicRepository topicRepository,
+    ICourseRepository courseRepository,
+    ILogger<CreateTopicHandler> logger,
+    IPublisher publisher,
+    ILessonUnitOfWork unitOfWork) : IRequestHandler<CreateTopicCommand, Result<CreateTopicResponseDTO>>
 {
     private readonly ITopicRepository _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
+    private readonly ICourseRepository _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
     private readonly ILogger<CreateTopicHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly IPublisher _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
     private ILessonUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -27,6 +33,16 @@ public class CreateTopicHandler(ITopicRepository topicRepository, ILogger<Create
                 (int)ErrorCode.INVALID_ENUM
             );
         }
+
+        var course = await _courseRepository.GetByIdAsync(request.CourseId, cancellationToken);
+        if (course is null)
+        {
+            return Result<CreateTopicResponseDTO>.FailureResult(
+                $"Course with id '{request.CourseId}' was not found.",
+                (int)ErrorCode.NOTFOUND
+            );
+        }
+
         TopicAggregate topicAggregate = null!;
         var maxOrderIndex = await _topicRepository.GetMaxOrderIndexAsync(cancellationToken);
         var currentMaxOrderIndex = maxOrderIndex ?? 0;
@@ -44,6 +60,9 @@ public class CreateTopicHandler(ITopicRepository topicRepository, ILogger<Create
             );
 
             await _topicRepository.AddAsync(topicAggregate, cancellationToken);
+            // Sau khi tạo topic thành công, tăng TotalTopics của course
+            course.IncrementTotalTopics();
+            await _courseRepository.UpdateAsync(course, cancellationToken);
             _logger.LogInformation("[CreateTopicHandler] Aggregate added to repository with TopicId: {TopicId}", topicAggregate.TopicId);
             foreach (var domainEvent in topicAggregate.DomainEvents)
             {
@@ -51,6 +70,13 @@ public class CreateTopicHandler(ITopicRepository topicRepository, ILogger<Create
                 await _publisher.Publish(domainEvent, cancellationToken);
             }
             topicAggregate.PopDomainEvents();
+
+            foreach (var domainEvent in course.DomainEvents)
+            {
+                _logger.LogInformation("[CreateTopicHandler] Publishing {EventType} for {AggregateId}", domainEvent.GetType().Name, course.CourseId);
+                await _publisher.Publish(domainEvent, cancellationToken);
+            }
+            course.PopDomainEvents();
             
         }, cancellationToken);
         return Result<CreateTopicResponseDTO>.SuccessResult(

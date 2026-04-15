@@ -17,13 +17,10 @@ public class CourseAggregate : BaseAggregateRoot
     public int OrderIndex { get; private set; } = 1;
     public long TotalStudentsEnrolled { get; private set; } = 0;
     public long TotalTopics { get; private set; } = 0;
- 
-    private readonly List<Guid> _TopicIds = [];
-    public IReadOnlyList<Guid> TopicIds => _TopicIds.AsReadOnly();
 
     public CourseAggregate(){}
 
-    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex, string? slug)
+    public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex)
     {
         if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Tiêu đề không thể để trống.", nameof(title));
         if (hskLevel < 0 || hskLevel > 6) throw new ArgumentOutOfRangeException(nameof(hskLevel), "Cấp HSK phải từ 0 đến 6.");
@@ -32,7 +29,7 @@ public class CourseAggregate : BaseAggregateRoot
         {
             CourseId = Guid.NewGuid(),
             Title = title,
-            Slug = slug ?? GenerateSlug(title),
+            Slug = GenerateSlug(title),
             Description = description,
             HskLevel = hskLevel,
             OrderIndex = orderIndex,
@@ -60,12 +57,12 @@ public class CourseAggregate : BaseAggregateRoot
     /// <summary>
     /// Update course title & regenerate slug
     /// </summary>
-    public void UpdateTitle(string newTitle, string? newSlug = null)
+    public void UpdateTitle(string newTitle)
     {
         if (string.IsNullOrWhiteSpace(newTitle))
             throw new ArgumentException("Tiêu đề không thể để trống.", nameof(newTitle));
         Title = newTitle;
-        Slug = newSlug ?? GenerateSlug(newTitle);  // Using inherited method
+        Slug =GenerateSlug(newTitle);  // Using inherited method
         UpdatedAt = DateTime.UtcNow;
         
         AddDomainEvent(new CourseTitleUpdatedEvent(CourseId, newTitle, Slug, UpdatedAt));
@@ -87,11 +84,44 @@ public class CourseAggregate : BaseAggregateRoot
         AddDomainEvent(new CourseDescriptionUpdatedEvent(CourseId, newDescription, UpdatedAt));
     }
 
+    public void UpdateHskLevel(int newHskLevel)
+    {
+        if (newHskLevel < 0 || newHskLevel > 9)
+            throw new ArgumentOutOfRangeException(nameof(newHskLevel), "Cấp HSK phải từ 0 đến 9.");
+
+        if (HskLevel == newHskLevel)
+            return;
+
+        if (IsPublished && TotalStudentsEnrolled > 0)
+            throw new InvalidOperationException("Không thể cập nhật cấp HSK khi khóa học đã được xuất bản và đã có học viên.");
+
+        HskLevel = newHskLevel;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseHskLevelUpdatedEvent(CourseId, newHskLevel, UpdatedAt));
+    }
+
     public void IncrementEnrollmentCount()
     {
         TotalStudentsEnrolled++;
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new CourseEnrollmentCountUpdatedEvent(CourseId, TotalStudentsEnrolled, UpdatedAt));
+    }
+
+    public void IncrementTotalTopics()
+    {
+        TotalTopics += 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseTotalTopicsUpdatedEvent(CourseId, TotalTopics, UpdatedAt));
+    }
+
+    public void DecrementTotalTopics()
+    {
+        if (TotalTopics <= 0)
+            throw new InvalidOperationException("TotalTopics không thể nhỏ hơn 0.");
+
+        TotalTopics -= 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseTotalTopicsUpdatedEvent(CourseId, TotalTopics, UpdatedAt));
     }
 
     public void Publish()
@@ -104,7 +134,7 @@ public class CourseAggregate : BaseAggregateRoot
         AddDomainEvent(new CoursePublishedDomainEvent(CourseId, UpdatedAt));
     }
 
-    public void Unpublish()
+    public void UnPublish()
     {
         if (!IsPublished) throw new InvalidOperationException("Khóa học chưa được xuất bản.");
         IsPublished = false;
@@ -114,15 +144,5 @@ public class CourseAggregate : BaseAggregateRoot
         AddDomainEvent(new CourseUnpublishedDomainEvent(CourseId, UpdatedAt));
     }
 
-    public void AddTopic(Guid topicId, int orderIndex)
-    {
-        if (_TopicIds.Contains(topicId)) throw new InvalidOperationException("Chủ đề đã tồn tại trong khóa học.");
-        _TopicIds.Add(topicId);
-        TotalTopics = _TopicIds.Count;
-        UpdatedAt = DateTime.UtcNow;
-        OrderIndex = orderIndex;
-        // Fire domain event
-        AddDomainEvent(new TopicAddedToCourseDomainEvent(CourseId, topicId, OrderIndex, UpdatedAt));
-    }
 }
 

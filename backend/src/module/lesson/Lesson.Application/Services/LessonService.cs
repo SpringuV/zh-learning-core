@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-
 namespace Lesson.Application.Services;
 
 public class LessonService(IMediator mediator) : ILessonService
@@ -11,8 +9,7 @@ public class LessonService(IMediator mediator) : ILessonService
         return await _mediator.Send(new CreateCourseCommand(
             Title: request.Title,
             Description: request.Description,
-            HskLevel: request.HskLevel,
-            Slug: request.Slug
+            HskLevel: request.HskLevel
         ), cancellationToken);
     }
 
@@ -55,8 +52,108 @@ public class LessonService(IMediator mediator) : ILessonService
         ), cancellationToken);
     }
 
+    public async Task<Result> PublishCourseAsync(Guid courseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new PublishCourseCommand(
+            CourseId: courseId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> PublishExerciseAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new PublishExerciseCommand(
+            ExerciseId: exerciseId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> PublishTopicAsync(Guid topicId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new PublishTopicCommand(
+            TopicId: topicId
+        ), cancellationToken);
+    }
+
     public async Task<Result> ReorderCoursesAsync(CourseReorderRequestDTO request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        return await _mediator.Send(new ReOrderCourseCommand(
+            OrderedCourseIds: request.OrderedCourseIds
+        ), cancellationToken);
+    }
+
+    public async Task<Result> ReorderExercisesAsync(ExerciseReorderRequestDTO request, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new ReOrderExerciseCommand(
+            OrderedExerciseIds: request.OrderedExerciseIds,
+            TopicId: request.TopicId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> ReorderTopicsAsync(TopicReorderRequestDTO request, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new ReOrderTopicCommand(
+            OrderedTopicIds: request.OrderedTopicIds,
+            CourseId: request.CourseId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UnPublishCourseAsync(Guid courseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UnPublishCourseCommand(
+            CourseId: courseId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UnPublishExerciseAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UnPublishExerciseCommand(
+            ExerciseId: exerciseId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UnPublishTopicAsync(Guid topicId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UnPublishTopicCommand(
+            TopicId: topicId
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UpdateCourseAsync(UpdateCourseRequestDTO request, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UpdateCourseCommand(
+            CourseId: request.CourseId,
+            Title: request.Title,
+            Description: request.Description,
+            HskLevel: request.HskLevel
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UpdateExerciseAsync(UpdateExerciseRequestDTO request, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UpdateExerciseCommand(
+            ExerciseId: request.ExerciseId,
+            Description: request.Description,
+            Question: request.Question,
+            CorrectAnswer: request.CorrectAnswer,
+            ExerciseType: request.ExerciseType,
+            SkillType: request.SkillType,
+            Difficulty: request.Difficulty,
+            ExerciseContext: request.ExerciseContext,
+            AudioUrl: request.AudioUrl,
+            ImageUrl: request.ImageUrl,
+            Explanation: request.Explanation,
+            Options: request.Options
+        ), cancellationToken);
+    }
+
+    public async Task<Result> UpdateTopicAsync(UpdateTopicRequestDTO request, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new UpdateTopicCommand(
+            TopicId: request.TopicId,
+            Title: request.Title,
+            Description: request.Description,
+            EstimatedTimeMinutes: request.EstimatedTimeMinutes,
+            NewExamYear: request.NewExamYear,
+            NewExamCode: request.NewExamCode
+        ), cancellationToken);
     }
 }

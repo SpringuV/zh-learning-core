@@ -1,7 +1,3 @@
-using Search.Application.EventHandlers.Lesson.Exercise;
-using Search.Application.EventHandlers.Lesson.Topic;
-using Search.Infrastructure.Queries.Lesson.Search.Validator;
-
 namespace Search.Infrastructure;
 
 public static class Dependencies
@@ -31,11 +27,26 @@ public static class Dependencies
         // Register exercise-specific search service
         services.AddScoped<IExerciseSearchQueriesService, ExerciseSearchQueriesService>();
 
-        // Register event handlers
-        services.AddScoped<IIntegrationEventHandler<UserRegisteredIntegrationEvent>, UserRegisteredEventHandler>();
-        services.AddScoped<IIntegrationEventHandler<UserProfileUpdatedIntegrationEvent>, UserProfileUpdatedEventHandler>();
-        services.AddScoped<IIntegrationEventHandler<CourseCreatedIntegrationEvent>, CourseCreatedEventHandler>();
-        services.AddScoped<IIntegrationEventHandler<TopicCreatedIntegrationEvent>, TopicCreatedEventHandler>();
-        services.AddScoped<IIntegrationEventHandler<ExerciseCreatedIntegrationEvent>, ExerciseCreatedEventHandler>();
+        RegisterIntegrationEventHandlers(services);
+    }
+
+    private static void RegisterIntegrationEventHandlers(IServiceCollection services)
+    {
+        var openGenericHandlerType = typeof(IIntegrationEventHandler<>);
+        var handlersAssembly = typeof(ExerciseCreatedEventHandler).Assembly;
+        // Find all classes that implement IIntegrationEventHandler<T> and register them
+        // dù ở bất kỳ namespace nào trong assembly, miễn là implement IIntegrationEventHandler<T> thì đều được đăng ký vào DI container với lifetime
+        var registrations = handlersAssembly
+            .GetTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false })
+            .SelectMany(implementationType => implementationType
+                .GetInterfaces()
+                .Where(serviceType => serviceType.IsGenericType && serviceType.GetGenericTypeDefinition() == openGenericHandlerType)
+                .Select(serviceType => new { serviceType, implementationType }));
+
+        foreach (var registration in registrations)
+        {
+            services.AddScoped(registration.serviceType, registration.implementationType);
+        }
     }
 }

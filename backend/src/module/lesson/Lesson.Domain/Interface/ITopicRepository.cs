@@ -5,6 +5,7 @@ namespace Lesson.Domain.Interface;
 public interface ITopicRepository
 {
     Task<TopicAggregate?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<IEnumerable<TopicAggregate>> GetByIdsAndCourseIdAsync(Guid courseId, IEnumerable<Guid> ids, CancellationToken ct = default);
     Task<IEnumerable<TopicAggregate>> GetAllByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task UpdateRangeAsync(IEnumerable<TopicAggregate> topics, CancellationToken ct = default);
     Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default);

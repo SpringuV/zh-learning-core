@@ -6,8 +6,13 @@ using HanziAnhVu.Shared.Domain;
 public sealed record CreateCourseRequestDTO(
     string Title,
     string Description,
-    int HskLevel,
-    string Slug
+    int HskLevel
+);
+public sealed record UpdateCourseRequestDTO(
+    Guid CourseId,
+    string? Title,
+    string? Description,
+    int? HskLevel
 );
 
 public sealed record CourseReorderRequestDTO(
@@ -26,7 +31,18 @@ public sealed record TopicCreateRequestDTO(
     int? ExamYear = null,
     string? ExamCode = null
 );
-
+public sealed record UpdateTopicRequestDTO(
+    Guid TopicId,
+    string? Title,
+    string? Description,
+    int? EstimatedTimeMinutes,
+    int? NewExamYear, 
+    string? NewExamCode
+);
+public sealed record TopicReorderRequestDTO(
+    Guid CourseId,
+    List<Guid> OrderedTopicIds
+);
 #endregion
 
 #region Exercise DTOs
@@ -43,6 +59,24 @@ public sealed record ExerciseCreateRequestDTO(
     string Explanation,
     string? AudioUrl = null,
     string? ImageUrl = null
+);
+public sealed record UpdateExerciseRequestDTO(
+    Guid ExerciseId,
+    string? Description,
+    string? Question,
+    string? CorrectAnswer,
+    ExerciseType? ExerciseType,
+    SkillType? SkillType,
+    ExerciseDifficulty? Difficulty,
+    ExerciseContext? ExerciseContext,
+    string? AudioUrl,
+    string? ImageUrl,
+    string? Explanation,
+    IReadOnlyList<ExerciseOption>? Options
+);
+public sealed record ExerciseReorderRequestDTO(
+    Guid TopicId,
+    List<Guid> OrderedExerciseIds
 );
 
 public sealed record ExerciseOptionDTO(

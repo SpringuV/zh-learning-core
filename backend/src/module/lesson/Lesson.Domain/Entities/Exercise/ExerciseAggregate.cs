@@ -197,7 +197,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             UpdatedAt
         ));
     }
-    public void Unpublish()
+    public void UnPublish()
     {
         if (!IsPublished)
             throw new InvalidOperationException("Exercise chưa được xuất bản.");
@@ -229,7 +229,6 @@ public class ExerciseAggregate: BaseAggregateRoot
         
         OrderIndex = newOrderIndex;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseOrderIndexUpdatedEvent(ExerciseId, newOrderIndex, UpdatedAt));
     }
 
     public void UpdateQuestion(string newQuestion)
@@ -241,6 +240,22 @@ public class ExerciseAggregate: BaseAggregateRoot
         Slug = GenerateSlug($"{ExerciseType}-{newQuestion[..Math.Min(20, newQuestion.Length)]}");
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new ExerciseQuestionUpdatedEvent(ExerciseId, newQuestion, Slug, UpdatedAt));
+    }
+
+    public void UpdateExerciseType(ExerciseType newExerciseType)
+    {
+        ExerciseType = newExerciseType;
+        Slug = GenerateSlug($"{ExerciseType}-{Question[..Math.Min(20, Question.Length)]}");
+        UpdatedAt = DateTime.UtcNow;
+        ValidateOptions();
+        AddDomainEvent(new ExerciseTypeUpdatedEvent(ExerciseId, TopicId, newExerciseType, Slug, UpdatedAt));
+    }
+
+    public void UpdateSkillType(SkillType newSkillType)
+    {
+        SkillType = newSkillType;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new ExerciseSkillTypeUpdatedEvent(ExerciseId, TopicId, newSkillType, UpdatedAt));
     }
 
     public void UpdateCorrectAnswer(string newCorrectAnswer)
@@ -260,11 +275,16 @@ public class ExerciseAggregate: BaseAggregateRoot
         AddDomainEvent(new ExerciseDifficultyUpdatedEvent(ExerciseId, newDifficulty, UpdatedAt));
     }
 
-    public void UpdateContext(ExerciseContext newContext)
+    public void UpdateExerciseContext(ExerciseContext newContext)
     {
         Context = newContext;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseContextUpdatedEvent(ExerciseId, newContext, UpdatedAt));
+        AddDomainEvent(new ExerciseContextUpdatedEvent(ExerciseId, TopicId, newContext, UpdatedAt));
+    }
+
+    public void UpdateContext(ExerciseContext newContext)
+    {
+        UpdateExerciseContext(newContext);
     }
 
     public void UpdateAudioUrl(string newAudioUrl)

@@ -61,6 +61,20 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
         return await _dbContext.Topics.FindAsync([TopicId], ct); // FindAsync sẽ tìm kiếm theo khóa chính (primary key) của bảng, ở đây là Id của TopicAggregate.
     }
 
+    public async Task<IEnumerable<TopicAggregate>> GetByIdsAndCourseIdAsync(Guid courseId, IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        return await ExecuteAsync(
+            async () =>
+            {
+                return await _dbContext.Topics.Where(t => t.CourseId == courseId && ids.Contains(t.TopicId)).ToListAsync(ct);
+            },
+            "Database error getting topics by course ID and topic IDs",
+            "Unexpected error getting topics by course ID and topic IDs",
+            "Không thể lấy các topic theo course ID và topic IDs",
+            courseId, string.Join(",", ids)
+        );
+    }
+
     public async Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default)
     {
         return await ExecuteAsync(

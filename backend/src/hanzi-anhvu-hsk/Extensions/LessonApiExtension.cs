@@ -1,3 +1,5 @@
+using HanziAnhVuHsk.Apis.LessonApi;
+
 namespace HanziAnhVuHsk.Extensions;
 public static class LessonApiExtensions
 {
@@ -10,9 +12,24 @@ public static class LessonApiExtensions
     }
     public static RouteGroupBuilder MapLessonApi(this RouteGroupBuilder group)
     {
-        group.MapPost("/course", LessonApi.CreateCourse).WithName("CreateCourse");
-        group.MapPost("/topic", LessonApi.CreateTopic).WithName("CreateTopic");
-        group.MapPost("/exercise", LessonApi.CreateExercise).WithName("CreateExercise");
+        // course
+        group.MapPost("/course", CourseApi.CreateCourse).WithName("CreateCourse");
+        group.MapPost("/course/{courseId:guid}/publish", CourseApi.PublishCourse).WithName("PublishCourse");
+        group.MapPost("/course/{courseId:guid}/unpublish", CourseApi.UnPublishCourse).WithName("UnPublishCourse");
+        group.MapPost("/course/reorder", CourseApi.CourseReOrder).WithName("CourseReOrder");
+        group.MapPatch("/course", CourseApi.UpdateCourse).WithName("UpdateCourse");
+        // topic
+        group.MapPost("/topic", TopicApi.CreateTopic).WithName("CreateTopic");
+        group.MapPatch("/topic", TopicApi.UpdateTopic).WithName("UpdateTopic");
+        group.MapPost("/topic/{topicId:guid}/publish", TopicApi.PublishTopic).WithName("PublishTopic");
+        group.MapPost("/topic/{topicId:guid}/unpublish", TopicApi.UnPublishTopic).WithName("UnPublishTopic");
+        group.MapPost("/topic/reorder", TopicApi.TopicReOrder).WithName("TopicReOrder");
+        // exercise
+        group.MapPost("/exercise/reorder", ExerciseApi.ExerciseReOrder).WithName("ExerciseReOrder");
+        group.MapPatch("/exercise", ExerciseApi.UpdateExercise).WithName("UpdateExercise");
+        group.MapPost("/exercise/{exerciseId:guid}/publish", ExerciseApi.PublishExercise).WithName("PublishExercise");
+        group.MapPost("/exercise/{exerciseId:guid}/unpublish", ExerciseApi.UnPublishExercise).WithName("UnPublishExercise");
+        group.MapPost("/exercise", ExerciseApi.CreateExercise).WithName("CreateExercise");
         return group;
     }
 }

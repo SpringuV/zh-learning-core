@@ -32,7 +32,13 @@ public sealed record CourseDescriptionUpdatedIntegrationEvent(
     DateTime UpdatedAt
 ): IntegrationEvent;
 
-public sealed record CourseOrderIndexUpdatedIntegrationEvent(
+public sealed record CourseHskLevelUpdatedIntegrationEvent(
+    Guid CourseId,
+    int NewHskLevel,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record CourseReOrderedIntegrationEvent(
     List<Guid> OrderedCourseIds,
     DateTime UpdatedAt
 ): IntegrationEvent;
@@ -57,6 +63,12 @@ public sealed record TopicAddedToCourseIntegrationEvent(
 public sealed record CourseEnrollmentCountUpdatedIntegrationEvent(
     Guid CourseId,
     long TotalStudentsEnrolled,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record CourseTotalTopicsUpdatedIntegrationEvent(
+    Guid CourseId,
+    long TotalTopics,
     DateTime UpdatedAt
 ): IntegrationEvent;
 #endregion
@@ -101,10 +113,9 @@ public sealed record TopicEstimatedTimeUpdatedIntegrationEvent(
     DateTime UpdatedAt
 ): IntegrationEvent;
 
-public sealed record TopicOrderIndexUpdatedIntegrationEvent(
-    Guid TopicId,
+public sealed record TopicReOrderedIntegrationEvent(
     Guid CourseId,
-    int NewOrderIndex,
+    IReadOnlyList<Guid> OrderedTopicIds,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
@@ -118,13 +129,11 @@ public sealed record TopicExamInfoUpdatedIntegrationEvent(
 
 public sealed record TopicPublishedIntegrationEvent(
     Guid TopicId,
-    Guid CourseId,
     DateTime PublishedAt
 ): IntegrationEvent;
 
 public sealed record TopicUnpublishedIntegrationEvent(
     Guid TopicId,
-    Guid CourseId,
     DateTime UnpublishedAt
 ): IntegrationEvent;
 
@@ -140,6 +149,12 @@ public sealed record ExerciseRemovedFromTopicIntegrationEvent(
     Guid CourseId,
     Guid ExerciseId,
     DateTime RemovedAt
+): IntegrationEvent;
+
+public sealed record TopicTotalExercisesUpdatedIntegrationEvent(
+    Guid TopicId,
+    long TotalExercises,
+    DateTime UpdatedAt
 ): IntegrationEvent;
 #endregion
 
@@ -167,36 +182,46 @@ public sealed record ExerciseCreatedIntegrationEvent(
 
 public sealed record ExerciseDescriptionUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     string NewDescription,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
-public sealed record ExerciseOrderIndexUpdatedIntegrationEvent(
-    Guid ExerciseId,
+public sealed record ExerciseReOrderedIntegrationEvent(
     Guid TopicId,
-    int NewOrderIndex,
+    IReadOnlyList<Guid> OrderedExerciseIds,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
 public sealed record ExerciseQuestionUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     string NewQuestion,
     string NewSlug,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
-public sealed record ExerciseCorrectAnswerUpdatedIntegrationEvent(
+public sealed record ExerciseTypeUpdatedIntegrationEvent(
     Guid ExerciseId,
     Guid TopicId,
+    ExerciseType NewExerciseType,
+    string NewSlug,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record ExerciseSkillTypeUpdatedIntegrationEvent(
+    Guid ExerciseId,
+    Guid TopicId,
+    SkillType NewSkillType,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record ExerciseCorrectAnswerUpdatedIntegrationEvent(
+    Guid ExerciseId,
     string NewCorrectAnswer,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
 public sealed record ExerciseDifficultyUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     ExerciseDifficulty NewDifficulty,
     DateTime UpdatedAt
 ): IntegrationEvent;
@@ -210,14 +235,12 @@ public sealed record ExerciseContextUpdatedIntegrationEvent(
 
 public sealed record ExerciseAudioUrlUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     string NewAudioUrl,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
 public sealed record ExerciseImageUrlUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     string NewImageUrl,
     DateTime UpdatedAt
 ): IntegrationEvent;
@@ -231,14 +254,18 @@ public sealed record ExerciseExplanationUpdatedIntegrationEvent(
 
 public sealed record ExercisePublishedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     DateTime PublishedAt
 ): IntegrationEvent;
 
 public sealed record ExerciseUnpublishedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     DateTime UnpublishedAt
+): IntegrationEvent;
+
+public sealed record ExerciseOptionsUpdatedIntegrationEvent(
+    Guid ExerciseId,
+    List<ExerciseOption> NewOptions,
+    DateTime UpdatedAt
 ): IntegrationEvent;
 #endregion
 

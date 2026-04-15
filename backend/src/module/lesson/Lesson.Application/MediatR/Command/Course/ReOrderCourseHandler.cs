@@ -1,5 +1,3 @@
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Application.MediatR.Command.Course;
 
 public record ReOrderCourseCommand(List<Guid> OrderedCourseIds) : IRequest<Result>;
@@ -28,6 +26,7 @@ public class ReOrderCourseHandler(ICourseRepository courseRepository, ILessonUni
                 // Update tất cả OrderIndex
                 for (int i = 0; i < courses.Count(); i++)
                 {
+                    // Cập nhật OrderIndex dựa trên vị trí trong OrderedCourseIds, đảm bảo thứ tự chính xác
                     courses.ElementAt(i).UpdateOrderIndex(i + 1);
                 }
 

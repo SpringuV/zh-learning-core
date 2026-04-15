@@ -2,7 +2,7 @@ global using Lesson.Contracts.DTOs;
 global using Lesson.Domain.Entities;
 global using Lesson.Domain.Interface;
 global using MediatR;
-
+global using FluentValidation;
 global using HanziAnhVu.Shared.Application;
 global using Microsoft.Extensions.Logging;
 global using HanziAnhVu.Shared.Contracts;
@@ -13,3 +13,8 @@ global using Lesson.Contracts;
 global using Lesson.Domain.Entities.Exercise;
 global using Lesson.Application.MediatR.Command.Exercise.Create;
 global using Lesson.Application.MediatR.Command.Topic;
+global using Lesson.Domain.Entities.Events;
+global using HanziAnhVu.Shared.Domain;
+global using Lesson.Application.MediatR.Command.Exercise;
+global using Lesson.Application.MediatR.Command.Exercise.Update;
+global using Lesson.Application.MediatR.Command.Topic.Update;

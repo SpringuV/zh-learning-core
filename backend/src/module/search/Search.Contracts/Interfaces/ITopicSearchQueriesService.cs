@@ -4,7 +4,15 @@ namespace Search.Contracts.Interfaces;
 
 public interface ITopicSearchQueriesService
 {
+    Task UpdateExamInfoAsync(TopicExamInfoUpdatedRequestDTO request, CancellationToken cancellationToken = default);
+    Task UpdateEstimatedTimeAsync(TopicEstimatedTimeUpdatedRequestDTO request, CancellationToken cancellationToken = default);
+    Task UpdateDescriptionAsync(TopicDescriptionUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task<TopicIndexResponse> IndexAsync(TopicSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
+    Task UpdateTitleAsync(TopicTitleUpdatedRequestDTO request, CancellationToken cancellationToken = default);
+    Task UnPublishAsync(TopicUnPublishedRequestDTO request, CancellationToken cancellationToken = default);
+    Task PublishAsync(TopicPublishedRequestDTO request, CancellationToken cancellationToken = default);
+    Task ReOrderAsync(TopicReorderSearchRequestDTO request, CancellationToken cancellationToken = default);
+    Task UpdateTotalExercisesAsync(TopicTotalExercisesUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<SearchQueryResult<TopicSearchItemAdminResponse>> SearchTopicAdminAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default);
 }

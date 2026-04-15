@@ -1,5 +1,3 @@
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Application.Outbox.Topic;
 
 public sealed class TopicCreatedOutbox(ILessonOutboxWriter lessonOutboxWriter)

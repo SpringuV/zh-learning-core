@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Contracts.DTOs;
 
 #region Exercise Search DTOs
@@ -23,6 +25,64 @@ public sealed record ExerciseSearchIndexQueriesRequest(
     DateTime UpdatedAt,
     IReadOnlyList<ExerciseOptionIndexDTOs> Options);
 
+public sealed record ExercisePublishedRequestDTO(
+    Guid ExerciseId,
+    DateTime UpdatedAt);
+public sealed record ExerciseUnPublishedRequestDTO(
+    Guid ExerciseId,
+    DateTime UpdatedAt);
+
+public sealed record ExerciseReorderSearchRequestDTO(
+    Guid TopicId,
+    IReadOnlyList<Guid> OrderedExerciseIds,
+    DateTime UpdatedAt);
+public sealed record ExerciseTypeUpdatedRequestDTO(
+    Guid ExerciseId,
+    Guid TopicId,
+    ExerciseType NewExerciseType,
+    DateTime UpdatedAt);
+public sealed record ExerciseSkillTypeUpdatedRequestDTO(
+    Guid ExerciseId,
+    Guid TopicId,
+    SkillType NewSkillType,
+    DateTime UpdatedAt);
+public sealed record ExerciseContextUpdatedRequestDTO(
+    Guid ExerciseId,
+    ExerciseContext NewContext,
+    DateTime UpdatedAt);
+public sealed record ExerciseDescriptionUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewDescription,
+    DateTime UpdatedAt);
+public sealed record ExerciseQuestionUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewQuestion,
+    string NewSlug,
+    DateTime UpdatedAt);
+public sealed record ExerciseCorrectAnswerUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewCorrectAnswer,
+    DateTime UpdatedAt);
+public sealed record ExerciseDifficultyUpdatedRequestDTO(
+    Guid ExerciseId,
+    ExerciseDifficulty NewDifficulty,
+    DateTime UpdatedAt);
+public sealed record ExerciseAudioUrlUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewAudioUrl,
+    DateTime UpdatedAt);
+public sealed record ExerciseImageUrlUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewImageUrl,
+    DateTime UpdatedAt);
+public sealed record ExerciseExplanationUpdatedRequestDTO(
+    Guid ExerciseId,
+    string NewExplanation,
+    DateTime UpdatedAt);
+public sealed record ExerciseOptionsUpdatedRequestDTO(
+    Guid ExerciseId,
+    IReadOnlyList<ExerciseOption> NewOptions,
+    DateTime UpdatedAt);
 public enum ExerciseSortBy
 {
     CreatedAt,
@@ -152,6 +212,43 @@ public enum UserSortBy
 #endregion
 
 #region Topic Search DTOs
+public sealed record TopicDescriptionUpdatedRequestDTO(
+    Guid CourseId,
+    Guid TopicId,
+    string NewDescription,
+    DateTime UpdatedAt);
+public sealed record TopicExamInfoUpdatedRequestDTO(
+    Guid CourseId,
+    Guid TopicId,
+    int? NewExamYear,
+    string NewExamCode,
+    DateTime UpdatedAt);
+public sealed record TopicEstimatedTimeUpdatedRequestDTO(
+    Guid CourseId,
+    Guid TopicId,
+    long NewEstimatedTimeMinutes,
+    DateTime UpdatedAt);
+public sealed record TopicTitleUpdatedRequestDTO(
+    Guid CourseId,
+    Guid TopicId,
+    string NewTitle,
+    string NewSlug,
+    DateTime UpdatedAt);
+public sealed record TopicReorderSearchRequestDTO(
+    Guid CourseId,
+    IReadOnlyList<Guid> OrderedTopicIds,
+    DateTime UpdatedAt);
+
+public sealed record TopicUnPublishedRequestDTO(
+    Guid TopicId,
+    DateTime UpdatedAt);
+public sealed record TopicPublishedRequestDTO(
+    Guid TopicId,
+    DateTime UpdatedAt);
+public sealed record TopicTotalExercisesUpdatedRequestDTO(
+    Guid TopicId,
+    long TotalExercises,
+    DateTime UpdatedAt);
 public sealed record TopicSearchIndexQueriesRequest(
     Guid TopicId,
     Guid CourseId,
@@ -170,6 +267,32 @@ public sealed record TopicSearchIndexQueriesRequest(
 #endregion
 
 #region Course Search DTOs
+public sealed record CourseReorderSearchRequestDTO(
+    List<Guid> OrderedCourseIds,
+    DateTime UpdatedAt);
+public sealed record CoursePublishedSearchRequestDTO(
+    Guid CourseId,
+    DateTime UpdatedAt);
+public sealed record CourseUnPublishedSearchRequestDTO(
+    Guid CourseId,
+    DateTime UpdatedAt);
+public sealed record CourseTotalTopicsUpdatedSearchRequestDTO(
+    Guid CourseId,
+    long TotalTopics,
+    DateTime UpdatedAt);
+public sealed record CourseTitleUpdatedSearchRequestDTO(
+    Guid CourseId,
+    string Title,
+    string Slug,
+    DateTime UpdatedAt);
+public sealed record CourseDescriptionUpdatedSearchRequestDTO(
+    Guid CourseId,
+    string NewDescription,
+    DateTime UpdatedAt);
+public sealed record CourseHskLevelUpdatedSearchRequestDTO(
+    Guid CourseId,
+    int HskLevel,
+    DateTime UpdatedAt);
 public sealed record CourseSearchIndexQueriesRequest(
     Guid CourseId,
     string Title,

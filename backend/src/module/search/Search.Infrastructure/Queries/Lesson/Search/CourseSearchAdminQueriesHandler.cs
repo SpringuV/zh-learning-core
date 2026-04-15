@@ -17,7 +17,7 @@ public sealed record CourseSearchAdminQueries(
 {
     public string CacheKey =>
     // kí tự O trong format string để serialize DateTime theo chuẩn ISO 8601 đảm bảo cache key ổn định và chính xác khi có trường DateTime
-        $"course-search:{Title}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
+        $"course-s-adm:{Title}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(5);
 
     public string CacheScope => SearchCacheScopes.CourseAdminSearch;

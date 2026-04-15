@@ -52,6 +52,19 @@ public class ExerciseRepository(
             id);
     }
 
+    public async Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAndIdsAsync(Guid topicId, IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        return await ExecuteAsync(
+            async () => await _dbContext.Exercises
+                .Where(e => e.TopicId == topicId && ids.Contains(e.ExerciseId))
+                .ToListAsync(ct),
+            "Database error retrieving exercises by topic ID and exercise IDs: {TopicId}, {ExerciseIds}",
+            "Unexpected error retrieving exercises by topic ID and exercise IDs: {TopicId}, {ExerciseIds}",
+            "Không thể truy xuất exercises theo topic ID và exercise IDs",
+            topicId, string.Join(",", ids)
+        );
+    }
+
     public async Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAsync(Guid topicId, CancellationToken ct = default)
     {
         return await ExecuteAsync(

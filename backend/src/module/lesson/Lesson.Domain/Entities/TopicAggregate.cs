@@ -22,9 +22,6 @@ public class TopicAggregate: BaseAggregateRoot
     public DateTime UpdatedAt { get; private set; }
     public bool IsPublished { get; private set; }
 
-    private readonly List<Guid> _ExerciseIds = [];
-    public IReadOnlyList<Guid> ExerciseIds => _ExerciseIds.AsReadOnly();
-
     public static TopicAggregate CreateTopic(
         string title,
         string description,
@@ -91,7 +88,7 @@ public class TopicAggregate: BaseAggregateRoot
         Title = newTitle;
         Slug = GenerateSlug(newTitle);
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicTitleUpdatedEvent(TopicId, newTitle, Slug, UpdatedAt));
+        AddDomainEvent(new TopicTitleUpdatedEvent(TopicId, CourseId, newTitle, Slug, UpdatedAt));
     }
 
     public void UpdateDescription(string newDescription)
@@ -101,7 +98,7 @@ public class TopicAggregate: BaseAggregateRoot
         
         Description = newDescription;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicDescriptionUpdatedEvent(TopicId, newDescription, UpdatedAt));
+        AddDomainEvent(new TopicDescriptionUpdatedEvent(TopicId, CourseId, newDescription, UpdatedAt));
     }
 
     public void UpdateEstimatedTime(int newEstimatedTimeMinutes)
@@ -111,7 +108,7 @@ public class TopicAggregate: BaseAggregateRoot
         
         EstimatedTimeMinutes = newEstimatedTimeMinutes;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicEstimatedTimeUpdatedEvent(TopicId, newEstimatedTimeMinutes, UpdatedAt));
+        AddDomainEvent(new TopicEstimatedTimeUpdatedEvent(TopicId, CourseId, newEstimatedTimeMinutes, UpdatedAt));
     }
 
     public void UpdateOrderIndex(int newOrderIndex)
@@ -121,7 +118,6 @@ public class TopicAggregate: BaseAggregateRoot
         
         OrderIndex = newOrderIndex;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicOrderIndexUpdatedEvent(TopicId, newOrderIndex, UpdatedAt));
     }
 
     public void UpdateExamInfo(int newExamYear, string newExamCode)
@@ -138,34 +134,25 @@ public class TopicAggregate: BaseAggregateRoot
         ExamYear = newExamYear;
         ExamCode = newExamCode;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new TopicExamInfoUpdatedEvent(TopicId, newExamYear, newExamCode, UpdatedAt));
+        AddDomainEvent(new TopicExamInfoUpdatedEvent(TopicId, CourseId, newExamYear, newExamCode, UpdatedAt));
     }
 
-    public void AddExercise(Guid exerciseId)
+    public void IncrementTotalExercises()
     {
-        if (exerciseId == Guid.Empty) throw new ArgumentException("ExerciseId không được để trống.", nameof(exerciseId));
-        if (_ExerciseIds.Contains(exerciseId)) throw new InvalidOperationException("Exercise đã tồn tại trong chủ đề.");
-        
-        _ExerciseIds.Add(exerciseId);
+        TotalExercises += 1;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseAddedToTopicEvent(
-            TopicId,
-            exerciseId,
-            UpdatedAt
-        ));
+        AddDomainEvent(new TopicTotalExercisesUpdatedEvent(TopicId, TotalExercises, UpdatedAt));
     }
-    public void RemoveExercise(Guid exerciseId)
+
+    public void DecrementTotalExercises()
     {
-        if (exerciseId == Guid.Empty) throw new ArgumentException("ExerciseId không được để trống.", nameof(exerciseId));
-        if (!_ExerciseIds.Contains(exerciseId)) throw new InvalidOperationException("Exercise không tồn tại trong chủ đề.");
-        
-        _ExerciseIds.Remove(exerciseId);
+        if (TotalExercises <= 0)
+            throw new InvalidOperationException("TotalExercises không thể nhỏ hơn 0.");
+
+        TotalExercises -= 1;
         UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new ExerciseRemovedFromTopicEvent(
-            TopicId,
-            exerciseId,
-            UpdatedAt
-        ));
+        AddDomainEvent(new TopicTotalExercisesUpdatedEvent(TopicId, TotalExercises, UpdatedAt));
+
     }
 
     public void Publish()
@@ -179,7 +166,7 @@ public class TopicAggregate: BaseAggregateRoot
         ));
     }
 
-    public void Unpublish()
+    public void UnPublish()
     {
         if (!IsPublished) throw new InvalidOperationException("Chủ đề chưa được xuất bản.");
         IsPublished = false;

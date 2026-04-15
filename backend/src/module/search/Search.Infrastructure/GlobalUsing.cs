@@ -25,3 +25,7 @@ global using Search.Infrastructure.Queries.Lesson.Search;
 global using Search.Infrastructure.Queries.Lesson.Indexs;
 global using HanziAnhVu.Shared.Application;
 global using Search.Contracts;
+global using Elastic.Clients.Elasticsearch.Core.Bulk;
+global using Search.Application.EventHandlers.Lesson.Exercise;
+global using Search.Application.EventHandlers.Lesson.Topic;
+global using Search.Infrastructure.Queries.Lesson.Search.Validator;

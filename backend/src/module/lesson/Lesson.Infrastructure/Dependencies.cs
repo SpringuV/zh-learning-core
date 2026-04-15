@@ -9,7 +9,8 @@ public static class Dependencies
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateCourseHandler).Assembly));
         // Register validators for MediatR ValidationBehavior.
         services.AddTransient<IValidator<CreateExerciseCommand>, ValidatorCreateCommand>();
-
+        services.AddTransient<IValidator<UpdateExerciseCommand>, ValidatorUpdateExercise>();
+        services.AddTransient<IValidator<UpdateTopicCommand>, ValidatorUpdateTopic>();
         // Register DbContext
         // DB cho Lesson module
         var connectionString = configuration.GetConnectionString("LessonDbConnection")
