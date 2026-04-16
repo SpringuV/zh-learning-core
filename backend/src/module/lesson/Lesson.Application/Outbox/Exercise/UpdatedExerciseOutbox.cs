@@ -188,4 +188,29 @@ public sealed class ExerciseAudioUrlUpdatedOutbox(ILessonOutboxWriter outboxWrit
             cancellationToken);
 }
 #endregion
-
+#region Deleted
+public sealed class ExerciseDeletedOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<ExerciseDeletedEvent>
+{
+    public Task Handle(ExerciseDeletedEvent notification, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new ExerciseDeletedIntegrationEvent(
+                ExerciseId: notification.ExerciseId
+            ),
+            cancellationToken);
+}
+#endregion
+#region  Explanation
+public sealed class ExerciseExplanationUpdatedOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<ExerciseExplanationUpdatedEvent>
+{
+    public Task Handle(ExerciseExplanationUpdatedEvent notification, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new ExerciseExplanationUpdatedIntegrationEvent(
+                ExerciseId: notification.ExerciseId,
+                NewExplanation: notification.NewExplanation,
+                UpdatedAt: notification.UpdatedAt
+            ),
+            cancellationToken);
+}
+#endregion

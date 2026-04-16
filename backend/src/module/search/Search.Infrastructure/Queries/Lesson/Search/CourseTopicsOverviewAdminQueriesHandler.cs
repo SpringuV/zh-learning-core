@@ -15,7 +15,16 @@ public sealed record CourseTopicsOverviewAdminQueries(
     string? SearchAfterValues = null,
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true
-) : IRequest<TopicSearchWithCourseMetadataResponse>;
+) : IRequest<TopicSearchWithCourseMetadataResponse>,
+    ICacheableRequest<TopicSearchWithCourseMetadataResponse>,
+    ICacheScopeRequest
+{
+    public string CacheKey => $"CourseTopicsOverviewAdmin:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt}:{EndCreatedAt}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
+
+    public TimeSpan CacheDuration => TimeSpan.FromMinutes(1); // cache kết quả trong 1 phút
+
+    public string CacheScope => SearchCacheScopes.TopicAdminSearch;
+};
 
 public sealed class CourseTopicsOverviewAdminQueriesHandler(
     IMediator mediator,
@@ -49,7 +58,7 @@ public sealed class CourseTopicsOverviewAdminQueriesHandler(
         var courseMetadata = await LoadCourseMetadataAsync(request.CourseId, cancellationToken);
 
         return new TopicSearchWithCourseMetadataResponse(
-            Course: courseMetadata,
+            ParentMetadata: courseMetadata,
             Total: topicsResult.Total,
             Items: topicsResult.Items,
             HasNextPage: topicsResult.HasNextPage,

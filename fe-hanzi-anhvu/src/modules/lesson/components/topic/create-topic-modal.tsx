@@ -7,7 +7,7 @@ import {
     TopicCreateRequest,
     TopicFormState,
     TopicType,
-} from "@/modules/lesson/api/topic.api";
+} from "@/modules/lesson/types/topic.type";
 import { useCreateTopic } from "@/modules/lesson/hooks/use.topic.tanstack";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -107,9 +107,15 @@ export function CreateTopicModal({
         }
         if (!title) {
             nextErrors.title = "Tiêu đề topic không được để trống.";
+        } else if (title.length < 3) {
+            nextErrors.title = "Tiêu đề topic phải có ít nhất 3 ký tự.";
+        } else if (title.length > 140) {
+            nextErrors.title = "Tiêu đề topic tối đa 140 ký tự.";
         }
         if (!description) {
             nextErrors.description = "Mô tả topic không được để trống.";
+        } else if (description.length > 1000) {
+            nextErrors.description = "Mô tả topic tối đa 1000 ký tự.";
         }
         if (
             Number.isNaN(estimatedTimeMinutes) ||
@@ -129,13 +135,17 @@ export function CreateTopicModal({
             if (
                 Number.isNaN(examYear) ||
                 !Number.isInteger(examYear) ||
-                examYear <= 0
+                examYear < 1950 ||
+                examYear > new Date().getFullYear() + 1
             ) {
-                nextErrors.examYear = "ExamYear phải là số nguyên lớn hơn 0.";
+                nextErrors.examYear =
+                    "ExamYear phải trong khoảng hợp lệ (1950 đến năm sau hiện tại).";
             }
             if (!examCode) {
                 nextErrors.examCode =
                     "ExamCode không được để trống với topic Exam.";
+            } else if (examCode.length > 40) {
+                nextErrors.examCode = "ExamCode tối đa 40 ký tự.";
             }
         }
 

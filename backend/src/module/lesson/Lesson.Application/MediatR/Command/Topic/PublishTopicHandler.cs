@@ -20,21 +20,16 @@ public class PublishTopicHandler(ITopicRepository topicRepository, ILessonUnitOf
 
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                topicAggregate = await _topicRepository.GetByIdAsync(request.TopicId, cancellationToken);
-                if (topicAggregate is not null)
-                {
-                    topicAggregate.Publish();
-                    await _topicRepository.UpdateAsync(topicAggregate, cancellationToken);
+                topicAggregate = await _topicRepository.GetByIdAsync(request.TopicId, cancellationToken) ?? throw new KeyNotFoundException($"Topic with id '{request.TopicId}' was not found.");
+                topicAggregate.Publish();
+                await _topicRepository.UpdateAsync(topicAggregate, cancellationToken);
 
-                    _logger.LogInformation("[PublishTopicHandler] Publishing {EventCount} domain events in-transaction", topicAggregate.DomainEvents.Count);
-                    foreach (var domainEvent in topicAggregate.DomainEvents)
-                    {
-                        await _publisher.Publish(domainEvent, cancellationToken);
-                    }
-                    topicAggregate.PopDomainEvents();
+                _logger.LogInformation("[PublishTopicHandler] Publishing {EventCount} domain events in-transaction", topicAggregate.DomainEvents.Count);
+                foreach (var domainEvent in topicAggregate.DomainEvents)
+                {
+                    await _publisher.Publish(domainEvent, cancellationToken);
                 }
-                else
-                    throw new KeyNotFoundException($"Không tìm thấy chủ đề với ID: {request.TopicId}");
+                topicAggregate.PopDomainEvents();  
             }, cancellationToken);
 
             return Result.SuccessResult(
@@ -45,7 +40,7 @@ public class PublishTopicHandler(ITopicRepository topicRepository, ILessonUnitOf
         {
             _logger.LogWarning(ex, "Topic not found with ID: {TopicId}", request.TopicId);
             return Result.FailureResult(
-                "Không tìm thấy chủ đề với ID: " + request.TopicId,
+                "Không tìm thấy chủ đề.",
                 (int)ErrorCode.NOTFOUND
             );
         }

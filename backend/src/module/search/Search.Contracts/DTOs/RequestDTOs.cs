@@ -24,7 +24,8 @@ public sealed record ExerciseSearchIndexQueriesRequest(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     IReadOnlyList<ExerciseOptionIndexDTOs> Options);
-
+public sealed record ExerciseDeletedRequestDTO(
+    Guid ExerciseId);
 public sealed record ExercisePublishedRequestDTO(
     Guid ExerciseId,
     DateTime UpdatedAt);
@@ -223,6 +224,8 @@ public sealed record TopicExamInfoUpdatedRequestDTO(
     int? NewExamYear,
     string NewExamCode,
     DateTime UpdatedAt);
+public sealed record TopicDeletedRequestDTO(
+    Guid TopicId);
 public sealed record TopicEstimatedTimeUpdatedRequestDTO(
     Guid CourseId,
     Guid TopicId,
@@ -289,6 +292,9 @@ public sealed record CourseDescriptionUpdatedSearchRequestDTO(
     Guid CourseId,
     string NewDescription,
     DateTime UpdatedAt);
+public sealed record CourseDeletedSearchRequestDTO(
+    Guid CourseId
+);
 public sealed record CourseHskLevelUpdatedSearchRequestDTO(
     Guid CourseId,
     int HskLevel,

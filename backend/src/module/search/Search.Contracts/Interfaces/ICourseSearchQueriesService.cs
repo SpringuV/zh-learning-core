@@ -9,7 +9,7 @@ public interface ICourseSearchQueriesService
 
     Task<CourseIndexResponse> IndexAsync(CourseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
     // Task<CourseSearchPatchDocumentResponse?> PatchAsync(Guid id, CourseSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(CourseDeletedSearchRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateTotalTopicsAsync(CourseTotalTopicsUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateTitleAsync(CourseTitleUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateDescriptionAsync(CourseDescriptionUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default);

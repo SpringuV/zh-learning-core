@@ -43,7 +43,8 @@ public static class LessonSearchApi
             return Results.Problem(ex.Message);
         }
     }
-
+    
+    // This API is used to search for topics with course metadata, which is used in the topic management page.
     public static async Task<IResult> SearchCourseTopicsOverview([AsParameters] TopicSearchQueryRequest request, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, CancellationToken ct)
     {
         try
@@ -54,6 +55,27 @@ public static class LessonSearchApi
             }
 
             var results = await topicSearchQueriesService.SearchTopicAdminWithCourseMetadataAsync(request, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+
+    public static async Task<IResult> SearchTopicExercisesOverview([AsParameters] ExerciseSearchQueryRequest request, [FromServices] IExerciseSearchQueriesService exerciseSearchQueriesService, CancellationToken ct)
+    {
+        try
+        {
+            if (request.Take <= 0)
+            {
+                return Results.BadRequest(new { message = "Take must be greater than zero." });
+            }
+            var results = await exerciseSearchQueriesService.SearchExerciseAdminWithTopicMetadataAsync(request, ct);
             return Results.Ok(results);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

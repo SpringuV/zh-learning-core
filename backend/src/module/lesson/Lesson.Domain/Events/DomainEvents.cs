@@ -75,6 +75,10 @@ public record TopicUnpublishedEvent(
     DateTime UnpublishedAt
 ): BaseDomainEvent, INotification;
 
+public record TopicDeletedEvent(
+    Guid TopicId
+): BaseDomainEvent, INotification;
+
 public record ExerciseAddedToTopicEvent(
     Guid TopicId,
     Guid ExerciseId,
@@ -91,6 +95,10 @@ public record ExerciseRemovedFromTopicEvent(
 
 #region Course events
 // --------------- course events --------------
+public record CourseDeletedEvent(
+    Guid CourseId
+): BaseDomainEvent, INotification;
+
 public record CourseCreatedEvent(
     Guid CourseId,
     string Title,
@@ -157,6 +165,9 @@ public record CourseTotalTopicsUpdatedEvent(
 #endregion
 
 #region Exercise events
+public record ExerciseDeletedEvent(
+    Guid ExerciseId
+): BaseDomainEvent, INotification;
 // ============= EXERCISE EVENTS =============
 public sealed record ExerciseCreatedEvent(
     Guid ExerciseId,

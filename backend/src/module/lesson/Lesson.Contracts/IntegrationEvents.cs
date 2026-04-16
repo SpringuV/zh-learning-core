@@ -1,10 +1,12 @@
 using HanziAnhVu.Shared.Domain;
 using HanziAnhVu.Shared.EventBus;
-using Lesson.Domain.Entities.Exercise;
 
 namespace Lesson.Contracts;
 
 #region Course Events
+public sealed record CourseDeletedIntegrationEvent(
+    Guid CourseId
+): IntegrationEvent;
 public sealed record CourseCreatedIntegrationEvent(
     Guid CourseId,
     string Title,
@@ -74,6 +76,10 @@ public sealed record CourseTotalTopicsUpdatedIntegrationEvent(
 #endregion
 
 #region Topic Events
+
+public sealed record TopicDeletedIntegrationEvent(
+    Guid TopicId
+): IntegrationEvent;
 public sealed record TopicCreatedIntegrationEvent(
     Guid TopicId,
     Guid CourseId,
@@ -159,6 +165,9 @@ public sealed record TopicTotalExercisesUpdatedIntegrationEvent(
 #endregion
 
 #region Exercise Events
+public sealed record ExerciseDeletedIntegrationEvent(
+    Guid ExerciseId
+): IntegrationEvent;
 public sealed record ExerciseCreatedIntegrationEvent(
     Guid ExerciseId,
     Guid TopicId,
@@ -247,7 +256,6 @@ public sealed record ExerciseImageUrlUpdatedIntegrationEvent(
 
 public sealed record ExerciseExplanationUpdatedIntegrationEvent(
     Guid ExerciseId,
-    Guid TopicId,
     string NewExplanation,
     DateTime UpdatedAt
 ): IntegrationEvent;

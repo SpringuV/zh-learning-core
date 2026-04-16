@@ -133,4 +133,21 @@ public class ExerciseApi
         }
     }
     #endregion
+    #region Delete Exercise
+    public static async Task<IResult> DeleteExercise(
+        [FromRoute] Guid exerciseId, 
+        ILessonService lessonService, 
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.DeleteExerciseAsync(exerciseId, ct);
+            return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
 }

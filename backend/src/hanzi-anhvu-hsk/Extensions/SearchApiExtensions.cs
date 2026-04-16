@@ -19,7 +19,7 @@ public static class SearchApiExtensions
         group.MapGet("/topics", LessonSearchApi.SearchTopics).RequireAuthorization();
         group.MapGet("/course-topics", LessonSearchApi.SearchCourseTopicsOverview).RequireAuthorization();
         group.MapGet("/exercises", LessonSearchApi.SearchExercises).RequireAuthorization();
-
+        group.MapGet("/topic-exercises", LessonSearchApi.SearchTopicExercisesOverview).RequireAuthorization();
         return group;
     }
     public static RouteGroupBuilder MapSearchUserApi(this RouteGroupBuilder group)

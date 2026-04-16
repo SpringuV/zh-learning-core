@@ -382,3 +382,27 @@ public class ExerciseOptionsUpdatedEventHandler(
     }
 }
 #endregion
+#region Delete
+public class ExerciseDeletedEventHandler(
+        IExerciseSearchQueriesService exerciseSearchService,
+        ICacheVersionService cacheVersionService,
+        ILogger<ExerciseDeletedEventHandler> logger)
+    : IIntegrationEventHandler<ExerciseDeletedIntegrationEvent>
+{
+    private readonly IExerciseSearchQueriesService _exerciseSearchService = exerciseSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
+    private readonly ILogger<ExerciseDeletedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(ExerciseDeletedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Deleting exercise {ExerciseId} from Elasticsearch", @event.ExerciseId);
+        var request = new ExerciseDeletedRequestDTO(
+            ExerciseId: @event.ExerciseId
+        );
+
+        await _exerciseSearchService.DeleteAsync(request, ct);
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.ExerciseAdminSearch, ct);
+        _logger.LogInformation("Exercise {ExerciseId} deleted successfully from Elasticsearch", @event.ExerciseId);
+    }
+}
+#endregion

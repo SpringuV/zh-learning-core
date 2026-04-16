@@ -19,6 +19,7 @@ public sealed record CourseReorderRequestDTO(
     List<Guid> OrderedCourseIds
 );
 
+
 #endregion
 
 #region Topic DTOs

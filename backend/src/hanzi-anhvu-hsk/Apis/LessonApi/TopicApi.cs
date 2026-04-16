@@ -87,4 +87,22 @@ public class TopicApi
         }
     }
     #endregion
+    #region Delete Topic
+    public static async Task<IResult> DeleteTopic(
+        [FromRoute] Guid topicId, 
+        ILessonService lessonService, 
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.DeleteTopicAsync(topicId, ct);
+            return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+
+    #endregion
 }

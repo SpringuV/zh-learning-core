@@ -121,7 +121,7 @@ public sealed record CourseMetadataForTopicAdminResponse(
     long TotalStudentsEnrolled);
 
 public sealed record TopicSearchWithCourseMetadataResponse(
-    CourseMetadataForTopicAdminResponse? Course,
+    CourseMetadataForTopicAdminResponse? ParentMetadata,
     long Total,
     IReadOnlyList<TopicSearchItemAdminResponse> Items,
     bool HasNextPage,
@@ -132,6 +132,23 @@ public sealed record TopicSearchWithCourseMetadataResponse(
 public sealed record ExerciseIndexResponse(
     Guid ExerciseId,
     DateTime CreatedAt);
+
+public sealed record TopicMetadataForExerciseAdminResponse(
+    Guid Id,
+    string Title,
+    long EstimatedTimeMinutes,
+    bool IsPublished,
+    string TopicType,
+    int? ExamYear,
+    string? ExamCode,
+    string Slug,
+    long TotalExercises);
+public sealed record ExerciseSearchWithTopicMetadataResponse(
+    TopicMetadataForExerciseAdminResponse? ParentMetadata,
+    long Total,
+    IReadOnlyList<ExerciseSearchItemAdminResponse> Items,
+    bool HasNextPage,
+    string NextCursor);
 
 public sealed record ExerciseSearchItemAdminResponse(
     Guid ExerciseId,

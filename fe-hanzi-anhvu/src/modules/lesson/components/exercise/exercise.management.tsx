@@ -22,34 +22,56 @@ import {
     SelectValue,
 } from "@/shared/components/ui/select";
 import { CustomPagination } from "@/shared/components/cms/custom-pagination";
-import { CreateTopicModal } from "@/modules/lesson/components/topic/create-topic-modal";
 import {
-    useDeleteTopic,
-    useGetCourseTopicsOverview,
-    usePublishTopic,
-    useUnPublishTopic,
-} from "@/modules/lesson/hooks/use.topic.tanstack";
+    useDeleteExercise,
+    useGetTopicExercisesOverview,
+    usePublishExercise,
+    useUnPublishExercise,
+} from "@/modules/lesson/hooks/use.exercise.tanstack";
 import {
-    TopicQueryParams,
-    TopicSortBy,
-    TopicType,
-} from "@/modules/lesson/types/topic.type";
+    ExerciseListQueryParams,
+    ExerciseSortBy,
+    ExerciseType,
+    SkillType,
+} from "@/modules/lesson/types/exercise.type";
 
-type TopicTypeFilter = TopicType | "all";
+type ExerciseTypeFilter = ExerciseType | "all";
+type SkillFilter = SkillType | "all";
 type PublishFilter = "all" | "published" | "draft";
 
-const initialTopicQueryParams: TopicQueryParams = {
-    title: "",
-    orderByDescending: false,
+const initialExerciseQueryParams: ExerciseListQueryParams = {
+    question: "",
+    orderByDescending: true,
     sortBy: "CreatedAt",
     take: 50,
 };
 
-export default function TopicManagementByCourse() {
+const exerciseTypeLabels: Record<ExerciseType, string> = {
+    ListenDialogueChoice: "Nghe hội thoại",
+    ListenImageChoice: "Nghe chọn hình",
+    ListenFillBlank: "Nghe điền từ",
+    ListenSentenceJudge: "Nghe đúng/sai",
+    ReadFillBlank: "Đọc điền từ",
+    ReadComprehension: "Đọc hiểu",
+    ReadSentenceOrder: "Sắp xếp câu",
+    ReadMatch: "Đọc nối",
+    WriteHanzi: "Viết Hán tự",
+    WritePinyin: "Viết Pinyin",
+    WriteSentence: "Viết câu",
+};
+
+const skillLabels: Record<SkillType, string> = {
+    Listening: "Nghe",
+    Reading: "Đọc",
+    Writing: "Viết",
+    Speaking: "Nói",
+};
+
+export default function ExerciseManagementByTopic() {
     const params = useParams();
     const courseId = params["course-id"];
-    // courseId maybe string or string[], Depending on how routes are defined in Next.js,
-    // they need to be normalized to strings before being used in queries later
+    const topicId = params["topic-id"];
+
     const normalizedCourseId = useMemo(
         () =>
             Array.isArray(courseId)
@@ -58,24 +80,37 @@ export default function TopicManagementByCourse() {
         [courseId],
     );
 
-    const [activeTab, setActiveTab] = useState<"topics" | "settings">("topics");
+    const normalizedTopicId = useMemo(
+        () =>
+            Array.isArray(topicId) ? (topicId[0] ?? "") : String(topicId ?? ""),
+        [topicId],
+    );
+
+    const [activeTab, setActiveTab] = useState<"exercises" | "settings">(
+        "exercises",
+    );
     const [itemsPerPage, setItemsPerPage] = useState(50);
     const [currentPage, setCurrentPage] = useState(1);
-    const [queryParams, setQueryParams] = useState<TopicQueryParams>(
-        initialTopicQueryParams,
+    const [queryParams, setQueryParams] = useState<ExerciseListQueryParams>(
+        initialExerciseQueryParams,
     );
-    const [topicTypeFilter, setTopicTypeFilter] =
-        useState<TopicTypeFilter>("all");
+    const [skillFilter, setSkillFilter] = useState<SkillFilter>("all");
+    const [exerciseTypeFilter, setExerciseTypeFilter] =
+        useState<ExerciseTypeFilter>("all");
     const [publishFilter, setPublishFilter] = useState<PublishFilter>("all");
-    const [pendingTopicId, setPendingTopicId] = useState<string | null>(null);
+    const [pendingExerciseId, setPendingExerciseId] = useState<string | null>(
+        null,
+    );
 
-    const deferredTitle = useDeferredValue(queryParams.title ?? "");
+    const deferredQuestion = useDeferredValue(queryParams.question ?? "");
 
-    const effectiveQueryParams = useMemo<TopicQueryParams>(
+    const effectiveQueryParams = useMemo<ExerciseListQueryParams>(
         () => ({
             ...queryParams,
-            title: deferredTitle.trim() || undefined,
-            topicType: topicTypeFilter === "all" ? undefined : topicTypeFilter,
+            question: deferredQuestion.trim() || undefined,
+            skillType: skillFilter === "all" ? undefined : skillFilter,
+            exerciseType:
+                exerciseTypeFilter === "all" ? undefined : exerciseTypeFilter,
             isPublished:
                 publishFilter === "all"
                     ? undefined
@@ -84,27 +119,29 @@ export default function TopicManagementByCourse() {
         }),
         [
             queryParams,
-            deferredTitle,
-            topicTypeFilter,
+            deferredQuestion,
+            skillFilter,
+            exerciseTypeFilter,
             publishFilter,
             itemsPerPage,
         ],
     );
 
-    const overviewQuery = useGetCourseTopicsOverview(
-        normalizedCourseId,
+    const overviewQuery = useGetTopicExercisesOverview(
+        normalizedTopicId,
         effectiveQueryParams,
     );
-    const publishTopicMutation = usePublishTopic();
-    const unPublishTopicMutation = useUnPublishTopic();
-    const deleteTopicMutation = useDeleteTopic();
+
+    const publishExerciseMutation = usePublishExercise();
+    const unPublishExerciseMutation = useUnPublishExercise();
+    const deleteExerciseMutation = useDeleteExercise();
 
     const overviewPages = overviewQuery.data?.pages ?? [];
     const loadedPages = overviewPages.length;
     const firstPageData = overviewPages[0]?.data;
     const currentPageData = overviewPages[currentPage - 1]?.data;
-    const currentCourse = overviewPages[0]?.data.parentMetadata ?? null;
-    const pageTopics = currentPageData?.items ?? [];
+    const topicMetadata = firstPageData?.parentMetadata ?? null;
+    const pageExercises = currentPageData?.items ?? [];
 
     const canLoadMore =
         loadedPages > 0
@@ -116,8 +153,33 @@ export default function TopicManagementByCourse() {
     const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
     const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + pageTopics.length, totalDocs);
-    const totalItems = totalDocs;
+    const endIndex = Math.min(startIndex + pageExercises.length, totalDocs);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [
+        queryParams.question,
+        queryParams.sortBy,
+        queryParams.orderByDescending,
+        skillFilter,
+        exerciseTypeFilter,
+        publishFilter,
+        itemsPerPage,
+    ]);
+
+    const resetFilters = () => {
+        setQueryParams(initialExerciseQueryParams);
+        setSkillFilter("all");
+        setExerciseTypeFilter("all");
+        setPublishFilter("all");
+        setCurrentPage(1);
+    };
 
     const handlePageChange = useCallback(
         (page: number) => {
@@ -145,30 +207,6 @@ export default function TopicManagementByCourse() {
         [currentPage, loadedPages, canLoadMore, overviewQuery],
     );
 
-    useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
-        }
-    }, [currentPage, totalPages]);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [
-        queryParams.title,
-        queryParams.sortBy,
-        queryParams.orderByDescending,
-        topicTypeFilter,
-        publishFilter,
-        itemsPerPage,
-    ]);
-
-    const resetFilters = () => {
-        setQueryParams(initialTopicQueryParams);
-        setTopicTypeFilter("all");
-        setPublishFilter("all");
-        setCurrentPage(1);
-    };
-
     const getErrorMessage = (error: unknown) => {
         if (typeof error === "object" && error !== null) {
             const maybeApiError = error as {
@@ -194,119 +232,117 @@ export default function TopicManagementByCourse() {
         return "Có lỗi xảy ra. Vui lòng thử lại.";
     };
 
-    const handleTogglePublishTopic = async (
-        topicId: string,
+    const handleTogglePublishExercise = async (
+        exerciseId: string,
         isPublished: boolean,
     ) => {
         const nextActionText = isPublished ? "hủy xuất bản" : "xuất bản";
         const confirmed = window.confirm(
-            `Bạn có chắc muốn ${nextActionText} topic này không?`,
+            `Bạn có chắc muốn ${nextActionText} bài tập này không?`,
         );
         if (!confirmed) return;
 
-        setPendingTopicId(topicId);
+        setPendingExerciseId(exerciseId);
         try {
             if (isPublished) {
-                await unPublishTopicMutation.mutateAsync(topicId);
-                toast.success("Đã hủy xuất bản topic.");
+                await unPublishExerciseMutation.mutateAsync(exerciseId);
+                toast.success("Đã hủy xuất bản bài tập.");
             } else {
-                await publishTopicMutation.mutateAsync(topicId);
-                toast.success("Đã xuất bản topic.");
+                await publishExerciseMutation.mutateAsync(exerciseId);
+                toast.success("Đã xuất bản bài tập.");
             }
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
-            setPendingTopicId(null);
+            setPendingExerciseId(null);
         }
     };
 
-    const handleDeleteTopic = async (topicId: string, title: string) => {
+    const handleDeleteExercise = async (
+        exerciseId: string,
+        question: string,
+    ) => {
         const confirmed = window.confirm(
-            `Xóa topic \"${title}\"? Hành động này không thể hoàn tác.`,
+            `Xóa bài tập \"${question}\"? Hành động này không thể hoàn tác.`,
         );
         if (!confirmed) return;
 
-        setPendingTopicId(topicId);
+        setPendingExerciseId(exerciseId);
         try {
-            await deleteTopicMutation.mutateAsync(topicId);
-            toast.success("Đã xóa topic.");
+            await deleteExerciseMutation.mutateAsync(exerciseId);
+            toast.success("Đã xóa bài tập.");
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
-            setPendingTopicId(null);
+            setPendingExerciseId(null);
         }
     };
 
-    const onTopicCreated = async () => {
-        setCurrentPage(1);
-        await overviewQuery.refetch();
-    };
-
-    const isTopicsLoading = overviewQuery.isLoading;
+    const isExercisesLoading = overviewQuery.isLoading;
 
     return (
         <div className="min-h-full w-full min-w-0 bg-linear-to-br from-slate-50 via-white to-slate-50">
-            {/* Header Section */}
             <div className="border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
                 <div className="flex min-w-0 flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="mb-2 flex items-center gap-3">
+                            <Badge
+                                variant="outline"
+                                className="bg-slate-100 text-slate-700 border-slate-200"
+                            >
+                                Topic: {topicMetadata?.title ?? "-"}
+                            </Badge>
                             <Badge
                                 variant="outline"
                                 className="bg-amber-50 text-amber-700 border-amber-200"
                             >
-                                HSK {currentCourse?.hskLevel ?? "-"}
+                                Loại: {topicMetadata?.topicType ?? "-"}
                             </Badge>
                             <Badge
-                                variant="secondary"
-                                className={
-                                    currentCourse?.isPublished
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-slate-100 text-slate-700"
-                                }
+                                variant="outline"
+                                className="bg-blue-50 text-blue-700 border-blue-200"
                             >
-                                {currentCourse?.isPublished
-                                    ? "Đang xuất bản"
-                                    : "Bản nháp"}
+                                Số bài: {topicMetadata?.totalExercises ?? 0}
                             </Badge>
                         </div>
-                        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight wrap-break-word">
-                            {currentCourse?.title || "Đang tải khóa học..."}
+                        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                            Quản lý bài tập theo Topic
                         </h1>
-                        <p className="text-slate-500 mt-2 max-w-2xl text-sm">
-                            {currentCourse?.slug
-                                ? `Slug: ${currentCourse.slug}`
-                                : "Vui lòng chờ dữ liệu khóa học."}
+                        <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                            {topicMetadata?.slug
+                                ? `Slug: ${topicMetadata.slug}`
+                                : "Vui lòng chờ dữ liệu topic."}
                         </p>
                         {overviewQuery.isError && (
                             <p className="mt-2 text-sm text-red-600">
-                                Không thể tải thông tin khóa học.
+                                Không thể tải danh sách bài tập.
                             </p>
                         )}
                     </div>
 
                     <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:gap-3 md:w-auto md:justify-end md:flex-nowrap">
-                        <Link href="/cms/lessons/course">
-                            <button className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:bg-slate-50 transition-colors font-medium text-sm">
-                                Quay lại
+                        <Link
+                            href={`/cms/lessons/course/${normalizedCourseId}`}
+                        >
+                            <button className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                                Về khóa học
                             </button>
                         </Link>
-                        <button className="px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium text-sm shadow-sm">
-                            Lưu thay đổi
+                        <button className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">
+                            + Thêm bài tập
                         </button>
                     </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex gap-4 overflow-x-auto pt-6">
                     {[
-                        { id: "topics", label: "Quản lý Topics" },
-                        { id: "settings", label: "Cài đặt khóa học" },
+                        { id: "exercises", label: "Danh sách bài tập" },
+                        { id: "settings", label: "Cài đặt topic" },
                     ].map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative shrink-0 pb-3 text-sm font-medium transition-colors origin-center duration-300 ease-out ${
+                            className={`relative shrink-0 pb-3 text-sm font-medium transition-colors duration-300 ease-out ${
                                 activeTab === tab.id
                                     ? "text-amber-600"
                                     : "text-slate-500 hover:text-slate-800"
@@ -326,56 +362,70 @@ export default function TopicManagementByCourse() {
                 </div>
             </div>
 
-            {/* Tab Contents */}
             <div className="w-full min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-                {activeTab === "topics" && (
+                {activeTab === "exercises" && (
                     <div className="space-y-6">
-                        <div className="flex flex-col gap-4 rounded-xl border border-slate-200/50 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">
-                                    Nội dung bài học (Topics)
-                                </h2>
-                                <p className="text-sm text-slate-500">
-                                    Quản lý các chương/chủ đề trong khóa học này
-                                </p>
-                            </div>
-                            <CreateTopicModal
-                                courseId={normalizedCourseId}
-                                onCreated={onTopicCreated}
-                            />
-                        </div>
-
                         <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
-                                value={queryParams.title ?? ""}
+                                value={queryParams.question ?? ""}
                                 onChange={(event) =>
                                     setQueryParams((current) => ({
                                         ...current,
-                                        title: event.target.value,
+                                        question: event.target.value,
                                     }))
                                 }
-                                placeholder="Tìm theo tên topic..."
+                                placeholder="Tìm theo câu hỏi..."
                                 className="h-9 w-72 bg-white text-sm"
                             />
 
                             <Select
-                                value={topicTypeFilter}
-                                onValueChange={(value: TopicTypeFilter) =>
-                                    setTopicTypeFilter(value)
+                                value={skillFilter}
+                                onValueChange={(value: SkillFilter) =>
+                                    setSkillFilter(value)
                                 }
                             >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
-                                    <SelectValue placeholder="Loại topic" />
+                                <SelectTrigger className="h-9 w-32 bg-white text-sm">
+                                    <SelectValue placeholder="Kỹ năng" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả</SelectItem>
+                                    <SelectItem value="Listening">
+                                        Nghe
+                                    </SelectItem>
+                                    <SelectItem value="Reading">Đọc</SelectItem>
+                                    <SelectItem value="Writing">
+                                        Viết
+                                    </SelectItem>
+                                    <SelectItem value="Speaking">
+                                        Nói
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={exerciseTypeFilter}
+                                onValueChange={(value: ExerciseTypeFilter) =>
+                                    setExerciseTypeFilter(value)
+                                }
+                            >
+                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
+                                    <SelectValue placeholder="Loại bài" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
                                         Mọi loại
                                     </SelectItem>
-                                    <SelectItem value="Learning">
-                                        Learning
-                                    </SelectItem>
-                                    <SelectItem value="Exam">Exam</SelectItem>
+                                    {Object.entries(exerciseTypeLabels).map(
+                                        ([value, label]) => (
+                                            <SelectItem
+                                                key={value}
+                                                value={value}
+                                            >
+                                                {label}
+                                            </SelectItem>
+                                        ),
+                                    )}
                                 </SelectContent>
                             </Select>
 
@@ -403,15 +453,15 @@ export default function TopicManagementByCourse() {
 
                             <Select
                                 value={queryParams.sortBy ?? "CreatedAt"}
-                                onValueChange={(value: TopicSortBy) =>
+                                onValueChange={(value: ExerciseSortBy) =>
                                     setQueryParams((current) => ({
                                         ...current,
                                         sortBy: value,
                                     }))
                                 }
                             >
-                                <SelectTrigger className="h-9 w-40 bg-white text-sm">
-                                    <SelectValue placeholder="Sắp xếp theo" />
+                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                    <SelectValue placeholder="Sắp xếp" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="CreatedAt">
@@ -420,11 +470,8 @@ export default function TopicManagementByCourse() {
                                     <SelectItem value="UpdatedAt">
                                         Ngày cập nhật
                                     </SelectItem>
-                                    <SelectItem value="TotalExercises">
-                                        Số bài tập
-                                    </SelectItem>
-                                    <SelectItem value="ExamYear">
-                                        Năm thi
+                                    <SelectItem value="OrderIndex">
+                                        Thứ tự
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -467,99 +514,114 @@ export default function TopicManagementByCourse() {
                         </div>
 
                         <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white shadow-sm">
-                            <table className="w-full min-w-full text-sm text-left">
-                                <thead className="bg-slate-50/50 border-b border-slate-200/50">
+                            <table className="w-full min-w-full text-left text-sm">
+                                <thead className="border-b border-slate-200/50 bg-slate-50/50">
                                     <tr>
-                                        <th className="px-6 py-4 font-semibold text-slate-600 w-16 text-center">
+                                        <th className="w-16 px-6 py-4 text-center font-semibold text-slate-600">
                                             STT
                                         </th>
                                         <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Tên Topic
+                                            Câu hỏi
                                         </th>
-                                        <th className="hidden sm:table-cell px-6 py-4 font-semibold text-slate-600">
-                                            Số bài tập
+                                        <th className="px-6 py-4 font-semibold text-slate-600">
+                                            Loại
+                                        </th>
+                                        <th className="px-6 py-4 font-semibold text-slate-600">
+                                            Kỹ năng
+                                        </th>
+                                        <th className="px-6 py-4 font-semibold text-slate-600">
+                                            Độ khó
                                         </th>
                                         <th className="px-6 py-4 font-semibold text-slate-600">
                                             Trạng thái
                                         </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600 text-right">
+                                        <th className="px-6 py-4 text-right font-semibold text-slate-600">
                                             Thao tác
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {isTopicsLoading && (
+                                    {isExercisesLoading && (
                                         <tr>
                                             <td
                                                 className="px-6 py-6 text-center text-slate-500"
-                                                colSpan={5}
+                                                colSpan={7}
                                             >
-                                                Đang tải topics...
+                                                Đang tải bài tập...
                                             </td>
                                         </tr>
                                     )}
 
-                                    {!isTopicsLoading &&
+                                    {!isExercisesLoading &&
                                         overviewQuery.isError && (
                                             <tr>
                                                 <td
                                                     className="px-6 py-6 text-center text-red-600"
-                                                    colSpan={5}
+                                                    colSpan={7}
                                                 >
-                                                    Không thể tải danh sách
-                                                    topics.
+                                                    Không thể tải danh sách bài
+                                                    tập.
                                                 </td>
                                             </tr>
                                         )}
 
-                                    {!isTopicsLoading &&
+                                    {!isExercisesLoading &&
                                         !overviewQuery.isError &&
-                                        pageTopics.length === 0 && (
+                                        pageExercises.length === 0 && (
                                             <tr>
                                                 <td
                                                     className="px-6 py-6 text-center text-slate-500"
-                                                    colSpan={5}
+                                                    colSpan={7}
                                                 >
-                                                    Chưa có topic nào trong khóa
-                                                    học này.
+                                                    Chưa có bài tập nào trong
+                                                    topic này.
                                                 </td>
                                             </tr>
                                         )}
 
-                                    {!isTopicsLoading &&
+                                    {!isExercisesLoading &&
                                         !overviewQuery.isError &&
-                                        pageTopics.map((topic) => (
+                                        pageExercises.map((exercise, index) => (
                                             <tr
-                                                key={topic.id}
-                                                className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group"
+                                                key={exercise.exerciseId}
+                                                className="group border-b border-slate-50 transition-colors hover:bg-slate-50/50"
                                             >
                                                 <td className="px-6 py-4 text-center font-medium text-slate-400">
-                                                    #{topic.orderIndex}
+                                                    #{startIndex + index + 1}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-slate-900">
-                                                    {topic.title}
+                                                    {exercise.question}
                                                 </td>
-                                                <td className="hidden sm:table-cell px-6 py-4 text-slate-500">
-                                                    {topic.totalExercises} bài
-                                                    tập
+                                                <td className="px-6 py-4 text-slate-600">
+                                                    {exerciseTypeLabels[
+                                                        exercise.exerciseType
+                                                    ] ?? exercise.exerciseType}
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600">
+                                                    {skillLabels[
+                                                        exercise.skillType
+                                                    ] ?? exercise.skillType}
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600">
+                                                    {exercise.difficulty}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <Badge
                                                         variant="outline"
                                                         className={
-                                                            topic.isPublished
-                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                                                                : "bg-slate-100 text-slate-600 border-slate-200"
+                                                            exercise.isPublished
+                                                                ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                                                                : "border-slate-200 bg-slate-100 text-slate-600"
                                                         }
                                                     >
-                                                        {topic.isPublished
+                                                        {exercise.isPublished
                                                             ? "Live"
                                                             : "Draft"}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    {pendingTopicId ===
-                                                        topic.id && (
+                                                    {pendingExerciseId ===
+                                                        exercise.exerciseId && (
                                                         <p className="mb-2 text-[11px] text-slate-500">
                                                             Đang xử lý...
                                                         </p>
@@ -568,18 +630,18 @@ export default function TopicManagementByCourse() {
                                                         <button
                                                             type="button"
                                                             disabled={
-                                                                pendingTopicId ===
-                                                                topic.id
+                                                                pendingExerciseId ===
+                                                                exercise.exerciseId
                                                             }
                                                             onClick={() =>
-                                                                void handleTogglePublishTopic(
-                                                                    topic.id,
-                                                                    topic.isPublished,
+                                                                void handleTogglePublishExercise(
+                                                                    exercise.exerciseId,
+                                                                    exercise.isPublished,
                                                                 )
                                                             }
                                                             className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                                                         >
-                                                            {topic.isPublished ? (
+                                                            {exercise.isPublished ? (
                                                                 <>
                                                                     <EyeOff className="h-3.5 w-3.5" />
                                                                     Hủy xuất bản
@@ -595,13 +657,13 @@ export default function TopicManagementByCourse() {
                                                         <button
                                                             type="button"
                                                             disabled={
-                                                                pendingTopicId ===
-                                                                topic.id
+                                                                pendingExerciseId ===
+                                                                exercise.exerciseId
                                                             }
                                                             onClick={() =>
-                                                                void handleDeleteTopic(
-                                                                    topic.id,
-                                                                    topic.title,
+                                                                void handleDeleteExercise(
+                                                                    exercise.exerciseId,
+                                                                    exercise.question,
                                                                 )
                                                             }
                                                             className="inline-flex items-center gap-1 rounded border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
@@ -611,10 +673,10 @@ export default function TopicManagementByCourse() {
                                                         </button>
 
                                                         <Link
-                                                            href={`/cms/lessons/course/${normalizedCourseId}/topics/${topic.id}`}
+                                                            href={`/cms/lessons/course/${normalizedCourseId}/topics/${normalizedTopicId}/exercises/${exercise.exerciseId}`}
                                                         >
-                                                            <button className="px-3 py-1.5 text-xs bg-white border border-slate-200 text-slate-600 rounded hover:bg-slate-50 hover:text-amber-600 transition-colors shadow-sm">
-                                                                Quản lý bài tập
+                                                            <button className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
+                                                                Biên soạn
                                                             </button>
                                                         </Link>
                                                     </div>
@@ -625,7 +687,7 @@ export default function TopicManagementByCourse() {
                             </table>
                         </div>
 
-                        {!isTopicsLoading &&
+                        {!isExercisesLoading &&
                             !overviewQuery.isError &&
                             totalDocs > 0 && (
                                 <CustomPagination
@@ -634,7 +696,7 @@ export default function TopicManagementByCourse() {
                                     itemsPerPage={itemsPerPage}
                                     startIndex={startIndex}
                                     endIndex={endIndex}
-                                    totalItems={totalItems}
+                                    totalItems={totalDocs}
                                     totalDocs={totalDocs}
                                     onPageChange={handlePageChange}
                                     onItemsPerPageChange={(value) => {
@@ -648,73 +710,13 @@ export default function TopicManagementByCourse() {
 
                 {activeTab === "settings" && (
                     <div className="w-full max-w-3xl rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm sm:p-6 lg:p-8">
-                        <h2 className="text-xl font-semibold text-slate-900 mb-6">
-                            Thông tin chung
+                        <h2 className="mb-3 text-xl font-semibold text-slate-900">
+                            Cài đặt Topic
                         </h2>
-
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Tên khóa học
-                                </label>
-                                <input
-                                    type="text"
-                                    defaultValue={currentCourse?.title ?? ""}
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Mô tả (Description)
-                                </label>
-                                <textarea
-                                    rows={4}
-                                    defaultValue={currentCourse?.slug ?? ""}
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all resize-none"
-                                ></textarea>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Cấp độ (HSK Level)
-                                    </label>
-                                    <select
-                                        defaultValue={
-                                            currentCourse?.hskLevel ?? 1
-                                        }
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
-                                    >
-                                        <option value={1}>HSK 1</option>
-                                        <option value={2}>HSK 2</option>
-                                        <option value={3}>HSK 3</option>
-                                        <option value={4}>HSK 4</option>
-                                        <option value={5}>HSK 5</option>
-                                        <option value={6}>HSK 6</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                        Trạng thái xuất bản
-                                    </label>
-                                    <div className="flex items-center h-10 px-4 bg-slate-50 border border-slate-200 rounded-lg">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                defaultChecked={
-                                                    currentCourse?.isPublished
-                                                }
-                                                className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
-                                            />
-                                            <span className="text-sm text-slate-700">
-                                                Công khai (Public)
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <p className="text-sm text-slate-600">
+                            Tính năng chỉnh sửa metadata topic ở màn này sẽ được
+                            mở rộng ở bước tiếp theo.
+                        </p>
                     </div>
                 )}
             </div>

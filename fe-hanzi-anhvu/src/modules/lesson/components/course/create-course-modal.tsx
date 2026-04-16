@@ -37,6 +37,9 @@ type CreateCourseModalProps = {
 
 type FormErrors = {
     title?: string;
+    description?: string;
+    hskLevel?: string;
+    submit?: string;
 };
 
 type CreateCourseFormState = {
@@ -122,10 +125,29 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
 
         const nextErrors: FormErrors = {};
         const normalizedTitle = form.title.trim();
+        const normalizedDescription = form.description.trim();
         const parsedHskLevel = Number(form.hskLevel);
 
         if (!normalizedTitle) {
             nextErrors.title = "Tên khóa học không được để trống.";
+        } else if (normalizedTitle.length < 3) {
+            nextErrors.title = "Tên khóa học phải có ít nhất 3 ký tự.";
+        } else if (normalizedTitle.length > 120) {
+            nextErrors.title = "Tên khóa học tối đa 120 ký tự.";
+        }
+
+        if (normalizedDescription.length > 500) {
+            nextErrors.description = "Mô tả tối đa 500 ký tự.";
+        }
+
+        if (
+            Number.isNaN(parsedHskLevel) ||
+            !Number.isInteger(parsedHskLevel) ||
+            parsedHskLevel < 0 ||
+            parsedHskLevel > 6
+        ) {
+            nextErrors.hskLevel =
+                "HSK Level phải là số nguyên trong khoảng 0-6.";
         }
         setErrors(nextErrors);
 
@@ -135,7 +157,7 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
 
         const payload: CourseCreateRequest = {
             Title: normalizedTitle,
-            Description: form.description.trim(),
+            Description: normalizedDescription,
             HskLevel: parsedHskLevel,
         };
 
@@ -168,12 +190,17 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
                         <Input
                             id="course-title"
                             value={form.title}
-                            onChange={(event) =>
+                            onChange={(event) => {
                                 setForm((current) => ({
                                     ...current,
                                     title: event.target.value,
-                                }))
-                            }
+                                }));
+                                setErrors((current) => ({
+                                    ...current,
+                                    title: undefined,
+                                    submit: undefined,
+                                }));
+                            }}
                             placeholder="Ví dụ: HSK 4 - Nâng cao"
                         />
                         {errors.title && (
@@ -217,6 +244,11 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
                                     <SelectItem value="6">HSK 6</SelectItem>
                                 </SelectContent>
                             </Select>
+                            {errors.hskLevel && (
+                                <p className="text-xs text-red-600">
+                                    {errors.hskLevel}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -225,20 +257,30 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
                         <Textarea
                             id="course-description"
                             value={form.description}
-                            onChange={(event) =>
+                            onChange={(event) => {
                                 setForm((current) => ({
                                     ...current,
                                     description: event.target.value,
-                                }))
-                            }
+                                }));
+                                setErrors((current) => ({
+                                    ...current,
+                                    description: undefined,
+                                    submit: undefined,
+                                }));
+                            }}
                             rows={4}
                             placeholder="Mô tả ngắn về nội dung và mục tiêu khóa học"
                         />
+                        {errors.description && (
+                            <p className="text-xs text-red-600">
+                                {errors.description}
+                            </p>
+                        )}
                     </div>
 
-                    {state.context.error && (
+                    {(errors.submit || state.context.error) && (
                         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                            {state.context.error}
+                            {errors.submit || state.context.error}
                         </p>
                     )}
 

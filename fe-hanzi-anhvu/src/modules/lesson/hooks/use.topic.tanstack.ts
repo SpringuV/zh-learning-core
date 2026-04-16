@@ -1,14 +1,21 @@
+import { topicApi } from "@/modules/lesson/api/topic.api";
 import {
     CourseTopicsOverviewResponse,
-    topicApi,
     TopicCreateRequest,
     TopicQueryParams,
-} from "@/modules/lesson/api/topic.api";
+    TopicReOrderRequest,
+    UpdateTopicRequest,
+} from "@/modules/lesson/types/topic.type";
 import {
     useInfiniteQuery,
     useMutation,
     useQueryClient,
 } from "@tanstack/react-query";
+
+const invalidateTopicQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    void queryClient.invalidateQueries({ queryKey: ["list-topics"] });
+    void queryClient.invalidateQueries({ queryKey: ["course-topics-overview"] });
+};
 
 export const useGetListTopics = (
     courseId: string,
@@ -45,13 +52,10 @@ export const useCreateTopic = () => {
             const response = await topicApi.createTopic(payload);
             return response.data;
         },
-        onSuccess: (_) => {
+        onSuccess: () => {
             // delay một chút để đảm bảo rằng dữ liệu đã được cập nhật trên server trước khi refetch
             setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ["list-topics"] });
-                queryClient.invalidateQueries({
-                    queryKey: ["course-topics-overview"],
-                });
+                invalidateTopicQueries(queryClient);
             }, 1500);
         },
         onError: (err) => {
@@ -83,6 +87,76 @@ export const useGetCourseTopicsOverview = (
                 return undefined;
             }
             return payload.nextCursor;
+        },
+    });
+};
+
+export const usePublishTopic = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (topicId: string) => {
+            const response = await topicApi.publishTopic(topicId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateTopicQueries(queryClient);
+        },
+    });
+};
+
+export const useUnPublishTopic = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (topicId: string) => {
+            const response = await topicApi.unPublishTopic(topicId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateTopicQueries(queryClient);
+        },
+    });
+};
+
+export const useReOrderTopic = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: TopicReOrderRequest) => {
+            const response = await topicApi.reOrderTopic(payload);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateTopicQueries(queryClient);
+        },
+    });
+};
+
+export const useUpdateTopic = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: UpdateTopicRequest) => {
+            const response = await topicApi.updateTopic(payload);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateTopicQueries(queryClient);
+        },
+    });
+};
+
+export const useDeleteTopic = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (topicId: string) => {
+            const response = await topicApi.deleteTopic(topicId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateTopicQueries(queryClient);
         },
     });
 };

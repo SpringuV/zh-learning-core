@@ -222,3 +222,28 @@ public class TopicTotalExercisesUpdatedEventHandler(
     }
 }
 #endregion
+
+#region Delete
+public class TopicDeletedEventHandler(
+        ITopicSearchQueriesService topicSearchService, 
+        ICacheVersionService cacheVersionService,
+        ILogger<TopicDeletedEventHandler> logger) 
+    : IIntegrationEventHandler<TopicDeletedIntegrationEvent>
+{
+    private readonly ITopicSearchQueriesService _topicSearchService = topicSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
+    private readonly ILogger<TopicDeletedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(TopicDeletedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Deleting topic {TopicId} from Elasticsearch", @event.TopicId);
+        var request = new TopicDeletedRequestDTO(
+            TopicId: @event.TopicId
+        );
+        await _topicSearchService.DeleteAsync(request, ct);
+        // Invalidate cache for topic admin search to reflect the deleted topic
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.TopicAdminSearch, ct);
+        _logger.LogInformation("Topic {TopicId} deleted successfully from Elasticsearch", @event.TopicId);
+    }
+}
+#endregion

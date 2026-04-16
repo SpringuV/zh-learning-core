@@ -1,3 +1,4 @@
+using Search.Infrastructure.Queries.Lesson.Delete;
 using Search.Infrastructure.Queries.Lesson.Update.Topic;
 
 namespace Search.Infrastructure.Services;
@@ -9,6 +10,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
     private Task SendPatchAsync(Guid topicId, object patch, CancellationToken cancellationToken)
         => _mediator.Send(new TopicPatchSearchCommand(topicId, patch), cancellationToken);
 
+    #region Title Update
     public Task UpdateTitleAsync(TopicTitleUpdatedRequestDTO request, CancellationToken cancellationToken = default)
         => SendPatchAsync(
             request.TopicId,
@@ -19,7 +21,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
                 request.UpdatedAt
             },
             cancellationToken);
-
+    #endregion
+    #region Description Update
     public Task UpdateDescriptionAsync(TopicDescriptionUpdatedRequestDTO request, CancellationToken cancellationToken = default)
         => SendPatchAsync(
             request.TopicId,
@@ -29,7 +32,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
                 request.UpdatedAt
             },
             cancellationToken);
-
+    #endregion
+    #region EstimatedTime Update
     public Task UpdateEstimatedTimeAsync(TopicEstimatedTimeUpdatedRequestDTO request, CancellationToken cancellationToken = default)
         => SendPatchAsync(
             request.TopicId,
@@ -39,7 +43,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
                 request.UpdatedAt
             },
             cancellationToken);
-
+    #endregion
+    #region ExamInfo Update
     public Task UpdateExamInfoAsync(TopicExamInfoUpdatedRequestDTO request, CancellationToken cancellationToken = default)
         => SendPatchAsync(
             request.TopicId,
@@ -50,7 +55,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
                 request.UpdatedAt
             },
             cancellationToken);
-
+    #endregion
+    #region IndexAsync
     public async Task<TopicIndexResponse> IndexAsync(TopicSearchIndexQueriesRequest request, CancellationToken cancellationToken = default)
     {
         var command = new TopicIndexCommand(
@@ -70,12 +76,17 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             UpdatedAt: request.UpdatedAt);
         return await _mediator.Send(command, cancellationToken);
     }
-
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    #endregion
+    #region DeleteAsync
+    public async Task DeleteAsync(TopicDeletedRequestDTO request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var command = new TopicDeletedSearchCommand(
+            TopicId: request.TopicId
+        );
+        await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region SearchTopicAdmin
     public async Task<SearchQueryResult<TopicSearchItemAdminResponse>> SearchTopicAdminAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default)
     {
         var queries = new TopicSearchAdminQueries(
@@ -93,7 +104,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         return await _mediator.Send(queries, cancellationToken);
 
     }
-
+    #endregion
+    #region SearchMetadata
     public async Task<TopicSearchWithCourseMetadataResponse> SearchTopicAdminWithCourseMetadataAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default)
     {
         var queries = new CourseTopicsOverviewAdminQueries(
@@ -110,7 +122,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         );
         return await _mediator.Send(queries, cancellationToken);
     }
-
+    #endregion
+    #region Publish/Unpublish
     public async Task UnPublishAsync(TopicUnPublishedRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new TopicUnPublishedSearchCommand(
@@ -128,7 +141,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region ReOrder
     public async Task ReOrderAsync(TopicReorderSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new TopicReOrderSearchCommand(
@@ -138,7 +152,8 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UpdateTotalExercises
     public async Task UpdateTotalExercisesAsync(TopicTotalExercisesUpdatedRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new TopicTotalExercisesUpdatedSearchCommand(
@@ -148,4 +163,5 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         );
         await _mediator.Send(command, cancellationToken);
     }
+    #endregion
 }

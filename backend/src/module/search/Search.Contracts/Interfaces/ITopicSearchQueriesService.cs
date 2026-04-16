@@ -13,7 +13,7 @@ public interface ITopicSearchQueriesService
     Task PublishAsync(TopicPublishedRequestDTO request, CancellationToken cancellationToken = default);
     Task ReOrderAsync(TopicReorderSearchRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateTotalExercisesAsync(TopicTotalExercisesUpdatedRequestDTO request, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(TopicDeletedRequestDTO request, CancellationToken cancellationToken = default);
     Task<SearchQueryResult<TopicSearchItemAdminResponse>> SearchTopicAdminAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default);
     Task<TopicSearchWithCourseMetadataResponse> SearchTopicAdminWithCourseMetadataAsync(TopicSearchQueryRequest request, CancellationToken cancellationToken = default);
 }

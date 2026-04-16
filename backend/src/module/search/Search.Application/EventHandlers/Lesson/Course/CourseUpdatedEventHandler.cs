@@ -187,3 +187,27 @@ public sealed class CourseHskLevelUpdatedEventHandler(
     }
 }
 #endregion
+#region Deleted
+public sealed class CourseDeletedEventHandler(
+        ICourseSearchQueriesService courseSearchService,
+        ICacheVersionService cacheVersionService,
+        ILogger<CourseDeletedEventHandler> logger)
+    : IIntegrationEventHandler<CourseDeletedIntegrationEvent>
+{
+    private readonly ICourseSearchQueriesService _courseSearchService = courseSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
+    private readonly ILogger<CourseDeletedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(CourseDeletedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Deleting course {CourseId} from Elasticsearch", @event.CourseId);
+        var request = new CourseDeletedSearchRequestDTO(
+            CourseId: @event.CourseId
+        );
+        await _courseSearchService.DeleteAsync(request, ct);
+        // Invalidate cache for course admin search to reflect the deleted course
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.CourseAdminSearch, ct);
+        _logger.LogInformation("Course {CourseId} deleted successfully from Elasticsearch", @event.CourseId);
+    }
+}
+#endregion

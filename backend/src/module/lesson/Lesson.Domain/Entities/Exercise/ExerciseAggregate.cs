@@ -212,6 +212,12 @@ public class ExerciseAggregate: BaseAggregateRoot
     #endregion
 
     #region Update
+    public void Delete()
+    {
+        if (IsPublished)
+            throw new InvalidOperationException("Không thể xóa bài tập đã được xuất bản.");
+        AddDomainEvent(new ExerciseDeletedEvent(ExerciseId));
+    }
     public void UpdateDescription(string newDescription)
     {
         if (string.IsNullOrWhiteSpace(newDescription))

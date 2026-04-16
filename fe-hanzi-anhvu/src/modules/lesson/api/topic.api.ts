@@ -1,85 +1,28 @@
-import { AdminBaseListResponse } from "@/shared/types/store.type";
+import {
+    CourseTopicsOverviewResponse,
+    TopicCreateRequest,
+    TopicCreateResponseData,
+    TopicListItemAdmin,
+    TopicQueryParams,
+    TopicReOrderRequest,
+    UpdateTopicRequest,
+} from "@/modules/lesson/types/topic.type";
+import {
+    AdminBaseListResponse,
+    sanitizeQueryParams,
+} from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
-
-export type TopicSortBy =
-    | "CreatedAt"
-    | "UpdatedAt"
-    | "TotalExercises"
-    | "ExamYear"
-    | "TotalExercises";
-export type TopicType = "Learning" | "Exam";
-
-export interface TopicCreateRequest {
-    CourseId: string;
-    Title: string;
-    Description: string;
-    TopicType: TopicType;
-    EstimatedTimeMinutes: number;
-    ExamYear?: number;
-    ExamCode?: string;
-}
-
-export type TopicCreateResponseData = {
-    TopicId: string;
-};
-
-export type TopicFormState = {
-    title: string;
-    description: string;
-    topicType: TopicType;
-    estimatedTimeMinutes: string;
-    examYear: string;
-    examCode: string;
-};
-
-export interface TopicListItemAdmin {
-    id: string;
-    title: string;
-    orderIndex: number;
-    topicType: string;
-    examYear?: number | null;
-    examCode?: string | null;
-    isPublished: boolean;
-    totalExercises: number;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface CourseMetadataForTopicAdmin {
-    id: string;
-    title: string;
-    hskLevel: number;
-    slug: string;
-    isPublished: boolean;
-    totalTopics: number;
-    totalStudentsEnrolled: number;
-}
-
-export interface CourseTopicsOverviewResponse {
-    course: CourseMetadataForTopicAdmin | null;
-    total: number;
-    items: TopicListItemAdmin[];
-    hasNextPage: boolean;
-    nextCursor: string;
-}
-
-export interface TopicQueryParams {
-    title?: string;
-    topicType?: TopicType;
-    startCreatedAt?: string;
-    endCreatedAt?: string;
-    isPublished?: boolean;
-    sortBy?: TopicSortBy;
-    orderByDescending?: boolean;
-    take?: number;
-    searchAfterValues?: string | null;
-}
 
 // #region API Endpoints
 const endPoints = {
     createTopic: "lesson/v1/topic",
     listTopics: "search/v1/topics",
     courseTopics: "search/v1/course-topics",
+    updateTopic: `lesson/v1/topic`,
+    publishTopic: (topicId: string) => `lesson/v1/topic/${topicId}/publish`,
+    unPublishTopic: (topicId: string) => `lesson/v1/topic/${topicId}/unpublish`,
+    reOrderTopic: "lesson/v1/topic/reorder",
+    deleteTopic: (topicId: string) => `lesson/v1/topic/${topicId}`,
 };
 
 export const topicApi = {
@@ -96,10 +39,10 @@ export const topicApi = {
         return await http.get<AdminBaseListResponse<TopicListItemAdmin>>(
             endPoints.listTopics,
             {
-                params: {
+                params: sanitizeQueryParams({
                     courseId,
                     ...queryParams,
-                },
+                }),
             },
         );
     },
@@ -110,12 +53,27 @@ export const topicApi = {
         return await http.get<CourseTopicsOverviewResponse>(
             endPoints.courseTopics,
             {
-                params: {
+                params: sanitizeQueryParams({
                     courseId,
                     ...queryParams,
-                },
+                }),
             },
         );
+    },
+    async publishTopic(topicId: string) {
+        return await http.post(endPoints.publishTopic(topicId));
+    },
+    async unPublishTopic(topicId: string) {
+        return await http.post(endPoints.unPublishTopic(topicId));
+    },
+    async reOrderTopic(payload: TopicReOrderRequest) {
+        return await http.post(endPoints.reOrderTopic, payload);
+    },
+    async updateTopic(payload: UpdateTopicRequest) {
+        return await http.patch(endPoints.updateTopic, payload);
+    },
+    async deleteTopic(topicId: string) {
+        return await http.delete(endPoints.deleteTopic(topicId));
     },
 };
 // #endregion

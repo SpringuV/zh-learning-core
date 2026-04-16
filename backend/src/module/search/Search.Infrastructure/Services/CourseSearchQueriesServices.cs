@@ -1,3 +1,4 @@
+using Search.Infrastructure.Queries.Lesson.Delete;
 using Search.Infrastructure.Queries.Lesson.Update.Course;
 
 namespace Search.Infrastructure.Services;
@@ -24,9 +25,12 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
 
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(CourseDeletedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var command = new CourseDeletedSearchCommand(
+            CourseId: request.CourseId
+        );
+        await _mediator.Send(command, cancellationToken);
     }
 
     public async Task<SearchQueryResult<CourseSearchItemAdminResponse>> GetCourseSearchItemAdminAsync(CourseSearchQueryAdminRequest request, CancellationToken cancellationToken = default)

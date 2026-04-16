@@ -22,6 +22,7 @@ public enum ErrorCode: int
     DUPLICATE = 4099,
     
     // State errors (410x)
+    INVALID_OPERATION = 4100,
     INVALID_STATE = 4101,
     NOT_PUBLISHED = 4102,
     ALREADY_PUBLISHED = 4103,

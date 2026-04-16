@@ -18,9 +18,11 @@ public static class LessonApiExtensions
         group.MapPost("/course/{courseId:guid}/unpublish", CourseApi.UnPublishCourse).WithName("UnPublishCourse");
         group.MapPost("/course/reorder", CourseApi.CourseReOrder).WithName("CourseReOrder");
         group.MapPatch("/course", CourseApi.UpdateCourse).WithName("UpdateCourse");
+        group.MapDelete("/course/{courseId:guid}", CourseApi.DeleteCourse).WithName("DeleteCourse");
         // topic
         group.MapPost("/topic", TopicApi.CreateTopic).WithName("CreateTopic");
         group.MapPatch("/topic", TopicApi.UpdateTopic).WithName("UpdateTopic");
+        group.MapDelete("/topic/{topicId:guid}", TopicApi.DeleteTopic).WithName("DeleteTopic");
         group.MapPost("/topic/{topicId:guid}/publish", TopicApi.PublishTopic).WithName("PublishTopic");
         group.MapPost("/topic/{topicId:guid}/unpublish", TopicApi.UnPublishTopic).WithName("UnPublishTopic");
         group.MapPost("/topic/reorder", TopicApi.TopicReOrder).WithName("TopicReOrder");
@@ -30,6 +32,7 @@ public static class LessonApiExtensions
         group.MapPost("/exercise/{exerciseId:guid}/publish", ExerciseApi.PublishExercise).WithName("PublishExercise");
         group.MapPost("/exercise/{exerciseId:guid}/unpublish", ExerciseApi.UnPublishExercise).WithName("UnPublishExercise");
         group.MapPost("/exercise", ExerciseApi.CreateExercise).WithName("CreateExercise");
+        group.MapDelete("/exercise/{exerciseId:guid}", ExerciseApi.DeleteExercise).WithName("DeleteExercise");
         return group;
     }
 }

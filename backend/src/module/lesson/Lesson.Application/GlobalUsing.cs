@@ -18,3 +18,4 @@ global using HanziAnhVu.Shared.Domain;
 global using Lesson.Application.MediatR.Command.Exercise;
 global using Lesson.Application.MediatR.Command.Exercise.Update;
 global using Lesson.Application.MediatR.Command.Topic.Update;
+global using Lesson.Application.MediatR.Command.Course.Create;

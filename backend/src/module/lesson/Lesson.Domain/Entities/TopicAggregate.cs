@@ -80,6 +80,16 @@ public class TopicAggregate: BaseAggregateRoot
         return topic;
     }
 
+    public void Delete()
+    {
+        // check
+        if (IsPublished)
+            throw new InvalidOperationException("Không thể xóa chủ đề đã được xuất bản. Vui lòng hủy xuất bản trước khi xóa.");
+        if(TotalExercises > 0)
+            throw new InvalidOperationException("Không thể xóa chủ đề còn chứa bài tập. Vui lòng xóa hoặc chuyển các bài tập này trước khi xóa chủ đề.");
+        AddDomainEvent(new TopicDeletedEvent(TopicId));
+    }
+
     public void UpdateTitle(string newTitle)
     {
         if (string.IsNullOrWhiteSpace(newTitle))

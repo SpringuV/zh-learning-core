@@ -1,57 +1,27 @@
 import {
     CourseCreateRequest,
     CourseCreateResponseApi,
+    CourseListItem,
+    CourseListQueryParams,
+    CourseReOrderRequest,
+    UpdateCourseRequest,
 } from "@/modules/lesson/types/coure.type";
-import { AdminBaseListResponse } from "@/shared/types/store.type";
+import {
+    AdminBaseListResponse,
+    sanitizeQueryParams,
+} from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
-
-export type CourseSortBy =
-    | "CreatedAt"
-    | "UpdatedAt"
-    | "HskLevel"
-    | "Title"
-    | "OrderIndex"
-    | "TotalStudentsEnrolled"
-    | "TotalTopics";
-
-export interface CourseListQueryParams {
-    title?: string;
-    take?: number;
-    startCreatedAt?: Date | string;
-    endCreatedAt?: Date | string;
-    searchAfterValues?: string | null;
-    sortBy?: CourseSortBy;
-    orderByDescending?: boolean;
-}
-
-export interface CourseListItem {
-    id: string;
-    title: string;
-    hskLevel: number;
-    orderIndex: number;
-    totalTopics: number;
-    totalStudentsEnrolled: number;
-    isPublished: boolean;
-    slug: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-function sanitizeQueryParams(params: CourseListQueryParams) {
-    return Object.fromEntries(
-        Object.entries(params).filter(
-            ([, value]) =>
-                value === false || value === 0 ? true : Boolean(value), // giữ lại nếu value là false hoặc 0,
-            // vì chúng có thể là giá trị hợp lệ mà người dùng muốn tìm kiếm,
-            //  ví dụ: isActive=false hoặc currentLevel=0
-        ),
-    );
-}
 
 // #region API Endpoints
 const endPoints = {
     createCourse: "lesson/v1/course",
+    publishCourse: (courseId: string) => `lesson/v1/course/${courseId}/publish`,
+    unPublishCourse: (courseId: string) =>
+        `lesson/v1/course/${courseId}/unpublish`,
     listCourse: "search/v1/courses",
+    updateCourse: `lesson/v1/course`,
+    reOrderCourse: "lesson/v1/course/reorder",
+    deleteCourse: (courseId: string) => `lesson/v1/course/${courseId}`,
 };
 // #endregion
 
@@ -62,12 +32,27 @@ export const courseApi = {
             payload,
         );
     },
-    async getListCourse(payload: CourseListQueryParams = {}) {
+    async getListCourse(payload: Partial<CourseListQueryParams> = {}) {
         return await http.get<AdminBaseListResponse<CourseListItem>>(
             endPoints.listCourse,
             {
                 params: sanitizeQueryParams(payload),
             },
         );
+    },
+    async publishCourse(courseId: string) {
+        return await http.post(endPoints.publishCourse(courseId));
+    },
+    async unPublishCourse(courseId: string) {
+        return await http.post(endPoints.unPublishCourse(courseId));
+    },
+    async reOrderCourse(payload: CourseReOrderRequest) {
+        return await http.post(endPoints.reOrderCourse, payload);
+    },
+    async updateCourse(payload: UpdateCourseRequest) {
+        return await http.patch(endPoints.updateCourse, payload);
+    },
+    async deleteCourse(courseId: string) {
+        return await http.delete(endPoints.deleteCourse(courseId));
     },
 };

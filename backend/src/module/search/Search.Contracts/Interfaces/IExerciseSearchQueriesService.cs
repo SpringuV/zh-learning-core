@@ -4,6 +4,7 @@ namespace Search.Contracts.Interfaces;
 
 public interface IExerciseSearchQueriesService
 {
+    Task<ExerciseSearchWithTopicMetadataResponse> SearchExerciseAdminWithTopicMetadataAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default);
     Task UpdateOptionsAsync(ExerciseOptionsUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateExplanationAsync(ExerciseExplanationUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateImageUrlAsync(ExerciseImageUrlUpdatedRequestDTO request, CancellationToken cancellationToken = default);
@@ -16,7 +17,7 @@ public interface IExerciseSearchQueriesService
     Task UpdateExerciseSkillTypeAsync(ExerciseSkillTypeUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateExerciseTypeAsync(ExerciseTypeUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task<ExerciseIndexResponse> IndexAsync(ExerciseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
-    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task DeleteAsync(ExerciseDeletedRequestDTO request, CancellationToken cancellationToken = default);
     Task PublishAsync(ExercisePublishedRequestDTO request, CancellationToken cancellationToken = default);
     Task UnPublishAsync(ExerciseUnPublishedRequestDTO request, CancellationToken cancellationToken = default);
     Task ReOrderAsync(ExerciseReorderSearchRequestDTO request, CancellationToken cancellationToken = default);

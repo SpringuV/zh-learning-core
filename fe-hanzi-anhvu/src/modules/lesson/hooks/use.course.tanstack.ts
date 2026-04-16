@@ -1,8 +1,10 @@
+import { courseApi } from "@/modules/lesson/api/course.api";
 import {
-    type CourseListQueryParams,
-    courseApi,
-} from "@/modules/lesson/api/course.api";
-import { CourseCreateRequest } from "@/modules/lesson/types/coure.type";
+    CourseCreateRequest,
+    CourseListQueryParams,
+    CourseReOrderRequest,
+    UpdateCourseRequest,
+} from "@/modules/lesson/types/coure.type";
 import {
     useInfiniteQuery,
     useMutation,
@@ -13,6 +15,10 @@ type CourseListBaseQueryParams = Omit<
     CourseListQueryParams,
     "searchAfterValues"
 >;
+
+const invalidateCourseQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+    void queryClient.invalidateQueries({ queryKey: ["list-course"] });
+};
 
 export const useGetListCourse = (params: CourseListBaseQueryParams = {}) => {
     return useInfiniteQuery({
@@ -46,14 +52,84 @@ export const useCreateCourse = () => {
             const response = await courseApi.createCourse(payload);
             return response.data;
         },
-        onSuccess: (_) => {
+        onSuccess: () => {
             // delay một chút để đảm bảo rằng dữ liệu đã được cập nhật trên server trước khi refetch
             setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ["list-course"] });
+                invalidateCourseQueries(queryClient);
             }, 1500);
         },
         onError: (err) => {
             console.error("Create course error:", err);
+        },
+    });
+};
+
+export const usePublishCourse = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (courseId: string) => {
+            const response = await courseApi.publishCourse(courseId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateCourseQueries(queryClient);
+        },
+    });
+};
+
+export const useUnPublishCourse = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (courseId: string) => {
+            const response = await courseApi.unPublishCourse(courseId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateCourseQueries(queryClient);
+        },
+    });
+};
+
+export const useReOrderCourse = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: CourseReOrderRequest) => {
+            const response = await courseApi.reOrderCourse(payload);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateCourseQueries(queryClient);
+        },
+    });
+};
+
+export const useUpdateCourse = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (payload: UpdateCourseRequest) => {
+            const response = await courseApi.updateCourse(payload);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateCourseQueries(queryClient);
+        },
+    });
+};
+
+export const useDeleteCourse = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (courseId: string) => {
+            const response = await courseApi.deleteCourse(courseId);
+            return response.data;
+        },
+        onSuccess: () => {
+            invalidateCourseQueries(queryClient);
         },
     });
 };

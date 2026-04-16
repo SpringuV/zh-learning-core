@@ -1,7 +1,3 @@
-
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Domain.Entities;
 
 public class CourseAggregate : BaseAggregateRoot
@@ -54,6 +50,13 @@ public class CourseAggregate : BaseAggregateRoot
         return course;
     }
     
+    public void Delete()
+    {
+        if (IsPublished || TotalStudentsEnrolled > 0 || TotalTopics > 0)
+            throw new InvalidOperationException("Không thể xóa khóa học đã được xuất bản hoặc đã có học viên hoặc chủ đề.");
+        AddDomainEvent(new CourseDeletedEvent(CourseId));
+    }
+
     /// <summary>
     /// Update course title & regenerate slug
     /// </summary>

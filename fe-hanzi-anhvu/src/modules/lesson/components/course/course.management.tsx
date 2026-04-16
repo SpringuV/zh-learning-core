@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useDeferredValue,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import Link from "next/link";
-import { PenSquare, FolderOpen } from "lucide-react";
+import { Eye, EyeOff, FolderOpen, PenSquare, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { CreateCourseModal } from "@/modules/lesson/components/course/create-course-modal";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -28,8 +35,16 @@ import {
     TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { CustomPagination } from "@/shared/components/cms/custom-pagination";
-import { useGetListCourse } from "@/modules/lesson/hooks/use.course.tanstack";
-import { CourseListQueryParams } from "@/modules/lesson/api/course.api";
+import {
+    useDeleteCourse,
+    useGetListCourse,
+    usePublishCourse,
+    useUnPublishCourse,
+} from "@/modules/lesson/hooks/use.course.tanstack";
+import {
+    CourseListQueryParams,
+    CourseSortBy,
+} from "@/modules/lesson/types/coure.type";
 
 const initialCourseQueryParams: CourseListQueryParams = {
     title: "",
@@ -46,20 +61,28 @@ export default function CourseCmsPage() {
         initialCourseQueryParams,
     );
     const [levelFilter, setLevelFilter] = useState("all");
+    const [publishFilter, setPublishFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
     // #endregion
+    // deferredValue để trì hoãn việc cập nhật giá trị tìm kiếm khi người dùng đang gõ, giúp giảm số lần gọi API khi người dùng nhập vào ô tìm kiếm, chỉ cập nhật giá trị tìm kiếm sau khi người dùng ngừng gõ một khoảng thời gian ngắn
+    const deferredTitle = useDeferredValue(queryParams.title ?? "");
 
     // Memoized effective query params to avoid unnecessary refetches
     const effectiveQueryParams = useMemo<CourseListQueryParams>(
         () => ({
             ...queryParams,
+            title: deferredTitle.trim(),
             take: itemsPerPage,
         }),
-        [queryParams, itemsPerPage],
+        [queryParams, deferredTitle, itemsPerPage],
     );
 
     // #region Data Fetching
     const coursesQuery = useGetListCourse(effectiveQueryParams);
+    const publishCourseMutation = usePublishCourse();
+    const unPublishCourseMutation = useUnPublishCourse();
+    const deleteCourseMutation = useDeleteCourse();
 
     const pages = coursesQuery.data?.pages ?? [];
     const loadedPages = pages.length;
@@ -77,14 +100,20 @@ export default function CourseCmsPage() {
             : false;
 
     const filteredCourses = useMemo(() => {
-        if (levelFilter === "all") {
-            return pageCourses;
-        }
+        return pageCourses.filter((course) => {
+            const matchLevel =
+                levelFilter === "all" ||
+                String(course.hskLevel) === levelFilter;
 
-        return pageCourses.filter(
-            (course) => String(course.hskLevel) === levelFilter,
-        );
-    }, [pageCourses, levelFilter]);
+            const matchPublish =
+                publishFilter === "all" ||
+                (publishFilter === "published"
+                    ? course.isPublished
+                    : !course.isPublished);
+
+            return matchLevel && matchPublish;
+        });
+    }, [pageCourses, levelFilter, publishFilter]);
 
     const totalDocs = firstPageData?.total ?? 0;
     const totalCourses = totalDocs;
@@ -122,8 +151,83 @@ export default function CourseCmsPage() {
         queryParams.title,
         queryParams.sortBy,
         queryParams.orderByDescending,
+        levelFilter,
+        publishFilter,
         itemsPerPage,
     ]);
+
+    const resetFilters = () => {
+        setQueryParams(initialCourseQueryParams);
+        setLevelFilter("all");
+        setPublishFilter("all");
+        setCurrentPage(1);
+    };
+
+    const getErrorMessage = (error: unknown) => {
+        if (typeof error === "object" && error !== null) {
+            const maybeApiError = error as {
+                response?: {
+                    data?: {
+                        message?: string;
+                        title?: string;
+                    };
+                };
+                message?: string;
+            };
+
+            return (
+                maybeApiError.response?.data?.message ??
+                maybeApiError.response?.data?.title ??
+                maybeApiError.message ??
+                "Có lỗi xảy ra. Vui lòng thử lại."
+            );
+        }
+
+        return "Có lỗi xảy ra. Vui lòng thử lại.";
+    };
+
+    const handleTogglePublishCourse = async (
+        courseId: string,
+        isPublished: boolean,
+    ) => {
+        const nextActionText = isPublished ? "hủy xuất bản" : "xuất bản";
+        const confirmed = window.confirm(
+            `Bạn có chắc muốn ${nextActionText} khóa học này không?`,
+        );
+        if (!confirmed) return;
+
+        setPendingCourseId(courseId);
+        try {
+            if (isPublished) {
+                await unPublishCourseMutation.mutateAsync(courseId);
+                toast.success("Đã hủy xuất bản khóa học.");
+            } else {
+                await publishCourseMutation.mutateAsync(courseId);
+                toast.success("Đã xuất bản khóa học.");
+            }
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setPendingCourseId(null);
+        }
+    };
+
+    const handleDeleteCourse = async (courseId: string, title: string) => {
+        const confirmed = window.confirm(
+            `Xóa khóa học \"${title}\"? Hành động này không thể hoàn tác.`,
+        );
+        if (!confirmed) return;
+
+        setPendingCourseId(courseId);
+        try {
+            await deleteCourseMutation.mutateAsync(courseId);
+            toast.success("Đã xóa khóa học.");
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        } finally {
+            setPendingCourseId(null);
+        }
+    };
 
     const handlePageChange = useCallback(
         (page: number) => {
@@ -151,14 +255,6 @@ export default function CourseCmsPage() {
         [currentPage, loadedPages, canLoadMore, coursesQuery],
     );
     // #endregion
-    const formatDate = (value: string) => {
-        return new Date(value).toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-        });
-    };
-
     return (
         <div className="bg-linear-to-br from-slate-50 via-white to-slate-50">
             {/* Top Navigation Bar */}
@@ -218,8 +314,8 @@ export default function CourseCmsPage() {
                             </Button>
                         ))}
                     </div>
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex gap-3">
+                    <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+                        <div className="flex flex-wrap gap-3">
                             <Input
                                 type="text"
                                 value={queryParams.title || ""}
@@ -230,14 +326,14 @@ export default function CourseCmsPage() {
                                     })
                                 }
                                 placeholder="Tìm kiếm khóa học..."
-                                className="h-9 w-73 bg-white text-sm"
+                                className="h-9 w-72 bg-white text-sm"
                             />
                             <Select
                                 value={levelFilter}
                                 onValueChange={(value) => setLevelFilter(value)}
                             >
-                                <SelectTrigger className="h-9 w-32.5 bg-white text-sm">
-                                    <SelectValue placeholder="Tất cả" />
+                                <SelectTrigger className="h-9 w-32 bg-white text-sm">
+                                    <SelectValue placeholder="HSK" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Tất cả</SelectItem>
@@ -249,6 +345,98 @@ export default function CourseCmsPage() {
                                     <SelectItem value="6">HSK 6</SelectItem>
                                 </SelectContent>
                             </Select>
+
+                            <Select
+                                value={publishFilter}
+                                onValueChange={(value) =>
+                                    setPublishFilter(value)
+                                }
+                            >
+                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                    <SelectValue placeholder="Trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        Mọi trạng thái
+                                    </SelectItem>
+                                    <SelectItem value="published">
+                                        Đã xuất bản
+                                    </SelectItem>
+                                    <SelectItem value="draft">
+                                        Bản nháp
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={queryParams.sortBy ?? "CreatedAt"}
+                                onValueChange={(value: CourseSortBy) =>
+                                    setQueryParams((current) => ({
+                                        ...current,
+                                        sortBy: value,
+                                    }))
+                                }
+                            >
+                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
+                                    <SelectValue placeholder="Sắp xếp theo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CreatedAt">
+                                        Ngày tạo
+                                    </SelectItem>
+                                    <SelectItem value="UpdatedAt">
+                                        Ngày cập nhật
+                                    </SelectItem>
+                                    <SelectItem value="Title">
+                                        Tiêu đề
+                                    </SelectItem>
+                                    <SelectItem value="HskLevel">
+                                        Cấp độ HSK
+                                    </SelectItem>
+                                    <SelectItem value="TotalTopics">
+                                        Tổng topic
+                                    </SelectItem>
+                                    <SelectItem value="TotalStudentsEnrolled">
+                                        Tổng học viên
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={
+                                    queryParams.orderByDescending
+                                        ? "desc"
+                                        : "asc"
+                                }
+                                onValueChange={(value) =>
+                                    setQueryParams((current) => ({
+                                        ...current,
+                                        orderByDescending: value === "desc",
+                                    }))
+                                }
+                            >
+                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                    <SelectValue placeholder="Thứ tự" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="desc">
+                                        Giảm dần
+                                    </SelectItem>
+                                    <SelectItem value="asc">
+                                        Tăng dần
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9"
+                                onClick={resetFilters}
+                            >
+                                Xóa lọc
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -353,7 +541,75 @@ export default function CourseCmsPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="px-4 py-3">
+                                                {pendingCourseId ===
+                                                    course.id && (
+                                                    <p className="mb-2 text-[11px] text-slate-500">
+                                                        Đang xử lý...
+                                                    </p>
+                                                )}
                                                 <div className="flex gap-2">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                size="icon-sm"
+                                                                variant="outline"
+                                                                disabled={
+                                                                    pendingCourseId ===
+                                                                    course.id
+                                                                }
+                                                                onClick={() =>
+                                                                    void handleTogglePublishCourse(
+                                                                        course.id,
+                                                                        course.isPublished,
+                                                                    )
+                                                                }
+                                                                className={
+                                                                    course.isPublished
+                                                                        ? "text-amber-700 hover:text-amber-800"
+                                                                        : "text-emerald-700 hover:text-emerald-800"
+                                                                }
+                                                            >
+                                                                {course.isPublished ? (
+                                                                    <EyeOff className="h-4 w-4" />
+                                                                ) : (
+                                                                    <Eye className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {course.isPublished
+                                                                ? "Hủy xuất bản"
+                                                                : "Xuất bản"}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                size="icon-sm"
+                                                                variant="outline"
+                                                                disabled={
+                                                                    pendingCourseId ===
+                                                                    course.id
+                                                                }
+                                                                onClick={() =>
+                                                                    void handleDeleteCourse(
+                                                                        course.id,
+                                                                        course.title,
+                                                                    )
+                                                                }
+                                                                className="text-rose-700 hover:text-rose-800"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            Xóa khóa học
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <Button

@@ -1,5 +1,3 @@
-using Lesson.Application.MediatR.Command.Course.Create;
-
 namespace Lesson.Application.Services;
 
 public class LessonService(IMediator mediator) : ILessonService
@@ -52,6 +50,21 @@ public class LessonService(IMediator mediator) : ILessonService
             ExamYear: request.ExamYear,
             ExamCode: request.ExamCode
         ), cancellationToken);
+    }
+
+    public async Task<Result> DeleteCourseAsync(Guid courseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new DeleteCourseCommand(CourseId: courseId), cancellationToken);
+    }
+
+    public async Task<Result> DeleteExerciseAsync(Guid exerciseId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new DeleteExerciseCommand(ExerciseId: exerciseId), cancellationToken);
+    }
+
+    public async Task<Result> DeleteTopicAsync(Guid topicId, CancellationToken cancellationToken)
+    {
+        return await _mediator.Send(new DeleteTopicCommand(TopicId: topicId), cancellationToken);
     }
 
     public async Task<Result> PublishCourseAsync(Guid courseId, CancellationToken cancellationToken)

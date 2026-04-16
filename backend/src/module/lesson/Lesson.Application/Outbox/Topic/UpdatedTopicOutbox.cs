@@ -117,3 +117,15 @@ public sealed class TopicTotalExercisesUpdatedOutbox(ILessonOutboxWriter outboxW
             cancellationToken);
 }
 #endregion
+#region Delete
+public sealed class DeletedTopicOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<TopicDeletedEvent>
+{
+    public Task Handle(TopicDeletedEvent notification, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new TopicDeletedIntegrationEvent(
+                notification.TopicId
+            ),
+            cancellationToken);
+}
+#endregion

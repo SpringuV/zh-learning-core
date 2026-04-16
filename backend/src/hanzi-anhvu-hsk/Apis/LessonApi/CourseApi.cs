@@ -89,5 +89,21 @@ public class CourseApi
         }
     }
     #endregion
- 
+    #region Delete
+    public static async Task<IResult> DeleteCourse(
+        [FromRoute] Guid courseId, 
+        ILessonService lessonService, 
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.DeleteCourseAsync(courseId, ct);
+            return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
 }

@@ -1,3 +1,4 @@
+using Search.Infrastructure.Queries.Lesson.Delete;
 using Search.Infrastructure.Queries.Lesson.Update.Exercise;
 
 namespace Search.Infrastructure.Services;
@@ -144,9 +145,12 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
         return await _mediator.Send(command, cancellationToken);
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(ExerciseDeletedRequestDTO request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var command = new ExerciseDeletedSearchCommand(
+            ExerciseId: request.ExerciseId
+        );
+        await _mediator.Send(command, cancellationToken);
     }
 
     public async Task<SearchQueryResult<ExerciseSearchItemAdminResponse>> SearchExerciseItemAdminAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default)
@@ -195,5 +199,25 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
             UpdatedAt: request.UpdatedAt
         );
         await _mediator.Send(command, cancellationToken);
+    }
+
+    public async Task<ExerciseSearchWithTopicMetadataResponse> SearchExerciseAdminWithTopicMetadataAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default)
+    {
+        var queries = new TopicExercisesOverviewAdminQueries(
+            TopicId: request.TopicId,
+            Question: request.Question,
+            IsPublished: request.IsPublished,
+            SkillType: request.SkillType,
+            ExerciseType: request.ExerciseType,
+            Difficulty: request.Difficulty,
+            Context: request.Context,
+            StartCreatedAt: request.StartCreatedAt,
+            EndCreatedAt: request.EndCreatedAt,
+            Take: request.Take,
+            SearchAfterValues: request.SearchAfterValues,
+            SortBy: request.SortBy,
+            OrderByDescending: request.OrderByDescending
+        );
+        return await _mediator.Send(queries, cancellationToken);
     }
 }

@@ -1,5 +1,3 @@
-import { success } from "zod";
-
 /*
 Tính năng	            interface	            type
 Extend	            ✅ Dùng extends	    ✅ Dùng & (intersection)
@@ -38,3 +36,45 @@ interface CourseCreateResponse {
     Id: string;
 }
 export type CourseCreateResponseApi = BaseResponse<CourseCreateResponse>;
+
+export type CourseSortBy =
+    | "CreatedAt"
+    | "UpdatedAt"
+    | "HskLevel"
+    | "Title"
+    | "OrderIndex"
+    | "TotalStudentsEnrolled"
+    | "TotalTopics";
+
+export interface CourseListQueryParams {
+    title?: string;
+    take?: number;
+    startCreatedAt?: Date | string;
+    endCreatedAt?: Date | string;
+    searchAfterValues?: string | null;
+    sortBy?: CourseSortBy;
+    orderByDescending?: boolean;
+}
+
+export interface CourseListItem {
+    id: string;
+    title: string;
+    hskLevel: number;
+    orderIndex: number;
+    totalTopics: number;
+    totalStudentsEnrolled: number;
+    isPublished: boolean;
+    slug: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CourseReOrderRequest {
+    orderedCourseIds: string[];
+}
+export interface UpdateCourseRequest {
+    courseId: string;
+    title?: string;
+    description?: string;
+    hskLevel?: number;
+}
