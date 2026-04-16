@@ -4,6 +4,7 @@ namespace Search.Contracts.Interfaces;
 
 public interface IExerciseSearchQueriesService
 {
+    Task<ExerciseSearchDetailResponse> GetExerciseDetailSearchItemAdminAsync(Guid exerciseId, CancellationToken cancellationToken = default);
     Task<ExerciseSearchWithTopicMetadataResponse> SearchExerciseAdminWithTopicMetadataAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default);
     Task UpdateOptionsAsync(ExerciseOptionsUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateExplanationAsync(ExerciseExplanationUpdatedRequestDTO request, CancellationToken cancellationToken = default);

@@ -29,6 +29,8 @@ import {
     SelectValue,
 } from "@/shared/components/ui/select";
 import { Textarea } from "@/shared/components/ui/textarea";
+import * as z from "zod";
+
 type TopicFormErrors = {
     title?: string;
     description?: string;
@@ -41,6 +43,102 @@ type TopicFormErrors = {
 type CreateTopicModalProps = {
     courseId: string;
     onCreated?: (topicId?: string) => void | Promise<void>;
+};
+
+const createTopicSchema = z
+    .object({
+        title: z
+            .string()
+            .trim()
+            .min(1, "Tiêu đề topic không được để trống.")
+            .min(3, "Tiêu đề topic phải có ít nhất 3 ký tự.")
+            .max(140, "Tiêu đề topic tối đa 140 ký tự."),
+        description: z
+            .string()
+            .trim()
+            .min(1, "Mô tả topic không được để trống.")
+            .max(1000, "Mô tả topic tối đa 1000 ký tự."),
+        topicType: z.enum(["Learning", "Exam"]),
+        estimatedTimeMinutes: z
+            .coerce
+            .number()
+            .int("EstimatedTimeMinutes phải là số nguyên lớn hơn 0.")
+            .positive("EstimatedTimeMinutes phải là số nguyên lớn hơn 0."),
+        examYear: z.string().trim().optional(),
+        examCode: z.string().trim().optional(),
+    })
+    .superRefine((value, ctx) => {
+        if (value.topicType !== "Exam") {
+            return;
+        }
+
+        const examYearNumber = Number(value.examYear);
+        const maxYear = new Date().getFullYear() + 1;
+        if (
+            Number.isNaN(examYearNumber) ||
+            !Number.isInteger(examYearNumber) ||
+            examYearNumber < 1950 ||
+            examYearNumber > maxYear
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message:
+                    "ExamYear phải trong khoảng hợp lệ (1950 đến năm sau hiện tại).",
+                path: ["examYear"],
+            });
+        }
+
+        if (!value.examCode) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "ExamCode không được để trống với topic Exam.",
+                path: ["examCode"],
+            });
+        } else if (value.examCode.length > 40) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "ExamCode tối đa 40 ký tự.",
+                path: ["examCode"],
+            });
+        }
+    });
+
+const mapTopicValidationErrors = (
+    issues: z.ZodError["issues"],
+): TopicFormErrors => {
+    const nextErrors: TopicFormErrors = {};
+
+    for (const issue of issues) {
+        const field = issue.path[0];
+        if (field === "title" && !nextErrors.title) {
+            nextErrors.title = issue.message;
+            continue;
+        }
+
+        if (field === "description" && !nextErrors.description) {
+            nextErrors.description = issue.message;
+            continue;
+        }
+
+        if (
+            field === "estimatedTimeMinutes" &&
+            !nextErrors.estimatedTimeMinutes
+        ) {
+            nextErrors.estimatedTimeMinutes = issue.message;
+            continue;
+        }
+
+        if (field === "examYear" && !nextErrors.examYear) {
+            nextErrors.examYear = issue.message;
+            continue;
+        }
+
+        if (field === "examCode" && !nextErrors.examCode) {
+            nextErrors.examCode = issue.message;
+        }
+    }
+
+    return nextErrors;
 };
 
 export function CreateTopicModal({
@@ -97,74 +195,38 @@ export function CreateTopicModal({
     ) => {
         event.preventDefault();
 
-        const nextErrors: TopicFormErrors = {};
-        const title = topicForm.title.trim();
-        const description = topicForm.description.trim();
-        const estimatedTimeMinutes = Number(topicForm.estimatedTimeMinutes);
-
         if (!courseId) {
-            nextErrors.form = "Không tìm thấy CourseId từ URL.";
-        }
-        if (!title) {
-            nextErrors.title = "Tiêu đề topic không được để trống.";
-        } else if (title.length < 3) {
-            nextErrors.title = "Tiêu đề topic phải có ít nhất 3 ký tự.";
-        } else if (title.length > 140) {
-            nextErrors.title = "Tiêu đề topic tối đa 140 ký tự.";
-        }
-        if (!description) {
-            nextErrors.description = "Mô tả topic không được để trống.";
-        } else if (description.length > 1000) {
-            nextErrors.description = "Mô tả topic tối đa 1000 ký tự.";
-        }
-        if (
-            Number.isNaN(estimatedTimeMinutes) ||
-            !Number.isInteger(estimatedTimeMinutes) ||
-            estimatedTimeMinutes <= 0
-        ) {
-            nextErrors.estimatedTimeMinutes =
-                "EstimatedTimeMinutes phải là số nguyên lớn hơn 0.";
-        }
-
-        let examYear: number | undefined;
-        let examCode: string | undefined;
-        if (topicForm.topicType === "Exam") {
-            examYear = Number(topicForm.examYear);
-            examCode = topicForm.examCode.trim();
-
-            if (
-                Number.isNaN(examYear) ||
-                !Number.isInteger(examYear) ||
-                examYear < 1950 ||
-                examYear > new Date().getFullYear() + 1
-            ) {
-                nextErrors.examYear =
-                    "ExamYear phải trong khoảng hợp lệ (1950 đến năm sau hiện tại).";
-            }
-            if (!examCode) {
-                nextErrors.examCode =
-                    "ExamCode không được để trống với topic Exam.";
-            } else if (examCode.length > 40) {
-                nextErrors.examCode = "ExamCode tối đa 40 ký tự.";
-            }
-        }
-
-        setTopicErrors(nextErrors);
-        if (Object.keys(nextErrors).length > 0) {
+            setTopicErrors({ form: "Không tìm thấy CourseId từ URL." });
             return;
         }
 
+        const validated = createTopicSchema.safeParse({
+            title: topicForm.title,
+            description: topicForm.description,
+            topicType: topicForm.topicType,
+            estimatedTimeMinutes: topicForm.estimatedTimeMinutes,
+            examYear: topicForm.examYear,
+            examCode: topicForm.examCode,
+        });
+
+        if (!validated.success) {
+            setTopicErrors(mapTopicValidationErrors(validated.error.issues));
+            return;
+        }
+
+        setTopicErrors({});
+
         const payload: TopicCreateRequest = {
             CourseId: courseId,
-            Title: title,
-            Description: description,
-            TopicType: topicForm.topicType,
-            EstimatedTimeMinutes: estimatedTimeMinutes,
+            Title: validated.data.title,
+            Description: validated.data.description,
+            TopicType: validated.data.topicType,
+            EstimatedTimeMinutes: validated.data.estimatedTimeMinutes,
         };
 
-        if (topicForm.topicType === "Exam") {
-            payload.ExamYear = examYear;
-            payload.ExamCode = examCode;
+        if (validated.data.topicType === "Exam") {
+            payload.ExamYear = Number(validated.data.examYear);
+            payload.ExamCode = validated.data.examCode;
         }
 
         try {

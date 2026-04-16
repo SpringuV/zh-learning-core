@@ -1,5 +1,6 @@
 import {
     ExerciseCreateRequest,
+    ExerciseDetailResponse,
     ExerciseListItem,
     ExerciseListQueryParams,
     ExerciseReorderRequest,
@@ -24,6 +25,7 @@ const endPoints = {
     reorderExercises: `lesson/v1/exercise/reorder`,
     updateExercise: `lesson/v1/exercise`,
     deleteExercise: (exerciseId: string) => `lesson/v1/exercise/${exerciseId}`,
+    detailExercise: (exerciseId: string) => `search/v1/exercises/${exerciseId}`,
 };
 //#endregion
 
@@ -73,5 +75,10 @@ export const exerciseApi = {
     },
     async deleteExercise(exerciseId: string) {
         return await http.delete(endPoints.deleteExercise(exerciseId));
+    },
+    async getExerciseDetail(exerciseId: string) {
+        return await http.get<ExerciseDetailResponse>(
+            endPoints.detailExercise(exerciseId),
+        );
     },
 };

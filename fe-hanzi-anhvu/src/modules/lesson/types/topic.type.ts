@@ -52,6 +52,22 @@ export interface TopicListItemAdmin {
     updatedAt: string;
 }
 
+export interface TopicDetailResponse {
+    id: string;
+    title: string;
+    slug: string;
+    orderIndex: number;
+    topicType: TopicType;
+    examYear?: number | null;
+    examCode?: string | null;
+    estimatedTimeMinutes: number;
+    description: string;
+    isPublished: boolean;
+    totalExercises: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface CourseMetadataForTopicAdmin {
     id: string;
     title: string;

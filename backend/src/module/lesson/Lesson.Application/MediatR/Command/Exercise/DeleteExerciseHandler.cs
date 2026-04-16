@@ -22,7 +22,7 @@ public class DeleteExerciseCommandHandler(
             {
                 var exerciseAggregate = await _exerciseRepository.GetByIdAsync(request.ExerciseId, cancellationToken) ?? throw new KeyNotFoundException($"Exercise with id '{request.ExerciseId}' was not found.");
                 exerciseAggregate.Delete();
-                await _exerciseRepository.UpdateAsync(exerciseAggregate, cancellationToken);
+                await _exerciseRepository.DeleteAsync(exerciseAggregate.ExerciseId, cancellationToken);
 
                 // Publish domain events
                 var domainEvents = exerciseAggregate.DomainEvents;

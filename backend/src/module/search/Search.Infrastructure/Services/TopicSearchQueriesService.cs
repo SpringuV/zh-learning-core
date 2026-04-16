@@ -1,4 +1,5 @@
 using Search.Infrastructure.Queries.Lesson.Delete;
+using Search.Infrastructure.Queries.Lesson.Search.Detail;
 using Search.Infrastructure.Queries.Lesson.Update.Topic;
 
 namespace Search.Infrastructure.Services;
@@ -162,6 +163,14 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             UpdatedAt: request.UpdatedAt
         );
         await _mediator.Send(command, cancellationToken);
+    }
+    #endregion
+
+    #region Detail
+    public async Task<TopicSearchDetailResponse> GetTopicDetailSearchItemAdminAsync(Guid topicId, CancellationToken cancellationToken = default)
+    {
+        var query = new TopicSearchDetailAdminQueries(topicId);
+        return await _mediator.Send(query, cancellationToken);
     }
     #endregion
 }

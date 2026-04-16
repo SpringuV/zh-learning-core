@@ -19,7 +19,12 @@ public sealed class CourseDeletedSearchCommandHandler(ElasticsearchClient elasti
             cancellationToken
         );
 
-        if (!response.IsValidResponse)
+        // Delete trong Elasticsearch cần idempotent: nếu tài liệu đã bị xóa trước đó (result=not_found)
+        // thì xem như thành công để tránh outbox retry vô hạn.
+        var isNotFound = response.DebugInformation?.Contains("\"result\":\"not_found\"", StringComparison.OrdinalIgnoreCase) == true
+            || response.DebugInformation?.Contains("successful (404)", StringComparison.OrdinalIgnoreCase) == true;
+
+        if (!response.IsValidResponse && !isNotFound)
         {
             throw new InvalidOperationException($"Failed to delete course with id {request.CourseId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
         }

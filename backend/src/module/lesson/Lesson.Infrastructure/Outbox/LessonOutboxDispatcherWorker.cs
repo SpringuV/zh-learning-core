@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 namespace Lesson.Infrastructure.Outbox;
 
 /// <summary>
@@ -16,28 +17,58 @@ public sealed class LessonOutboxDispatcherWorker(
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly IConfiguration _config = config;
     private readonly ILogger<LessonOutboxDispatcherWorker> _logger = logger;
+    // Queue nội bộ để truyền payload từ luồng lắng nghe sang luồng xử lý
+    private readonly Channel<string> _notificationQueue =
+        // createUnbounded với SingleReader=true, SingleWriter=false để tối ưu cho trường hợp nhiều notification đến cùng lúc nhưng chỉ có 1 consumer xử lý, tránh tình trạng mất notification khi xử lý chậm hoặc có sự cố tạm thời.
+        Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+
+    // Worker chính thực hiện lắng nghe và xử lý notification
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await ProcessMissedEventAsync(stoppingToken); // Xử lý các event bị bỏ lỡ trước khi bắt đầu lắng nghe
+        // Bắt đầu luồng tiêu thụ notification song song với luồng lắng nghe
+        var consumerTask = ConsumeNotificationsAsync(stoppingToken);
 
-        while(!stoppingToken.IsCancellationRequested)
+        try
         {
+            while(!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await ListenAsync(stoppingToken);
+                }
+                catch (OperationCanceledException ) when (stoppingToken.IsCancellationRequested)
+                {
+                    break; // Graceful shutdown
+                }
+
+                catch (Exception ex)
+                {
+                    // Ghi log lỗi bất ngờ và thử lại sau khoảng nghỉ ngắn
+                    _logger.LogError(ex, "Lesson outbox LISTEN loop failed. Retrying in 2 seconds.");
+                    // Sau khi mất kết nối, quét lại backlog một lần để bắt các event phát sinh lúc downtime.
+                    await ProcessMissedEventAsync(stoppingToken);
+                    // Tránh retry nóng gây tốn tài nguyên
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                }
+            }
+        }
+        finally
+        {
+            
+            _notificationQueue.Writer.TryComplete();
+
             try
             {
-                await ListenAsync(stoppingToken);
-                
-            } 
-            catch (OperationCanceledException ) when (stoppingToken.IsCancellationRequested)
-            {
-                break; // Graceful shutdown
+                await consumerTask;
             }
-
-            catch (Exception ex)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                // Ghi log lỗi bất ngờ và thử lại sau khoảng nghỉ ngắn
-                _logger.LogError(ex, "Lesson outbox LISTEN loop failed. Retrying in 2 seconds.");
-                // Tránh retry nóng gây tốn tài nguyên
-                await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                // Ignore cancellation during shutdown.
             }
         }
     }
@@ -49,28 +80,48 @@ public sealed class LessonOutboxDispatcherWorker(
         await using var connection = new Npgsql.NpgsqlConnection(connectionString);
         await connection.OpenAsync(stoppingToken);
         // Implementation for listening to PostgreSQL notifications
-        
+        // Đăng ký lắng nghe trên channel "lesson_outbox_channel"
         await using (var cmd = new Npgsql.NpgsqlCommand("LISTEN lesson_outbox_channel;", connection))
         {
             _logger.LogInformation("Executing LISTEN command on PostgreSQL for Lesson module outbox...");
             await cmd.ExecuteNonQueryAsync(stoppingToken);
         }
-        connection.Notification += (_,  e) =>
+
+        void OnNotification(object? _, Npgsql.NpgsqlNotificationEventArgs e)
         {
-            // fire-and-forget xử lý notification để không block thread lắng nghe
-            _ = HandleNotificationAsync(e.Payload, stoppingToken);
-        };
+            if (!_notificationQueue.Writer.TryWrite(e.Payload))
+            {
+                _logger.LogWarning("Failed to enqueue lesson outbox notification payload.");
+            }
+        }
+
+        connection.Notification += OnNotification;
         _logger.LogInformation("Started listening to PostgreSQL notifications for Lesson module outbox.");
-        
-        // WaitAsync chờ liên tục cho đến khi bị cancel
-        // Không cần while loop - WaitAsync sẽ xử lý liên tục
+
         try
         {
-            await connection.WaitAsync(stoppingToken);
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await connection.WaitAsync(stoppingToken);
+            }
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Lesson outbox listener cancelled.");
+        }
+        finally
+        {
+            connection.Notification -= OnNotification;
+        }
+    }
+
+    private async Task ConsumeNotificationsAsync(CancellationToken stoppingToken)
+    {
+        // Tiêu thụ notification từ queue và xử lý payload
+        // notifi.Reader.ReadAllAsync sẽ tự động chờ khi queue rỗng và dừng khi Writer hoàn thành
+        await foreach (var payload in _notificationQueue.Reader.ReadAllAsync(stoppingToken))
+        {
+            await HandleNotificationAsync(payload, stoppingToken);
         }
     }
 
@@ -111,6 +162,7 @@ public sealed class LessonOutboxDispatcherWorker(
     {
         // Tạo scope mới để resolve DbContext và EventBus
         await using var scope = _scopeFactory.CreateAsyncScope();
+        // Resolve DbContext và EventBus từ scope mới để đảm bảo thread safety và lifetime phù hợp
         var db = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
         var eventBus = scope.ServiceProvider.GetRequiredService<IEventBus>();
 
@@ -182,19 +234,24 @@ public sealed class LessonOutboxDispatcherWorker(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-
-    // xử lý trường hợp có sự kiện bị bỏ lỡ (ví dụ do worker downtime) bằng cách kiểm tra outbox table định kỳ
+    // xử lý trường hợp có sự kiện bị bỏ lỡ (ví dụ do worker downtime/reconnect)
     private async Task ProcessMissedEventAsync(CancellationToken cancellationToken)
     {
         // create scope để resolve DbContext và EventBus
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LessonDbContext>();
+
         // Lấy các message chưa được dispatch (dựa trên timestamp hoặc status)
         var missedMessages = await dbContext.LessonOutboxMessages
             .Where(x => x.ProcessedOnUtc == null && x.RetryCount < 3)
             .OrderBy(x => x.OccurredOnUtc)
             .ToListAsync(cancellationToken);
-        _logger.LogInformation("Found {Count} missed outbox messages to process.", missedMessages.Count);
+
+        if (missedMessages.Count > 0)
+        {
+            _logger.LogInformation("Found {Count} missed outbox messages to process.", missedMessages.Count);
+        }
+
         foreach (var message in missedMessages)
         {
             await ProcessEventAsync(message, cancellationToken);

@@ -1,6 +1,3 @@
-using Search.Infrastructure.Queries.Lesson.Delete;
-using Search.Infrastructure.Queries.Lesson.Update.Exercise;
-
 namespace Search.Infrastructure.Services;
 
 public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQueriesService
@@ -219,5 +216,11 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
             OrderByDescending: request.OrderByDescending
         );
         return await _mediator.Send(queries, cancellationToken);
+    }
+
+    public async Task<ExerciseSearchDetailResponse> GetExerciseDetailSearchItemAdminAsync(Guid exerciseId, CancellationToken cancellationToken = default)
+    {
+        var query = new ExerciseSearchDetailAdminQueries(exerciseId);
+        return await _mediator.Send(query, cancellationToken);
     }
 }

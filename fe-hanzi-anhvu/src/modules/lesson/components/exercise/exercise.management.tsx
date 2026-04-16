@@ -8,12 +8,13 @@ import {
     useState,
 } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -22,12 +23,14 @@ import {
     SelectValue,
 } from "@/shared/components/ui/select";
 import { CustomPagination } from "@/shared/components/cms/custom-pagination";
+import { CreateExerciseModal } from "@/modules/lesson/components/exercise/create-exercise-modal";
 import {
     useDeleteExercise,
     useGetTopicExercisesOverview,
     usePublishExercise,
     useUnPublishExercise,
 } from "@/modules/lesson/hooks/use.exercise.tanstack";
+import { useGetTopicDetail } from "@/modules/lesson/hooks/use.topic.tanstack";
 import {
     ExerciseListQueryParams,
     ExerciseSortBy,
@@ -131,6 +134,7 @@ export default function ExerciseManagementByTopic() {
         normalizedTopicId,
         effectiveQueryParams,
     );
+    const topicDetailQuery = useGetTopicDetail(normalizedTopicId);
 
     const publishExerciseMutation = usePublishExercise();
     const unPublishExerciseMutation = useUnPublishExercise();
@@ -141,6 +145,8 @@ export default function ExerciseManagementByTopic() {
     const firstPageData = overviewPages[0]?.data;
     const currentPageData = overviewPages[currentPage - 1]?.data;
     const topicMetadata = firstPageData?.parentMetadata ?? null;
+    const topicDetail = topicDetailQuery.data?.data;
+    const effectiveTopicMetadata = topicDetail ?? topicMetadata;
     const pageExercises = currentPageData?.items ?? [];
 
     const canLoadMore =
@@ -280,9 +286,13 @@ export default function ExerciseManagementByTopic() {
 
     const isExercisesLoading = overviewQuery.isLoading;
 
+    const handleExerciseCreated = async () => {
+        setCurrentPage(1);
+    };
+
     return (
         <div className="min-h-full w-full min-w-0 bg-linear-to-br from-slate-50 via-white to-slate-50">
-            <div className="border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+            <div className="sticky top-0 z-40 border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
                 <div className="flex min-w-0 flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                         <div className="mb-2 flex items-center gap-3">
@@ -290,32 +300,55 @@ export default function ExerciseManagementByTopic() {
                                 variant="outline"
                                 className="bg-slate-100 text-slate-700 border-slate-200"
                             >
-                                Topic: {topicMetadata?.title ?? "-"}
+                                Topic: {effectiveTopicMetadata?.title ?? "-"}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className="bg-amber-50 text-amber-700 border-amber-200"
                             >
-                                Loại: {topicMetadata?.topicType ?? "-"}
+                                Loại: {effectiveTopicMetadata?.topicType ?? "-"}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className="bg-blue-50 text-blue-700 border-blue-200"
                             >
-                                Số bài: {topicMetadata?.totalExercises ?? 0}
+                                Số bài:{" "}
+                                {effectiveTopicMetadata?.totalExercises ?? 0}
+                            </Badge>
+                            <Badge
+                                variant="secondary"
+                                className={
+                                    effectiveTopicMetadata?.isPublished
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-slate-100 text-slate-700"
+                                }
+                            >
+                                {effectiveTopicMetadata?.isPublished
+                                    ? "Đang xuất bản"
+                                    : "Bản nháp"}
                             </Badge>
                         </div>
                         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
                             Quản lý bài tập theo Topic
                         </h1>
                         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                            {topicMetadata?.slug
-                                ? `Slug: ${topicMetadata.slug}`
+                            {effectiveTopicMetadata?.slug
+                                ? `Slug: ${effectiveTopicMetadata.slug}`
                                 : "Vui lòng chờ dữ liệu topic."}
                         </p>
+                        {topicDetail?.description && (
+                            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                                {topicDetail.description}
+                            </p>
+                        )}
                         {overviewQuery.isError && (
                             <p className="mt-2 text-sm text-red-600">
                                 Không thể tải danh sách bài tập.
+                            </p>
+                        )}
+                        {topicDetailQuery.isError && (
+                            <p className="mt-2 text-sm text-red-600">
+                                Không thể tải chi tiết topic.
                             </p>
                         )}
                     </div>
@@ -328,44 +361,52 @@ export default function ExerciseManagementByTopic() {
                                 Về khóa học
                             </button>
                         </Link>
-                        <button className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">
-                            + Thêm bài tập
-                        </button>
+                        <CreateExerciseModal
+                            topicId={normalizedTopicId}
+                            onCreated={handleExerciseCreated}
+                        />
                     </div>
                 </div>
 
-                <div className="flex gap-4 overflow-x-auto pt-6">
-                    {[
-                        { id: "exercises", label: "Danh sách bài tập" },
-                        { id: "settings", label: "Cài đặt topic" },
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative shrink-0 pb-3 text-sm font-medium transition-colors duration-300 ease-out ${
-                                activeTab === tab.id
-                                    ? "text-amber-600"
-                                    : "text-slate-500 hover:text-slate-800"
-                            }`}
-                        >
-                            {tab.label}
-                            <div
-                                aria-hidden
-                                className={`absolute bottom-0 left-0 z-10 h-0.5 w-full origin-center bg-amber-600 transition-transform duration-300 ease-out ${
-                                    activeTab === tab.id
-                                        ? "scale-x-100"
-                                        : "scale-x-0"
-                                }`}
-                            />
-                        </button>
-                    ))}
+                <div className="mt-3 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                            {[
+                                { id: "exercises", label: "Danh sách bài tập" },
+                                { id: "settings", label: "Cài đặt topic" },
+                            ].map((tab) => (
+                                <Button
+                                    type="button"
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    variant={
+                                        activeTab === tab.id
+                                            ? "secondary"
+                                            : "ghost"
+                                    }
+                                    size="sm"
+                                    className={`rounded-md text-sm font-medium transition-all duration-300 ${
+                                        activeTab === tab.id
+                                            ? "bg-white text-slate-900 shadow-sm"
+                                            : "text-slate-600 hover:text-slate-900"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </Button>
+                            ))}
+                        </div>
+
+                        <p className="text-xs text-slate-500 sm:text-sm">
+                            Hiển thị {pageExercises.length}/{totalDocs} bài tập
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <div className="w-full min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                 {activeTab === "exercises" && (
                     <div className="space-y-6">
-                        <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
                                 value={queryParams.question ?? ""}
@@ -376,7 +417,7 @@ export default function ExerciseManagementByTopic() {
                                     }))
                                 }
                                 placeholder="Tìm theo câu hỏi..."
-                                className="h-9 w-72 bg-white text-sm"
+                                className="h-9 min-w-64 flex-1 bg-white text-sm"
                             />
 
                             <Select
@@ -435,7 +476,7 @@ export default function ExerciseManagementByTopic() {
                                     setPublishFilter(value)
                                 }
                             >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -460,7 +501,7 @@ export default function ExerciseManagementByTopic() {
                                     }))
                                 }
                             >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                <SelectTrigger className="h-9 w-40 bg-white text-sm">
                                     <SelectValue placeholder="Sắp xếp" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -506,7 +547,7 @@ export default function ExerciseManagementByTopic() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-9"
+                                className="h-9 shrink-0"
                                 onClick={resetFilters}
                             >
                                 Xóa lọc
@@ -606,18 +647,37 @@ export default function ExerciseManagementByTopic() {
                                                     {exercise.difficulty}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={
-                                                            exercise.isPublished
-                                                                ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                                                                : "border-slate-200 bg-slate-100 text-slate-600"
-                                                        }
-                                                    >
-                                                        {exercise.isPublished
-                                                            ? "Live"
-                                                            : "Draft"}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            checked={
+                                                                exercise.isPublished
+                                                            }
+                                                            size="default"
+                                                            className="h-6 w-11 border border-slate-300 ring-1 ring-slate-200 data-checked:bg-emerald-600 data-unchecked:bg-slate-300"
+                                                            disabled={
+                                                                pendingExerciseId ===
+                                                                exercise.exerciseId
+                                                            }
+                                                            onCheckedChange={() =>
+                                                                void handleTogglePublishExercise(
+                                                                    exercise.exerciseId,
+                                                                    exercise.isPublished,
+                                                                )
+                                                            }
+                                                            aria-label={`Chuyển trạng thái xuất bản của ${exercise.question}`}
+                                                        />
+                                                        <Badge
+                                                            className={
+                                                                exercise.isPublished
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-slate-100 text-slate-600"
+                                                            }
+                                                        >
+                                                            {exercise.isPublished
+                                                                ? "Đã xuất bản"
+                                                                : "Nháp"}
+                                                        </Badge>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     {pendingExerciseId ===
@@ -627,33 +687,6 @@ export default function ExerciseManagementByTopic() {
                                                         </p>
                                                     )}
                                                     <div className="flex justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={
-                                                                pendingExerciseId ===
-                                                                exercise.exerciseId
-                                                            }
-                                                            onClick={() =>
-                                                                void handleTogglePublishExercise(
-                                                                    exercise.exerciseId,
-                                                                    exercise.isPublished,
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                                        >
-                                                            {exercise.isPublished ? (
-                                                                <>
-                                                                    <EyeOff className="h-3.5 w-3.5" />
-                                                                    Hủy xuất bản
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Eye className="h-3.5 w-3.5" />
-                                                                    Xuất bản
-                                                                </>
-                                                            )}
-                                                        </button>
-
                                                         <button
                                                             type="button"
                                                             disabled={
@@ -686,7 +719,6 @@ export default function ExerciseManagementByTopic() {
                                 </tbody>
                             </table>
                         </div>
-
                         {!isExercisesLoading &&
                             !overviewQuery.isError &&
                             totalDocs > 0 && (
@@ -710,13 +742,155 @@ export default function ExerciseManagementByTopic() {
 
                 {activeTab === "settings" && (
                     <div className="w-full max-w-3xl rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm sm:p-6 lg:p-8">
-                        <h2 className="mb-3 text-xl font-semibold text-slate-900">
+                        <h2 className="mb-6 text-xl font-semibold text-slate-900">
                             Cài đặt Topic
                         </h2>
-                        <p className="text-sm text-slate-600">
-                            Tính năng chỉnh sửa metadata topic ở màn này sẽ được
-                            mở rộng ở bước tiếp theo.
-                        </p>
+
+                        {topicDetailQuery.isLoading &&
+                            !effectiveTopicMetadata && (
+                                <p className="text-sm text-slate-600">
+                                    Đang tải thông tin topic...
+                                </p>
+                            )}
+
+                        {!topicDetailQuery.isLoading &&
+                            !effectiveTopicMetadata && (
+                                <p className="text-sm text-red-600">
+                                    Không thể hiển thị thông tin topic.
+                                </p>
+                            )}
+
+                        {effectiveTopicMetadata && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Tên topic
+                                        </label>
+                                        <Input
+                                            value={effectiveTopicMetadata.title}
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Slug
+                                        </label>
+                                        <Input
+                                            value={effectiveTopicMetadata.slug}
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {topicDetail?.description && (
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Mô tả
+                                        </label>
+                                        <textarea
+                                            rows={4}
+                                            value={topicDetail.description}
+                                            readOnly
+                                            className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Loại topic
+                                        </label>
+                                        <Input
+                                            value={
+                                                effectiveTopicMetadata.topicType
+                                            }
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Trạng thái
+                                        </label>
+                                        <Input
+                                            value={
+                                                effectiveTopicMetadata.isPublished
+                                                    ? "Đang xuất bản"
+                                                    : "Bản nháp"
+                                            }
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Thời lượng ước tính (phút)
+                                        </label>
+                                        <Input
+                                            value={String(
+                                                effectiveTopicMetadata.estimatedTimeMinutes ??
+                                                    0,
+                                            )}
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                                            Tổng số bài tập
+                                        </label>
+                                        <Input
+                                            value={String(
+                                                effectiveTopicMetadata.totalExercises,
+                                            )}
+                                            readOnly
+                                            className="h-10 bg-slate-50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {effectiveTopicMetadata.topicType ===
+                                    "Exam" && (
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                        <div>
+                                            <label className="mb-2 block text-sm font-medium text-slate-700">
+                                                Năm thi
+                                            </label>
+                                            <Input
+                                                value={String(
+                                                    effectiveTopicMetadata.examYear ??
+                                                        "-",
+                                                )}
+                                                readOnly
+                                                className="h-10 bg-slate-50"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-2 block text-sm font-medium text-slate-700">
+                                                Mã đề
+                                            </label>
+                                            <Input
+                                                value={
+                                                    effectiveTopicMetadata.examCode ??
+                                                    "-"
+                                                }
+                                                readOnly
+                                                className="h-10 bg-slate-50"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

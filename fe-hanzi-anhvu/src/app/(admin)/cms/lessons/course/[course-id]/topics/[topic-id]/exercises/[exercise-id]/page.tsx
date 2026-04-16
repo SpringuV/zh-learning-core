@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useGetExerciseDetail } from "@/modules/lesson/hooks/use.exercise.tanstack";
+import { useGetTopicDetail } from "@/modules/lesson/hooks/use.topic.tanstack";
 import { Badge } from "@/shared/components/ui/badge";
 
 // Mock Data matching ExerciseAggregate
@@ -66,6 +68,58 @@ export default function ExerciseDetailsPage() {
     const params = useParams();
     const courseId = params["course-id"];
     const topicId = params["topic-id"];
+    const exerciseId = params["exercise-id"];
+
+    const normalizedCourseId = useMemo(
+        () =>
+            Array.isArray(courseId)
+                ? (courseId[0] ?? "")
+                : String(courseId ?? ""),
+        [courseId],
+    );
+
+    const normalizedTopicId = useMemo(
+        () =>
+            Array.isArray(topicId) ? (topicId[0] ?? "") : String(topicId ?? ""),
+        [topicId],
+    );
+
+    const normalizedExerciseId = useMemo(
+        () =>
+            Array.isArray(exerciseId)
+                ? (exerciseId[0] ?? "")
+                : String(exerciseId ?? ""),
+        [exerciseId],
+    );
+
+    const exerciseDetailQuery = useGetExerciseDetail(normalizedExerciseId);
+    const topicDetailQuery = useGetTopicDetail(normalizedTopicId);
+
+    const exercise = exerciseDetailQuery.data?.data;
+    const topicDetail = topicDetailQuery.data?.data;
+
+    const exerciseView = {
+        ...mockExercise,
+        courseId: normalizedCourseId || mockExercise.courseId,
+        topicId: normalizedTopicId || mockExercise.topicId,
+        id: normalizedExerciseId || mockExercise.id,
+        courseTitle: `Course #${normalizedCourseId || "-"}`,
+        topicTitle: topicDetail?.title ?? mockExercise.topicTitle,
+        description: exercise?.description ?? mockExercise.description,
+        exerciseType: exercise?.exerciseType ?? mockExercise.exerciseType,
+        skillType: exercise?.skillType ?? mockExercise.skillType,
+        question: exercise?.question ?? mockExercise.question,
+        correctAnswer: exercise?.correctAnswer ?? mockExercise.correctAnswer,
+        difficulty: exercise?.difficulty ?? mockExercise.difficulty,
+        context: exercise?.context ?? mockExercise.context,
+        audioUrl: exercise?.audioUrl ?? "",
+        imageUrl: exercise?.imageUrl ?? "",
+        explanation: exercise?.explanation ?? mockExercise.explanation,
+        status: exercise?.isPublished ? "live" : "draft",
+        options: exercise?.options?.length
+            ? exercise.options
+            : mockExercise.options,
+    };
 
     const [activeTab, setActiveTab] = useState<"general" | "options">(
         "general",
@@ -82,37 +136,37 @@ export default function ExerciseDetailsPage() {
                                 variant="outline"
                                 className="bg-slate-100 text-slate-600 border-slate-200"
                             >
-                                {mockExercise.courseTitle} /{" "}
-                                {mockExercise.topicTitle}
+                                {exerciseView.courseTitle} /{" "}
+                                {exerciseView.topicTitle}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className={
-                                    skillTypeMap[mockExercise.skillType]?.color
+                                    skillTypeMap[exerciseView.skillType]?.color
                                 }
                             >
                                 Kỹ năng:{" "}
-                                {skillTypeMap[mockExercise.skillType]?.label}
+                                {skillTypeMap[exerciseView.skillType]?.label}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className={
-                                    difficultyMap[mockExercise.difficulty]
+                                    difficultyMap[exerciseView.difficulty]
                                         ?.color
                                 }
                             >
                                 Mức độ:{" "}
-                                {difficultyMap[mockExercise.difficulty]?.label}
+                                {difficultyMap[exerciseView.difficulty]?.label}
                             </Badge>
                             <Badge
                                 variant="secondary"
                                 className={
-                                    mockExercise.status === "live"
+                                    exerciseView.status === "live"
                                         ? "bg-emerald-100 text-emerald-700"
                                         : "bg-slate-100 text-slate-700"
                                 }
                             >
-                                {mockExercise.status === "live"
+                                {exerciseView.status === "live"
                                     ? "Đang hiển thị"
                                     : "Bản nháp"}
                             </Badge>
@@ -121,13 +175,23 @@ export default function ExerciseDetailsPage() {
                             Biên soạn bài tập
                         </h1>
                         <p className="text-slate-500 mt-2 max-w-2xl text-sm">
-                            {mockExercise.description}
+                            {exerciseView.description}
                         </p>
+                        {exerciseDetailQuery.isLoading && (
+                            <p className="mt-2 text-sm text-slate-500">
+                                Đang tải chi tiết bài tập...
+                            </p>
+                        )}
+                        {exerciseDetailQuery.isError && (
+                            <p className="mt-2 text-sm text-red-600">
+                                Không thể tải chi tiết bài tập.
+                            </p>
+                        )}
                     </div>
 
-                    <div className="flex gap-3 flex-shrink-0">
+                    <div className="flex gap-3 shrink-0">
                         <Link
-                            href={`/cms/lessons/course/${courseId}/topics/${topicId}`}
+                            href={`/cms/lessons/course/${normalizedCourseId}/topics/${normalizedTopicId}`}
                         >
                             <button className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm">
                                 Về chủ đề
@@ -179,7 +243,7 @@ export default function ExerciseDetailsPage() {
                                     </label>
                                     <input
                                         type="text"
-                                        defaultValue={mockExercise.description}
+                                        defaultValue={exerciseView.description}
                                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all font-medium text-sm"
                                     />
                                 </div>
@@ -191,7 +255,7 @@ export default function ExerciseDetailsPage() {
                                         </label>
                                         <select
                                             defaultValue={
-                                                mockExercise.exerciseType
+                                                exerciseView.exerciseType
                                             }
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                         >
@@ -220,7 +284,7 @@ export default function ExerciseDetailsPage() {
                                             Bối cảnh sử dụng
                                         </label>
                                         <select
-                                            defaultValue={mockExercise.context}
+                                            defaultValue={exerciseView.context}
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                         >
                                             <option value="Learning">
@@ -242,7 +306,7 @@ export default function ExerciseDetailsPage() {
                                         </label>
                                         <select
                                             defaultValue={
-                                                mockExercise.skillType
+                                                exerciseView.skillType
                                             }
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                         >
@@ -266,7 +330,7 @@ export default function ExerciseDetailsPage() {
                                         </label>
                                         <select
                                             defaultValue={
-                                                mockExercise.difficulty
+                                                exerciseView.difficulty
                                             }
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                         >
@@ -292,7 +356,7 @@ export default function ExerciseDetailsPage() {
                                     </label>
                                     <textarea
                                         rows={4}
-                                        defaultValue={mockExercise.question}
+                                        defaultValue={exerciseView.question}
                                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all resize-none"
                                     ></textarea>
                                 </div>
@@ -303,7 +367,7 @@ export default function ExerciseDetailsPage() {
                                         </label>
                                         <input
                                             type="url"
-                                            defaultValue={mockExercise.audioUrl}
+                                            defaultValue={exerciseView.audioUrl}
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                             placeholder="https://"
                                         />
@@ -314,7 +378,7 @@ export default function ExerciseDetailsPage() {
                                         </label>
                                         <input
                                             type="url"
-                                            defaultValue={mockExercise.imageUrl}
+                                            defaultValue={exerciseView.imageUrl}
                                             className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all"
                                             placeholder="https://"
                                         />
@@ -344,17 +408,17 @@ export default function ExerciseDetailsPage() {
                             </div>
 
                             <div className="space-y-3">
-                                {mockExercise.options.map((option, index) => (
+                                {exerciseView.options.map((option, index) => (
                                     <div
                                         key={option.id}
-                                        className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${mockExercise.correctAnswer === option.id ? "border-amber-400 bg-amber-50/30" : "border-slate-200 bg-white"}`}
+                                        className={`flex items-center gap-4 p-4 border rounded-lg transition-colors ${exerciseView.correctAnswer === option.id ? "border-amber-400 bg-amber-50/30" : "border-slate-200 bg-white"}`}
                                     >
-                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                        <div className="flex items-center gap-2 shrink-0">
                                             <input
                                                 type="radio"
                                                 name="correctAnswer"
                                                 defaultChecked={
-                                                    mockExercise.correctAnswer ===
+                                                    exerciseView.correctAnswer ===
                                                     option.id
                                                 }
                                                 className="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300"
@@ -396,7 +460,7 @@ export default function ExerciseDetailsPage() {
                             <div>
                                 <textarea
                                     rows={4}
-                                    defaultValue={mockExercise.explanation}
+                                    defaultValue={exerciseView.explanation}
                                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all resize-none"
                                     placeholder="Điền giải thích tại sao lại chọn đáp án đó..."
                                 ></textarea>

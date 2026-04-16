@@ -8,12 +8,13 @@ import {
     useState,
 } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -239,7 +240,7 @@ export default function TopicManagementByCourse() {
 
     const onTopicCreated = async () => {
         setCurrentPage(1);
-        await overviewQuery.refetch();
+        // await overviewQuery.refetch();
     };
 
     const isTopicsLoading = overviewQuery.isLoading;
@@ -247,7 +248,7 @@ export default function TopicManagementByCourse() {
     return (
         <div className="min-h-full w-full min-w-0 bg-linear-to-br from-slate-50 via-white to-slate-50">
             {/* Header Section */}
-            <div className="border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+            <div className="sticky top-0 z-40 border-b border-slate-200/50 bg-white/80 backdrop-blur-xl sm:px-3 lg:px-8">
                 <div className="flex min-w-0 flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                         <div className="flex items-center gap-3 mb-2">
@@ -286,66 +287,58 @@ export default function TopicManagementByCourse() {
                     </div>
 
                     <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:gap-3 md:w-auto md:justify-end md:flex-nowrap">
+                        {activeTab === "topics" && (
+                            <CreateTopicModal
+                                courseId={normalizedCourseId}
+                                onCreated={onTopicCreated}
+                            />
+                        )}
                         <Link href="/cms/lessons/course">
                             <button className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-md hover:bg-slate-50 transition-colors font-medium text-sm">
                                 Quay lại
                             </button>
                         </Link>
-                        <button className="px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors font-medium text-sm shadow-sm">
-                            Lưu thay đổi
-                        </button>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-4 overflow-x-auto pt-6">
-                    {[
-                        { id: "topics", label: "Quản lý Topics" },
-                        { id: "settings", label: "Cài đặt khóa học" },
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`relative shrink-0 pb-3 text-sm font-medium transition-colors origin-center duration-300 ease-out ${
-                                activeTab === tab.id
-                                    ? "text-amber-600"
-                                    : "text-slate-500 hover:text-slate-800"
-                            }`}
-                        >
-                            {tab.label}
-                            <div
-                                aria-hidden
-                                className={`absolute bottom-0 left-0 z-10 h-0.5 w-full origin-center bg-amber-600 transition-transform duration-300 ease-out ${
+                <div className="flex flex-wrap items-center justify-between mt-2 gap-3">
+                    <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                        {[
+                            { id: "topics", label: "Quản lý Topics" },
+                            { id: "settings", label: "Cài đặt khóa học" },
+                        ].map((tab) => (
+                            <Button
+                                type="button"
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                variant={
+                                    activeTab === tab.id ? "secondary" : "ghost"
+                                }
+                                size="sm"
+                                className={`rounded-md text-sm font-medium transition-all duration-300 ${
                                     activeTab === tab.id
-                                        ? "scale-x-100"
-                                        : "scale-x-0"
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-600 hover:text-slate-900"
                                 }`}
-                            />
-                        </button>
-                    ))}
+                            >
+                                {tab.label}
+                            </Button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <p className="text-xs text-slate-500 sm:text-sm">
+                            Hiển thị {pageTopics.length}/{totalDocs} topics
+                        </p>
+                    </div>
                 </div>
             </div>
 
             {/* Tab Contents */}
-            <div className="w-full min-w-0 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <div className="w-full min-w-0 px-4 py-6 sm:px-6 sm:py-4 lg:px-8">
                 {activeTab === "topics" && (
                     <div className="space-y-6">
-                        <div className="flex flex-col gap-4 rounded-xl border border-slate-200/50 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">
-                                    Nội dung bài học (Topics)
-                                </h2>
-                                <p className="text-sm text-slate-500">
-                                    Quản lý các chương/chủ đề trong khóa học này
-                                </p>
-                            </div>
-                            <CreateTopicModal
-                                courseId={normalizedCourseId}
-                                onCreated={onTopicCreated}
-                            />
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
                                 value={queryParams.title ?? ""}
@@ -356,7 +349,7 @@ export default function TopicManagementByCourse() {
                                     }))
                                 }
                                 placeholder="Tìm theo tên topic..."
-                                className="h-9 w-72 bg-white text-sm"
+                                className="h-9 min-w-64 flex-1 bg-white text-sm"
                             />
 
                             <Select
@@ -385,7 +378,7 @@ export default function TopicManagementByCourse() {
                                     setPublishFilter(value)
                                 }
                             >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -459,7 +452,7 @@ export default function TopicManagementByCourse() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-9"
+                                className="h-9 shrink-0"
                                 onClick={resetFilters}
                             >
                                 Xóa lọc
@@ -544,18 +537,37 @@ export default function TopicManagementByCourse() {
                                                     tập
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={
-                                                            topic.isPublished
-                                                                ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                                                                : "bg-slate-100 text-slate-600 border-slate-200"
-                                                        }
-                                                    >
-                                                        {topic.isPublished
-                                                            ? "Live"
-                                                            : "Draft"}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            checked={
+                                                                topic.isPublished
+                                                            }
+                                                            size="default"
+                                                            className="h-6 w-11 border border-slate-300 ring-1 ring-slate-200 data-checked:bg-emerald-600 data-unchecked:bg-slate-300"
+                                                            disabled={
+                                                                pendingTopicId ===
+                                                                topic.id
+                                                            }
+                                                            onCheckedChange={() =>
+                                                                void handleTogglePublishTopic(
+                                                                    topic.id,
+                                                                    topic.isPublished,
+                                                                )
+                                                            }
+                                                            aria-label={`Chuyển trạng thái xuất bản của ${topic.title}`}
+                                                        />
+                                                        <Badge
+                                                            className={
+                                                                topic.isPublished
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-slate-100 text-slate-600"
+                                                            }
+                                                        >
+                                                            {topic.isPublished
+                                                                ? "Đã xuất bản"
+                                                                : "Nháp"}
+                                                        </Badge>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     {pendingTopicId ===
@@ -565,33 +577,6 @@ export default function TopicManagementByCourse() {
                                                         </p>
                                                     )}
                                                     <div className="flex justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={
-                                                                pendingTopicId ===
-                                                                topic.id
-                                                            }
-                                                            onClick={() =>
-                                                                void handleTogglePublishTopic(
-                                                                    topic.id,
-                                                                    topic.isPublished,
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                                        >
-                                                            {topic.isPublished ? (
-                                                                <>
-                                                                    <EyeOff className="h-3.5 w-3.5" />
-                                                                    Hủy xuất bản
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Eye className="h-3.5 w-3.5" />
-                                                                    Xuất bản
-                                                                </>
-                                                            )}
-                                                        </button>
-
                                                         <button
                                                             type="button"
                                                             disabled={

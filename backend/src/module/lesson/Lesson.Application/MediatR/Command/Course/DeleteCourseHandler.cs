@@ -24,7 +24,7 @@ public class DeleteCourseCommandHandler(
                 
                 courseAggregate.Delete();
                 
-                await _courseRepository.UpdateAsync(courseAggregate, cancellationToken);
+                await _courseRepository.DeleteAsync(courseAggregate.CourseId, cancellationToken);
 
                 // Publish domain events
                 var domainEvents = courseAggregate.DomainEvents;
@@ -41,7 +41,7 @@ public class DeleteCourseCommandHandler(
         {
             _logger.LogWarning(ex, "Course not found with ID: {CourseId}", request.CourseId);
             return Result.FailureResult(
-                "Không tìm thấy khóa học.",
+                ex.Message,
                 (int)ErrorCode.NOTFOUND
             );
         }
@@ -57,7 +57,7 @@ public class DeleteCourseCommandHandler(
         {
             _logger.LogError(ex, "Unexpected error during course delete operation. Details: {Message}", ex.Message);
             return Result.FailureResult(
-                "Đã xảy ra lỗi không mong muốn trong quá trình xóa khóa học.",
+                ex.Message,
                 (int)ErrorCode.INTERNAL_ERROR
             );
         }

@@ -4,6 +4,7 @@ namespace Search.Contracts.Interfaces;
 
 public interface ITopicSearchQueriesService
 {
+    Task<TopicSearchDetailResponse> GetTopicDetailSearchItemAdminAsync(Guid topicId, CancellationToken cancellationToken = default);
     Task UpdateExamInfoAsync(TopicExamInfoUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateEstimatedTimeAsync(TopicEstimatedTimeUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateDescriptionAsync(TopicDescriptionUpdatedRequestDTO request, CancellationToken cancellationToken = default);

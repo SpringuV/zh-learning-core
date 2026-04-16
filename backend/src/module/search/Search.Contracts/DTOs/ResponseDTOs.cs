@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Contracts.DTOs;
 
 #region Assignment Search DTOs
@@ -98,6 +100,20 @@ public sealed record CourseSearchItemAdminResponse(
 public sealed record TopicIndexResponse(
     Guid TopicId,
     DateTime CreatedAt);
+public sealed record TopicSearchDetailResponse(
+    Guid Id,
+    string Title,
+    string Slug,
+    int OrderIndex,
+    string TopicType,
+    int? ExamYear,
+    string? ExamCode,
+    long EstimatedTimeMinutes,
+    string Description,
+    bool IsPublished,
+    long TotalExercises,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
 
 public sealed record TopicSearchItemAdminResponse(
     Guid Id,
@@ -143,6 +159,25 @@ public sealed record TopicMetadataForExerciseAdminResponse(
     string? ExamCode,
     string Slug,
     long TotalExercises);
+public sealed record ExerciseSearchDetailResponse(
+    Guid ExerciseId,
+    string Question,
+    string ExerciseType,
+    string SkillType,
+    string Difficulty,
+    string Context,
+    string Description,
+    IReadOnlyList<ExerciseOption> Options,
+    string CorrectAnswer,
+    bool IsPublished,
+    int OrderIndex,
+    string? AudioUrl,
+    string? ImageUrl,
+    string? Explanation,
+    string Slug,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
 public sealed record ExerciseSearchWithTopicMetadataResponse(
     TopicMetadataForExerciseAdminResponse? ParentMetadata,
     long Total,

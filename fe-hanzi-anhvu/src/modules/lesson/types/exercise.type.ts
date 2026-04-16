@@ -32,6 +32,31 @@ export type ExerciseType =
 export type SkillType = "Listening" | "Reading" | "Writing" | "Speaking";
 export type ExerciseDifficulty = "Easy" | "Medium" | "Hard";
 export type ExerciseContext = "Learning" | "Classroom" | "Mixed";
+export interface ExerciseOption {
+    id: string;
+    text: string;
+}
+
+export interface ExerciseDetailResponse {
+    exerciseId: string;
+    question: string;
+    exerciseType: ExerciseType;
+    skillType: SkillType;
+    difficulty: ExerciseDifficulty;
+    context: ExerciseContext;
+    description: string;
+    options: ExerciseOption[];
+    correctAnswer: string;
+    isPublished: boolean;
+    orderIndex: number;
+    audioUrl?: string | null;
+    imageUrl?: string | null;
+    explanation?: string | null;
+    slug: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export interface ExerciseCreateRequest {
     topicId: string;
     question: string;
@@ -44,10 +69,7 @@ export interface ExerciseCreateRequest {
     audioUrl?: string;
     imageUrl?: string;
     explanation?: string;
-    options?: {
-        id: string;
-        text: string;
-    }[];
+    options?: ExerciseOption[];
 }
 
 export interface ExerciseListItem {
@@ -66,6 +88,7 @@ export interface TopicMetadataForExerciseAdmin {
     id: string;
     title: string;
     estimatedTimeMinutes: number;
+    isPublished: boolean;
     topicType: TopicType;
     examYear?: number | null;
     examCode?: string | null;
@@ -98,8 +121,5 @@ export interface UpdateExerciseRequest {
     audioUrl?: string;
     imageUrl?: string;
     explanation?: string;
-    options?: {
-        id: string;
-        text: string;
-    }[];
+    options?: ExerciseOption[];
 }

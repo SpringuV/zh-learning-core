@@ -30,6 +30,7 @@ import { useCreateCourse } from "@/modules/lesson/hooks/use.course.tanstack";
 import { createCourseMachine } from "@/modules/lesson/machines/create.course.machine";
 import { fromPromise } from "xstate";
 import { useMachine } from "@xstate/react";
+import * as z from "zod";
 
 type CreateCourseModalProps = {
     onCreated?: (response: CourseCreateResponseApi) => void | Promise<void>;
@@ -46,6 +47,45 @@ type CreateCourseFormState = {
     title: string;
     description: string;
     hskLevel: string;
+};
+
+const createCourseSchema = z.object({
+    title: z
+        .string()
+        .trim()
+        .min(1, "Tên khóa học không được để trống.")
+        .min(3, "Tên khóa học phải có ít nhất 3 ký tự.")
+        .max(120, "Tên khóa học tối đa 120 ký tự."),
+    description: z.string().trim().max(500, "Mô tả tối đa 500 ký tự."),
+    hskLevel: z.coerce
+        .number()
+        .int("HSK Level phải là số nguyên trong khoảng 0-6.")
+        .min(0, "HSK Level phải là số nguyên trong khoảng 0-6.")
+        .max(6, "HSK Level phải là số nguyên trong khoảng 0-6."),
+});
+
+const mapCourseValidationErrors = (error: z.ZodError): FormErrors => {
+    const nextErrors: FormErrors = {};
+
+    for (const issue of error.issues) {
+        const field = issue.path[0];
+
+        if (field === "title" && !nextErrors.title) {
+            nextErrors.title = issue.message;
+            continue;
+        }
+
+        if (field === "description" && !nextErrors.description) {
+            nextErrors.description = issue.message;
+            continue;
+        }
+
+        if (field === "hskLevel" && !nextErrors.hskLevel) {
+            nextErrors.hskLevel = issue.message;
+        }
+    }
+
+    return nextErrors;
 };
 
 const toSlug = (value: string) => {
@@ -123,42 +163,23 @@ export function CreateCourseModal({ onCreated }: CreateCourseModalProps) {
     const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const nextErrors: FormErrors = {};
-        const normalizedTitle = form.title.trim();
-        const normalizedDescription = form.description.trim();
-        const parsedHskLevel = Number(form.hskLevel);
+        const validated = createCourseSchema.safeParse({
+            title: form.title,
+            description: form.description,
+            hskLevel: form.hskLevel,
+        });
 
-        if (!normalizedTitle) {
-            nextErrors.title = "Tên khóa học không được để trống.";
-        } else if (normalizedTitle.length < 3) {
-            nextErrors.title = "Tên khóa học phải có ít nhất 3 ký tự.";
-        } else if (normalizedTitle.length > 120) {
-            nextErrors.title = "Tên khóa học tối đa 120 ký tự.";
-        }
-
-        if (normalizedDescription.length > 500) {
-            nextErrors.description = "Mô tả tối đa 500 ký tự.";
-        }
-
-        if (
-            Number.isNaN(parsedHskLevel) ||
-            !Number.isInteger(parsedHskLevel) ||
-            parsedHskLevel < 0 ||
-            parsedHskLevel > 6
-        ) {
-            nextErrors.hskLevel =
-                "HSK Level phải là số nguyên trong khoảng 0-6.";
-        }
-        setErrors(nextErrors);
-
-        if (Object.keys(nextErrors).length > 0) {
+        if (!validated.success) {
+            setErrors(mapCourseValidationErrors(validated.error));
             return;
         }
 
+        setErrors({});
+
         const payload: CourseCreateRequest = {
-            Title: normalizedTitle,
-            Description: normalizedDescription,
-            HskLevel: parsedHskLevel,
+            Title: validated.data.title,
+            Description: validated.data.description,
+            HskLevel: validated.data.hskLevel,
         };
 
         send({ type: "SUBMIT", input: payload });

@@ -8,12 +8,14 @@ import {
     useState,
 } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, FolderOpen, PenSquare, Trash2 } from "lucide-react";
+import { FolderOpen, PenSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CreateCourseModal } from "@/modules/lesson/components/course/create-course-modal";
+import { CourseStatusConfirmDialog } from "@/modules/lesson/components/course/course-status-confirm-dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
+import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -53,8 +55,9 @@ const initialCourseQueryParams: CourseListQueryParams = {
     take: 50,
 };
 
+const pageContainerClass = "mx-auto w-full max-w-[1400px] px-5";
+
 export default function CourseCmsPage() {
-    // #region State
     const [activeTab, setActiveTab] = useState<"courses" | "stats">("courses");
     const [itemsPerPage, setItemsPerPage] = useState(50);
     const [queryParams, setQueryParams] = useState<CourseListQueryParams>(
@@ -64,11 +67,20 @@ export default function CourseCmsPage() {
     const [publishFilter, setPublishFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
-    // #endregion
-    // deferredValue để trì hoãn việc cập nhật giá trị tìm kiếm khi người dùng đang gõ, giúp giảm số lần gọi API khi người dùng nhập vào ô tìm kiếm, chỉ cập nhật giá trị tìm kiếm sau khi người dùng ngừng gõ một khoảng thời gian ngắn
+    const [publishDialogState, setPublishDialogState] = useState<{
+        open: boolean;
+        courseId: string | null;
+        courseTitle: string;
+        nextPublished: boolean;
+    }>({
+        open: false,
+        courseId: null,
+        courseTitle: "",
+        nextPublished: false,
+    });
+
     const deferredTitle = useDeferredValue(queryParams.title ?? "");
 
-    // Memoized effective query params to avoid unnecessary refetches
     const effectiveQueryParams = useMemo<CourseListQueryParams>(
         () => ({
             ...queryParams,
@@ -78,7 +90,6 @@ export default function CourseCmsPage() {
         [queryParams, deferredTitle, itemsPerPage],
     );
 
-    // #region Data Fetching
     const coursesQuery = useGetListCourse(effectiveQueryParams);
     const publishCourseMutation = usePublishCourse();
     const unPublishCourseMutation = useUnPublishCourse();
@@ -136,9 +147,7 @@ export default function CourseCmsPage() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + filteredCourses.length, totalDocs);
     const totalItems = totalDocs;
-    //#endregion
 
-    // #region Effects and Callbacks
     useEffect(() => {
         if (currentPage > totalPages) {
             setCurrentPage(totalPages);
@@ -186,25 +195,42 @@ export default function CourseCmsPage() {
         return "Có lỗi xảy ra. Vui lòng thử lại.";
     };
 
-    const handleTogglePublishCourse = async (
+    const handleOpenPublishDialog = (
         courseId: string,
-        isPublished: boolean,
+        courseTitle: string,
+        nextPublished: boolean,
     ) => {
-        const nextActionText = isPublished ? "hủy xuất bản" : "xuất bản";
-        const confirmed = window.confirm(
-            `Bạn có chắc muốn ${nextActionText} khóa học này không?`,
-        );
-        if (!confirmed) return;
+        setPublishDialogState({
+            open: true,
+            courseId,
+            courseTitle,
+            nextPublished,
+        });
+    };
+
+    const handleConfirmPublishChange = async () => {
+        if (!publishDialogState.courseId) {
+            return;
+        }
+
+        const { courseId, nextPublished } = publishDialogState;
 
         setPendingCourseId(courseId);
         try {
-            if (isPublished) {
-                await unPublishCourseMutation.mutateAsync(courseId);
-                toast.success("Đã hủy xuất bản khóa học.");
-            } else {
+            if (nextPublished) {
                 await publishCourseMutation.mutateAsync(courseId);
                 toast.success("Đã xuất bản khóa học.");
+            } else {
+                await unPublishCourseMutation.mutateAsync(courseId);
+                toast.success("Đã hủy xuất bản khóa học.");
             }
+
+            setPublishDialogState({
+                open: false,
+                courseId: null,
+                courseTitle: "",
+                nextPublished: false,
+            });
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
@@ -254,12 +280,11 @@ export default function CourseCmsPage() {
         },
         [currentPage, loadedPages, canLoadMore, coursesQuery],
     );
-    // #endregion
+
     return (
         <div className="bg-linear-to-br from-slate-50 via-white to-slate-50">
-            {/* Top Navigation Bar */}
             <div className="sticky top-0 z-40 border-b border-slate-200/50 bg-white/80 backdrop-blur-lg">
-                <div className="w-full px-5 py-4">
+                <div className={`${pageContainerClass} py-4`}>
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-light tracking-tight">
@@ -269,53 +294,62 @@ export default function CourseCmsPage() {
                                     khóa học
                                 </span>
                             </h1>
-                            <p className="text-slate-500 text-sm mt-0.5">
+                            <p className="mt-0.5 text-sm text-slate-500">
                                 Tạo và quản lý khóa học, chủ đề và bài tập
                             </p>
                         </div>
                         <CreateCourseModal />
                     </div>
-                </div>
-            </div>
 
-            {/* Main Content */}
-            <div className="w-full min-w-0">
-                {/* Tabs */}
-                <div className="mb-5 flex items-center justify-between">
-                    <div className="flex gap-1 bg-slate-100/50 p-1 rounded-lg w-fit">
-                        {[
-                            {
-                                id: "courses",
-                                label: "Khóa học",
-                                count: totalCourses,
-                            },
-                            { id: "stats", label: "Thống kê", count: null },
-                        ].map((tab) => (
-                            <Button
-                                type="button"
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                variant={
-                                    activeTab === tab.id ? "secondary" : "ghost"
-                                }
-                                size="sm"
-                                className={`rounded-md font-medium transition-all duration-300 text-sm ${
-                                    activeTab === tab.id
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:text-slate-900"
-                                }`}
-                            >
-                                {tab.label}
-                                {tab.count !== null && (
-                                    <span className="ml-2 text-xs bg-slate-200 px-2 py-1 rounded">
-                                        {tab.count}
-                                    </span>
-                                )}
-                            </Button>
-                        ))}
-                    </div>
-                    <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-                        <div className="flex flex-wrap gap-3">
+                    <div className="mt-3 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                                {[
+                                    {
+                                        id: "courses",
+                                        label: "Khóa học",
+                                        count: totalCourses,
+                                    },
+                                    {
+                                        id: "stats",
+                                        label: "Thống kê",
+                                        count: null,
+                                    },
+                                ].map((tab) => (
+                                    <Button
+                                        type="button"
+                                        key={tab.id}
+                                        onClick={() =>
+                                            setActiveTab(tab.id as any)
+                                        }
+                                        variant={
+                                            activeTab === tab.id
+                                                ? "secondary"
+                                                : "ghost"
+                                        }
+                                        size="sm"
+                                        className={`rounded-md text-sm font-medium transition-all duration-300 ${
+                                            activeTab === tab.id
+                                                ? "bg-white text-slate-900 shadow-sm"
+                                                : "text-slate-600 hover:text-slate-900"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                        {tab.count !== null && (
+                                            <span className="ml-2 rounded bg-slate-200 px-2 py-1 text-xs">
+                                                {tab.count}
+                                            </span>
+                                        )}
+                                    </Button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-slate-500 sm:text-sm">
+                                Hiển thị {filteredCourses.length}/{totalDocs}{" "}
+                                khóa học
+                            </p>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-3">
                             <Input
                                 type="text"
                                 value={queryParams.title || ""}
@@ -326,8 +360,9 @@ export default function CourseCmsPage() {
                                     })
                                 }
                                 placeholder="Tìm kiếm khóa học..."
-                                className="h-9 w-72 bg-white text-sm"
+                                className="h-9 min-w-64 flex-1 bg-white text-sm"
                             />
+
                             <Select
                                 value={levelFilter}
                                 onValueChange={(value) => setLevelFilter(value)}
@@ -352,7 +387,7 @@ export default function CourseCmsPage() {
                                     setPublishFilter(value)
                                 }
                             >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -377,7 +412,7 @@ export default function CourseCmsPage() {
                                     }))
                                 }
                             >
-                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
+                                <SelectTrigger className="h-9 w-40 bg-white text-sm">
                                     <SelectValue placeholder="Sắp xếp theo" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -432,7 +467,7 @@ export default function CourseCmsPage() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-9"
+                                className="h-9 shrink-0"
                                 onClick={resetFilters}
                             >
                                 Xóa lọc
@@ -440,238 +475,243 @@ export default function CourseCmsPage() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Courses Tab */}
+            <div className={`${pageContainerClass} min-w-0 pb-4 pt-3 lg:pb-5`}>
                 {activeTab === "courses" && (
                     <div>
-                        {/* Table View */}
-                        <div className="bg-white rounded-xl border border-slate-200/50 overflow-hidden shadow-sm">
-                            <Table>
-                                <TableHeader className="bg-slate-50/50">
-                                    <TableRow className="border-b border-slate-200/50 hover:bg-slate-50/50">
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider w-16">
-                                            Index
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Tên khóa học
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Slug
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Hsk
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Tổng Học viên
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Tổng Topics
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Trạng thái
-                                        </TableHead>
-                                        <TableHead className="px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Thao tác
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-
-                                <TableBody>
-                                    {coursesQuery.isLoading && (
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableCell
-                                                colSpan={9}
-                                                className="h-24 text-center text-sm text-slate-500"
-                                            >
-                                                Đang tải danh sách khóa học...
-                                            </TableCell>
+                        <div className="overflow-hidden rounded-xl border border-slate-200/50 bg-white shadow-sm">
+                            <div className="max-h-[60vh] overflow-y-auto">
+                                <Table>
+                                    <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm">
+                                        <TableRow className="border-b border-slate-200/50 hover:bg-slate-50/50">
+                                            <TableHead className="w-16 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Index
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Tên khóa học
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Slug
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Hsk
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Tổng Học viên
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Tổng Topics
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Trạng thái
+                                            </TableHead>
+                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Thao tác
+                                            </TableHead>
                                         </TableRow>
-                                    )}
+                                    </TableHeader>
 
-                                    {coursesQuery.isError && (
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableCell
-                                                colSpan={9}
-                                                className="h-24 text-center text-sm text-red-600"
-                                            >
-                                                Không thể tải danh sách khóa
-                                                học.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-
-                                    {filteredCourses.map((course) => (
-                                        <TableRow
-                                            key={course.id}
-                                            className="border-b border-slate-100 hover:bg-slate-50/50"
-                                        >
-                                            <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                {course.orderIndex}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 whitespace-normal">
-                                                <div>
-                                                    <p className="font-medium text-slate-900 text-sm">
-                                                        {course.title}
-                                                    </p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                {course.slug}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                {course.hskLevel}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                {course.totalStudentsEnrolled}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                {course.totalTopics}
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                <Badge
-                                                    className={`${
-                                                        course.isPublished
-                                                            ? "bg-green-100 text-green-700"
-                                                            : "bg-slate-100 text-slate-600"
-                                                    }`}
-                                                >
-                                                    {course.isPublished
-                                                        ? "Đã xuất bản"
-                                                        : "Nháp"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="px-4 py-3">
-                                                {pendingCourseId ===
-                                                    course.id && (
-                                                    <p className="mb-2 text-[11px] text-slate-500">
-                                                        Đang xử lý...
-                                                    </p>
-                                                )}
-                                                <div className="flex gap-2">
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                size="icon-sm"
-                                                                variant="outline"
-                                                                disabled={
-                                                                    pendingCourseId ===
-                                                                    course.id
-                                                                }
-                                                                onClick={() =>
-                                                                    void handleTogglePublishCourse(
-                                                                        course.id,
-                                                                        course.isPublished,
-                                                                    )
-                                                                }
-                                                                className={
-                                                                    course.isPublished
-                                                                        ? "text-amber-700 hover:text-amber-800"
-                                                                        : "text-emerald-700 hover:text-emerald-800"
-                                                                }
-                                                            >
-                                                                {course.isPublished ? (
-                                                                    <EyeOff className="h-4 w-4" />
-                                                                ) : (
-                                                                    <Eye className="h-4 w-4" />
-                                                                )}
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            {course.isPublished
-                                                                ? "Hủy xuất bản"
-                                                                : "Xuất bản"}
-                                                        </TooltipContent>
-                                                    </Tooltip>
-
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                size="icon-sm"
-                                                                variant="outline"
-                                                                disabled={
-                                                                    pendingCourseId ===
-                                                                    course.id
-                                                                }
-                                                                onClick={() =>
-                                                                    void handleDeleteCourse(
-                                                                        course.id,
-                                                                        course.title,
-                                                                    )
-                                                                }
-                                                                className="text-rose-700 hover:text-rose-800"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            Xóa khóa học
-                                                        </TooltipContent>
-                                                    </Tooltip>
-
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                asChild
-                                                                type="button"
-                                                                size="icon-sm"
-                                                                variant="outline"
-                                                                className="text-slate-700 hover:text-slate-900"
-                                                            >
-                                                                <Link
-                                                                    href={`/cms/lessons/course/${course.id}?tab=settings`}
-                                                                >
-                                                                    <PenSquare className="h-4 w-4" />
-                                                                </Link>
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            Sửa khóa học
-                                                        </TooltipContent>
-                                                    </Tooltip>
-
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                asChild
-                                                                type="button"
-                                                                size="icon-sm"
-                                                                variant="outline"
-                                                                className="text-slate-700 hover:text-slate-900"
-                                                            >
-                                                                <Link
-                                                                    href={`/cms/lessons/course/${course.id}`}
-                                                                >
-                                                                    <FolderOpen className="h-4 w-4" />
-                                                                </Link>
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            Vào chi tiết khóa
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-
-                                    {!coursesQuery.isLoading &&
-                                        !coursesQuery.isError &&
-                                        filteredCourses.length === 0 && (
+                                    <TableBody>
+                                        {coursesQuery.isLoading && (
                                             <TableRow className="hover:bg-transparent">
                                                 <TableCell
                                                     colSpan={9}
                                                     className="h-24 text-center text-sm text-slate-500"
                                                 >
-                                                    Không có khóa học phù hợp
-                                                    với bộ lọc hiện tại.
+                                                    Đang tải danh sách khóa
+                                                    học...
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                </TableBody>
-                            </Table>
+
+                                        {!coursesQuery.isLoading &&
+                                            coursesQuery.isFetching && (
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableCell
+                                                        colSpan={9}
+                                                        className="h-12 text-center text-xs text-slate-500"
+                                                    >
+                                                        Đang đồng bộ dữ liệu
+                                                        mới...
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                        {coursesQuery.isError && (
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableCell
+                                                    colSpan={9}
+                                                    className="h-24 text-center text-sm text-red-600"
+                                                >
+                                                    Không thể tải danh sách khóa
+                                                    học.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {filteredCourses.map((course) => (
+                                            <TableRow
+                                                key={course.id}
+                                                className="border-b border-slate-100 hover:bg-slate-50/50"
+                                            >
+                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
+                                                    {course.orderIndex}
+                                                </TableCell>
+                                                <TableCell className="whitespace-normal px-4 py-3">
+                                                    <p className="text-sm font-medium text-slate-900">
+                                                        {course.title}
+                                                    </p>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-slate-600">
+                                                    {course.slug}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm text-slate-600">
+                                                    {course.hskLevel}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
+                                                    {
+                                                        course.totalStudentsEnrolled
+                                                    }
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
+                                                    {course.totalTopics}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Switch
+                                                            checked={
+                                                                course.isPublished
+                                                            }
+                                                            size="default"
+                                                            className="h-6 w-11 border border-slate-300 ring-1 ring-slate-200 data-checked:bg-emerald-600 data-unchecked:bg-slate-300"
+                                                            disabled={
+                                                                pendingCourseId ===
+                                                                course.id
+                                                            }
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                handleOpenPublishDialog(
+                                                                    course.id,
+                                                                    course.title,
+                                                                    checked,
+                                                                )
+                                                            }
+                                                            aria-label={`Chuyển trạng thái xuất bản của ${course.title}`}
+                                                        />
+                                                        <Badge
+                                                            className={`${
+                                                                course.isPublished
+                                                                    ? "bg-green-100 text-green-700"
+                                                                    : "bg-slate-100 text-slate-600"
+                                                            }`}
+                                                        >
+                                                            {course.isPublished
+                                                                ? "Đã xuất bản"
+                                                                : "Nháp"}
+                                                        </Badge>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="flex gap-2">
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    type="button"
+                                                                    size="icon-sm"
+                                                                    variant="outline"
+                                                                    disabled={
+                                                                        pendingCourseId ===
+                                                                        course.id
+                                                                    }
+                                                                    onClick={() =>
+                                                                        void handleDeleteCourse(
+                                                                            course.id,
+                                                                            course.title,
+                                                                        )
+                                                                    }
+                                                                    className="text-rose-700 hover:text-rose-800"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                Xóa khóa học
+                                                            </TooltipContent>
+                                                        </Tooltip>
+
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    asChild
+                                                                    type="button"
+                                                                    size="icon-sm"
+                                                                    variant="outline"
+                                                                    className="text-slate-700 hover:text-slate-900"
+                                                                >
+                                                                    <Link
+                                                                        href={`/cms/lessons/course/${course.id}?tab=settings`}
+                                                                    >
+                                                                        <PenSquare className="h-4 w-4" />
+                                                                    </Link>
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                Sửa khóa học
+                                                            </TooltipContent>
+                                                        </Tooltip>
+
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    asChild
+                                                                    type="button"
+                                                                    size="icon-sm"
+                                                                    variant="outline"
+                                                                    className="text-slate-700 hover:text-slate-900"
+                                                                >
+                                                                    <Link
+                                                                        href={`/cms/lessons/course/${course.id}`}
+                                                                    >
+                                                                        <FolderOpen className="h-4 w-4" />
+                                                                    </Link>
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                Vào chi tiết
+                                                                khóa
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+
+                                        {!coursesQuery.isLoading &&
+                                            !coursesQuery.isError &&
+                                            filteredCourses.length === 0 && (
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableCell
+                                                        colSpan={9}
+                                                        className="h-24 text-center text-sm text-slate-500"
+                                                    >
+                                                        Không có khóa học phù
+                                                        hợp với bộ lọc hiện tại.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
+
                         {!coursesQuery.isLoading &&
                             !coursesQuery.isError &&
                             pageCourses.length > 0 && (
@@ -693,10 +733,9 @@ export default function CourseCmsPage() {
                     </div>
                 )}
 
-                {/* Statistics Tab */}
                 {activeTab === "stats" && (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {[
                                 {
                                     label: "Tổng khóa học",
@@ -726,13 +765,13 @@ export default function CourseCmsPage() {
                             ].map((stat) => (
                                 <div
                                     key={stat.label}
-                                    className="bg-white rounded-xl border border-slate-200/50 p-5"
+                                    className="rounded-xl border border-slate-200/50 bg-white p-5"
                                 >
-                                    <p className="text-sm text-slate-600 font-medium mb-2">
+                                    <p className="mb-2 text-sm font-medium text-slate-600">
                                         {stat.label}
                                     </p>
                                     <p
-                                        className={`text-3xl font-light mb-1 ${stat.tone}`}
+                                        className={`mb-1 text-3xl font-light ${stat.tone}`}
                                     >
                                         {stat.value}
                                     </p>
@@ -740,8 +779,8 @@ export default function CourseCmsPage() {
                             ))}
                         </div>
 
-                        <div className="bg-white rounded-xl border border-slate-200/50 p-5">
-                            <p className="text-sm text-slate-600 font-medium mb-2">
+                        <div className="rounded-xl border border-slate-200/50 bg-white p-5">
+                            <p className="mb-2 text-sm font-medium text-slate-600">
                                 Tỷ lệ xuất bản
                             </p>
                             <p className="text-2xl font-light text-slate-900">
@@ -752,6 +791,23 @@ export default function CourseCmsPage() {
                     </div>
                 )}
             </div>
+
+            <CourseStatusConfirmDialog
+                open={publishDialogState.open}
+                onOpenChange={(open) =>
+                    setPublishDialogState((current) => ({
+                        ...current,
+                        open,
+                    }))
+                }
+                courseTitle={publishDialogState.courseTitle}
+                nextPublished={publishDialogState.nextPublished}
+                isSubmitting={Boolean(
+                    publishDialogState.courseId &&
+                    pendingCourseId === publishDialogState.courseId,
+                )}
+                onConfirm={handleConfirmPublishChange}
+            />
         </div>
     );
 }

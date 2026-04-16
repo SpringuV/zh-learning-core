@@ -2,6 +2,7 @@ import {
     CourseTopicsOverviewResponse,
     TopicCreateRequest,
     TopicCreateResponseData,
+    TopicDetailResponse,
     TopicListItemAdmin,
     TopicQueryParams,
     TopicReOrderRequest,
@@ -23,6 +24,7 @@ const endPoints = {
     unPublishTopic: (topicId: string) => `lesson/v1/topic/${topicId}/unpublish`,
     reOrderTopic: "lesson/v1/topic/reorder",
     deleteTopic: (topicId: string) => `lesson/v1/topic/${topicId}`,
+    detailTopic: (topicId: string) => `search/v1/topics/${topicId}`,
 };
 
 export const topicApi = {
@@ -74,6 +76,9 @@ export const topicApi = {
     },
     async deleteTopic(topicId: string) {
         return await http.delete(endPoints.deleteTopic(topicId));
+    },
+    async getTopicDetail(topicId: string) {
+        return await http.get<TopicDetailResponse>(endPoints.detailTopic(topicId));
     },
 };
 // #endregion
