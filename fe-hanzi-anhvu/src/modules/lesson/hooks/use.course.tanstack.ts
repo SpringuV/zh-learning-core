@@ -8,15 +8,13 @@ import {
 import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
 import {
-    useInfiniteQuery,
+    keepPreviousData,
     useMutation,
+    useQuery,
     useQueryClient,
 } from "@tanstack/react-query";
 
-type CourseListBaseQueryParams = Omit<
-    CourseListQueryParams,
-    "searchAfterValues"
->;
+type CourseListBaseQueryParams = Partial<CourseListQueryParams>;
 
 const invalidateCourseQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
@@ -25,26 +23,15 @@ const invalidateCourseQueries = (
 };
 
 export const useGetListCourse = (params: CourseListBaseQueryParams = {}) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ["list-course", params],
-        initialPageParam: undefined as string | undefined,
-        queryFn: async ({ pageParam }) => {
-            // pageParam chính là giá trị của searchAfterValues được truyền vào hàm getListCourse để lấy trang tiếp theo
-            return await courseApi.getListCourse({
-                ...params,
-                searchAfterValues: pageParam,
-            });
+        queryFn: async () => {
+            return await courseApi.getListCourse(params);
         },
+        placeholderData: keepPreviousData,
         refetchOnMount: false, //
         staleTime: 5 * 60 * 1000, // 5 phút
         gcTime: 10 * 60 * 1000, // 10 phút
-        getNextPageParam: (lastPage) => {
-            const payload = lastPage.data;
-            if (!payload.hasNextPage || !payload.nextCursor) {
-                return undefined;
-            }
-            return payload.nextCursor;
-        },
     });
 };
 

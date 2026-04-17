@@ -17,8 +17,7 @@ public sealed record TopicSearchAdminQueries(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    int Page = 1,
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true
 ) : IRequest<SearchQueryResult<TopicSearchItemAdminResponse>>, 
@@ -26,7 +25,7 @@ public sealed record TopicSearchAdminQueries(
     ICacheScopeRequest
 {
     public string CacheKey =>
-        $"topic-s-adm:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
+        $"topic-s-adm:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{Page}:{SortBy}:{OrderByDescending}";
 
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 
@@ -51,15 +50,20 @@ public class TopicSearchAdminQueriesHandler(
             {
                 _logger.LogInformation("Index {IndexName} does not exist. Returning empty search result.", ConstantIndexElastic.TopicIndex);
                 return new SearchQueryResult<TopicSearchItemAdminResponse>(
-                    Total: 0,
                     Items: [],
-                    HasNextPage: false,
-                    NextCursor: string.Empty);
+                    Pagination: new PaginationResponse(
+                        Page: request.Page,
+                        PageSize: request.Take,
+                        Total: 0));
             }
             var response = await _client.SearchAsync<TopicSearch>(s =>
             {
                 s.Indices(ConstantIndexElastic.TopicIndex);
-                s.Size(request.Take + 1);
+                s.Size(request.Take);
+                if (request.Page > 1)
+                {
+                    s.From((request.Page - 1) * request.Take);
+                }
                 // Xây dựng query
                 // bool query để filter theo các field có trong request
                 s.Query(q => q.Bool(b =>
@@ -108,18 +112,6 @@ public class TopicSearchAdminQueriesHandler(
                 };
                 s.Sort(primarySort, s => s.Field(f => f.TopicId.Suffix("keyword"), SortOrder.Asc)); 
                 // Secondary sort by TopicId.keyword for stable pagination
-
-                if (!string.IsNullOrWhiteSpace(request.SearchAfterValues))
-                {
-                    if (SearchAfterCursorHelper.TryParseSearchAfterValues(request.SearchAfterValues, out var fieldValues))
-                    {
-                        s.SearchAfter(fieldValues);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Invalid SearchAfterValues: {SearchAfterValues}", request.SearchAfterValues);
-                    }
-                }
             }, cancellationToken);
             if (!response.IsValidResponse)
             {
@@ -127,7 +119,7 @@ public class TopicSearchAdminQueriesHandler(
                 throw new Exception("Lỗi khi tìm kiếm Topic. Vui lòng thử lại sau.");
             }
             var results = response.Documents
-                .Take(request.Take + 1) // Fetch one extra for pagination check
+                .Take(request.Take)
                 .Select(topic => new TopicSearchItemAdminResponse(
                     Id: topic.TopicId,
                     Title: topic.Title,
@@ -150,7 +142,7 @@ public class TopicSearchAdminQueriesHandler(
                     hitCount => hitCount?.Value ?? 0,
                     value => value);
             }
-            return BuildPagedResult(results, request.Take, totalMatched, request.SortBy);
+            return BuildPagedResult(results, request.Page, request.Take, totalMatched);
         }   
         catch (Exception ex)
         {
@@ -161,39 +153,18 @@ public class TopicSearchAdminQueriesHandler(
 
     private static SearchQueryResult<TopicSearchItemAdminResponse> BuildPagedResult
         (List<TopicSearchItemAdminResponse> items, 
+        int page,
         int take, 
-        long? totalMatched, 
-        TopicSortBy sortBy)
+        long? totalMatched)
     {
-        var hasNextPage = items.Count > take;
         var total = totalMatched ?? items.Count;
-        var nextCursor = string.Empty;
-        if (hasNextPage)
-        {
-            items.RemoveAt(items.Count - 1); // Remove the extra item used for pagination check
-            var lastDoc = items[^1]; // cú pháp ^1 để lấy phần tử cuối cùng trong list
-            var sortValue = GetSortValue(lastDoc, sortBy);
-            var nextCursorJson = SearchAfterCursorHelper.BuildCursor(sortValue, lastDoc.Id);
-            nextCursor = nextCursorJson;
-        }
 
         return new SearchQueryResult<TopicSearchItemAdminResponse>(
-            Total: total,
             Items: items,
-            HasNextPage: hasNextPage,
-            NextCursor: nextCursor);
-    }
-    private static object GetSortValue(TopicSearchItemAdminResponse item, TopicSortBy sortBy)
-    {
-        return sortBy switch
-        {
-            TopicSortBy.TotalExercises => item.TotalExercises,
-            TopicSortBy.UpdatedAt => item.UpdatedAt,
-            TopicSortBy.ExamYear => item.ExamYear ?? 0,
-            TopicSortBy.OrderIndex => item.OrderIndex,
-            TopicSortBy.CreatedAt => item.CreatedAt,
-            _ => item.CreatedAt
-        };
+            Pagination: new PaginationResponse(
+                Page: page,
+                PageSize: take,
+                Total: total));
     }
 }
 

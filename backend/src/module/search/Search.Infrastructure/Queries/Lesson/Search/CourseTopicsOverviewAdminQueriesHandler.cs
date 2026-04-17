@@ -12,14 +12,14 @@ public sealed record CourseTopicsOverviewAdminQueries(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
-    string? SearchAfterValues = null,
+    int Page = 1,
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true
 ) : IRequest<TopicSearchWithCourseMetadataResponse>,
     ICacheableRequest<TopicSearchWithCourseMetadataResponse>,
     ICacheScopeRequest
 {
-    public string CacheKey => $"CourseTopicsOverviewAdmin:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt}:{EndCreatedAt}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
+    public string CacheKey => $"CourseTopicsOverviewAdmin:{CourseId}:{Title}:{IsPublished}:{TopicType}:{StartCreatedAt}:{EndCreatedAt}:{Take}:{Page}:{SortBy}:{OrderByDescending}";
 
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1); // cache kết quả trong 1 phút
 
@@ -50,7 +50,7 @@ public sealed class CourseTopicsOverviewAdminQueriesHandler(
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         ), cancellationToken);
@@ -59,10 +59,8 @@ public sealed class CourseTopicsOverviewAdminQueriesHandler(
 
         return new TopicSearchWithCourseMetadataResponse(
             ParentMetadata: courseMetadata,
-            Total: topicsResult.Total,
             Items: topicsResult.Items,
-            HasNextPage: topicsResult.HasNextPage,
-            NextCursor: topicsResult.NextCursor
+            Pagination: topicsResult.Pagination
         );
     }
 

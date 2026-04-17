@@ -5,17 +5,16 @@ import {
     useDeferredValue,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
-import Link from "next/link";
-import { FolderOpen, PenSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CreateCourseModal } from "@/modules/lesson/components/course/create-course-modal";
+import { CourseManagementTable } from "@/modules/lesson/components/course/course-management-table";
 import { CourseStatusConfirmDialog } from "@/modules/lesson/components/course/course-status-confirm-dialog";
 import { Button } from "@/shared/components/ui/button";
+import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { Input } from "@/shared/components/ui/input";
-import { Badge } from "@/shared/components/ui/badge";
-import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -23,27 +22,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/shared/components/ui/select";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/shared/components/ui/table";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/shared/components/ui/tooltip";
 import { CustomPagination } from "@/shared/components/cms/custom-pagination";
 import {
     useDeleteCourse,
     useGetListCourse,
     usePublishCourse,
+    useReOrderCourse,
     useUnPublishCourse,
 } from "@/modules/lesson/hooks/use.course.tanstack";
 import {
+    CourseListItem,
     CourseListQueryParams,
     CourseSortBy,
 } from "@/modules/lesson/types/coure.type";
@@ -56,6 +44,23 @@ const initialCourseQueryParams: CourseListQueryParams = {
 };
 
 const pageContainerClass = "mx-auto w-full max-w-[1400px] px-5";
+const EMPTY_COURSES: CourseListItem[] = [];
+// <T,> để đảm bảo hàm moveItem có thể nhận bất kỳ kiểu dữ liệu nào trong mảng, giúp hàm này trở nên linh hoạt và tái sử dụng được cho nhiều trường hợp khác nhau, không chỉ riêng với CourseListItem.
+
+const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
+    if (fromIndex === toIndex) {
+        return items;
+    }
+
+    const nextItems = [...items];
+    const [moved] = nextItems.splice(fromIndex, 1);
+    if (!moved) {
+        return items;
+    }
+    // Nếu toIndex vượt ra ngoài phạm vi, đặt nó ở cuối mảng
+    nextItems.splice(toIndex, 0, moved);
+    return nextItems;
+};
 
 export default function CourseCmsPage() {
     const [activeTab, setActiveTab] = useState<"courses" | "stats">("courses");
@@ -67,6 +72,9 @@ export default function CourseCmsPage() {
     const [publishFilter, setPublishFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
     const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
+    const [isReorderMode, setIsReorderMode] = useState(false);
+    const [orderedCourses, setOrderedCourses] = useState<CourseListItem[]>([]);
+    const [isOrderDirty, setIsOrderDirty] = useState(false);
     const [publishDialogState, setPublishDialogState] = useState<{
         open: boolean;
         courseId: string | null;
@@ -78,6 +86,15 @@ export default function CourseCmsPage() {
         courseTitle: "",
         nextPublished: false,
     });
+    const [deleteDialogState, setDeleteDialogState] = useState<{
+        open: boolean;
+        courseId: string | null;
+        courseTitle: string;
+    }>({
+        open: false,
+        courseId: null,
+        courseTitle: "",
+    });
 
     const deferredTitle = useDeferredValue(queryParams.title ?? "");
 
@@ -86,29 +103,23 @@ export default function CourseCmsPage() {
             ...queryParams,
             title: deferredTitle.trim(),
             take: itemsPerPage,
+            page: currentPage,
         }),
-        [queryParams, deferredTitle, itemsPerPage],
+        [queryParams, deferredTitle, itemsPerPage, currentPage],
     );
 
     const coursesQuery = useGetListCourse(effectiveQueryParams);
     const publishCourseMutation = usePublishCourse();
     const unPublishCourseMutation = useUnPublishCourse();
+    const reorderCourseMutation = useReOrderCourse();
     const deleteCourseMutation = useDeleteCourse();
 
-    const pages = coursesQuery.data?.pages ?? [];
-    const loadedPages = pages.length;
-    const firstPageData = pages[0]?.data;
-    const currentPageData = pages[currentPage - 1]?.data;
-    const pageCourses = currentPageData?.items ?? [];
-    const loadedCourses = useMemo(
-        () => pages.flatMap((page) => page.data.items ?? []),
-        [pages],
+    const currentPageData = coursesQuery.data?.data;
+    const pageCourses = useMemo(
+        () => currentPageData?.items ?? EMPTY_COURSES,
+        [currentPageData?.items],
     );
-
-    const canLoadMore =
-        loadedPages > 0
-            ? (pages[loadedPages - 1]?.data?.hasNextPage ?? false)
-            : false;
+    const loadedCourses = useMemo(() => pageCourses, [pageCourses]);
 
     const filteredCourses = useMemo(() => {
         return pageCourses.filter((course) => {
@@ -126,7 +137,9 @@ export default function CourseCmsPage() {
         });
     }, [pageCourses, levelFilter, publishFilter]);
 
-    const totalDocs = firstPageData?.total ?? 0;
+    const displayCourses = isReorderMode ? orderedCourses : filteredCourses;
+
+    const totalDocs = currentPageData?.pagination?.total ?? 0;
     const totalCourses = totalDocs;
     const publishedCourses = loadedCourses.filter(
         (course) => course.isPublished,
@@ -141,18 +154,47 @@ export default function CourseCmsPage() {
         0,
     );
 
-    const estimatedPages = loadedPages + (canLoadMore ? 1 : 0);
-    const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
-    const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
+    const totalPages = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPagesForClamp =
+        coursesQuery.isFetching && !currentPageData?.pagination
+            ? Math.max(1, currentPage)
+            : totalPages;
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + filteredCourses.length, totalDocs);
+    const endIndex = Math.min(startIndex + displayCourses.length, totalDocs);
     const totalItems = totalDocs;
+    // #region ReOrder
+    const reorderBaseCourses = pageCourses;
+    const canPersistOrder =
+        isReorderMode &&
+        pageCourses.length > 0 &&
+        orderedCourses.length === pageCourses.length;
 
     useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
+        if (!isReorderMode) {
+            return;
         }
-    }, [currentPage, totalPages]);
+
+        setOrderedCourses((current) => {
+            if (
+                current.length === reorderBaseCourses.length &&
+                current.every(
+                    (course, index) =>
+                        course.id === reorderBaseCourses[index]?.id,
+                )
+            ) {
+                return current;
+            }
+
+            return reorderBaseCourses;
+        });
+        setIsOrderDirty(false);
+    }, [isReorderMode, reorderBaseCourses]);
+    // #endregion
+    useEffect(() => {
+        if (currentPage > totalPagesForClamp) {
+            setCurrentPage(totalPagesForClamp);
+        }
+    }, [currentPage, totalPagesForClamp]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -171,7 +213,67 @@ export default function CourseCmsPage() {
         setPublishFilter("all");
         setCurrentPage(1);
     };
+    // #region reorder
+    const startReorderMode = () => {
+        setActiveTab("courses");
+        setCurrentPage(1);
+        setLevelFilter("all");
+        setPublishFilter("all");
+        setQueryParams((current) => ({
+            ...current,
+            title: "",
+            sortBy: "OrderIndex",
+            orderByDescending: false,
+        }));
+        setIsReorderMode(true);
+    };
 
+    const cancelReorderMode = () => {
+        setIsReorderMode(false);
+        setOrderedCourses([]);
+        setIsOrderDirty(false);
+    };
+
+    const handleMoveCourse = useCallback((activeId: string, overId: string) => {
+        setOrderedCourses((current) => {
+            const sourceIndex = current.findIndex(
+                (course) => course.id === activeId,
+            );
+            const targetIndex = current.findIndex(
+                (course) => course.id === overId,
+            );
+
+            if (sourceIndex < 0 || targetIndex < 0) {
+                return current;
+            }
+
+            const next = moveItem(current, sourceIndex, targetIndex);
+            if (next !== current) {
+                setIsOrderDirty(true);
+            }
+            return next;
+        });
+    }, []);
+
+    const saveCourseOrder = async () => {
+        if (!canPersistOrder || orderedCourses.length === 0) {
+            toast.error(
+                "Chưa đủ dữ liệu để lưu thứ tự. Vui lòng đợi tải xong dữ liệu trang hiện tại.",
+            );
+            return;
+        }
+
+        try {
+            await reorderCourseMutation.mutateAsync({
+                orderedCourseIds: orderedCourses.map((course) => course.id),
+            });
+            toast.success("Đã lưu thứ tự khóa học.");
+            cancelReorderMode();
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        }
+    };
+    // #endregion
     const getErrorMessage = (error: unknown) => {
         if (typeof error === "object" && error !== null) {
             const maybeApiError = error as {
@@ -238,16 +340,28 @@ export default function CourseCmsPage() {
         }
     };
 
-    const handleDeleteCourse = async (courseId: string, title: string) => {
-        const confirmed = window.confirm(
-            `Xóa khóa học \"${title}\"? Hành động này không thể hoàn tác.`,
-        );
-        if (!confirmed) return;
+    const handleDeleteCourse = (courseId: string, title: string) => {
+        setDeleteDialogState({
+            open: true,
+            courseId,
+            courseTitle: title,
+        });
+    };
 
-        setPendingCourseId(courseId);
+    const handleConfirmDeleteCourse = async () => {
+        if (!deleteDialogState.courseId) {
+            return;
+        }
+
+        setPendingCourseId(deleteDialogState.courseId);
         try {
-            await deleteCourseMutation.mutateAsync(courseId);
+            await deleteCourseMutation.mutateAsync(deleteDialogState.courseId);
             toast.success("Đã xóa khóa học.");
+            setDeleteDialogState({
+                open: false,
+                courseId: null,
+                courseTitle: "",
+            });
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
@@ -258,27 +372,10 @@ export default function CourseCmsPage() {
     const handlePageChange = useCallback(
         (page: number) => {
             if (page < 1 || page === currentPage) return;
-
-            if (page <= loadedPages) {
-                setCurrentPage(page);
-                return;
-            }
-
-            if (
-                page === loadedPages + 1 &&
-                canLoadMore &&
-                !coursesQuery.isFetchingNextPage
-            ) {
-                void coursesQuery.fetchNextPage().then((result) => {
-                    const fetchedPageCount =
-                        result.data?.pages.length ?? loadedPages;
-                    if (fetchedPageCount >= page) {
-                        setCurrentPage(page);
-                    }
-                });
-            }
+            if (page > totalPages) return;
+            setCurrentPage(page);
         },
-        [currentPage, loadedPages, canLoadMore, coursesQuery],
+        [currentPage, totalPages],
     );
 
     return (
@@ -344,7 +441,7 @@ export default function CourseCmsPage() {
                                 ))}
                             </div>
                             <p className="text-xs text-slate-500 sm:text-sm">
-                                Hiển thị {filteredCourses.length}/{totalDocs}{" "}
+                                Hiển thị {displayCourses.length}/{totalDocs}{" "}
                                 khóa học
                             </p>
                         </div>
@@ -361,11 +458,13 @@ export default function CourseCmsPage() {
                                 }
                                 placeholder="Tìm kiếm khóa học..."
                                 className="h-9 min-w-64 flex-1 bg-white text-sm"
+                                disabled={isReorderMode}
                             />
 
                             <Select
                                 value={levelFilter}
                                 onValueChange={(value) => setLevelFilter(value)}
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-32 bg-white text-sm">
                                     <SelectValue placeholder="HSK" />
@@ -386,6 +485,7 @@ export default function CourseCmsPage() {
                                 onValueChange={(value) =>
                                     setPublishFilter(value)
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Trạng thái" />
@@ -411,6 +511,7 @@ export default function CourseCmsPage() {
                                         sortBy: value,
                                     }))
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-40 bg-white text-sm">
                                     <SelectValue placeholder="Sắp xếp theo" />
@@ -449,6 +550,7 @@ export default function CourseCmsPage() {
                                         orderByDescending: value === "desc",
                                     }))
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-36 bg-white text-sm">
                                     <SelectValue placeholder="Thứ tự" />
@@ -469,9 +571,61 @@ export default function CourseCmsPage() {
                                 size="sm"
                                 className="h-9 shrink-0"
                                 onClick={resetFilters}
+                                disabled={isReorderMode}
                             >
                                 Xóa lọc
                             </Button>
+
+                            {!isReorderMode && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-9 shrink-0"
+                                    onClick={startReorderMode}
+                                    disabled={coursesQuery.isLoading}
+                                >
+                                    Sắp xếp kéo thả
+                                </Button>
+                            )}
+
+                            {isReorderMode && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="h-9 shrink-0"
+                                        onClick={() => void saveCourseOrder()}
+                                        disabled={
+                                            reorderCourseMutation.isPending ||
+                                            !isOrderDirty ||
+                                            !canPersistOrder
+                                        }
+                                    >
+                                        {reorderCourseMutation.isPending
+                                            ? "Đang lưu..."
+                                            : "Lưu thứ tự"}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 shrink-0"
+                                        onClick={cancelReorderMode}
+                                        disabled={
+                                            reorderCourseMutation.isPending
+                                        }
+                                    >
+                                        Hủy
+                                    </Button>
+                                </>
+                            )}
+
+                            {isReorderMode && !canPersistOrder && (
+                                <p className="w-full text-xs text-amber-700">
+                                    Chỉ sắp xếp trong trang hiện tại. Vui lòng
+                                    đợi tải xong dữ liệu trang trước khi lưu.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -480,236 +634,20 @@ export default function CourseCmsPage() {
             <div className={`${pageContainerClass} min-w-0 pb-4 pt-3 lg:pb-5`}>
                 {activeTab === "courses" && (
                     <div>
-                        <div className="overflow-hidden rounded-xl border border-slate-200/50 bg-white shadow-sm">
-                            <div className="max-h-[60vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm">
-                                        <TableRow className="border-b border-slate-200/50 hover:bg-slate-50/50">
-                                            <TableHead className="w-16 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Index
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Tên khóa học
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Slug
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Hsk
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Tổng Học viên
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Tổng Topics
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Trạng thái
-                                            </TableHead>
-                                            <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                                                Thao tác
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-
-                                    <TableBody>
-                                        {coursesQuery.isLoading && (
-                                            <TableRow className="hover:bg-transparent">
-                                                <TableCell
-                                                    colSpan={9}
-                                                    className="h-24 text-center text-sm text-slate-500"
-                                                >
-                                                    Đang tải danh sách khóa
-                                                    học...
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-
-                                        {!coursesQuery.isLoading &&
-                                            coursesQuery.isFetching && (
-                                                <TableRow className="hover:bg-transparent">
-                                                    <TableCell
-                                                        colSpan={9}
-                                                        className="h-12 text-center text-xs text-slate-500"
-                                                    >
-                                                        Đang đồng bộ dữ liệu
-                                                        mới...
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-
-                                        {coursesQuery.isError && (
-                                            <TableRow className="hover:bg-transparent">
-                                                <TableCell
-                                                    colSpan={9}
-                                                    className="h-24 text-center text-sm text-red-600"
-                                                >
-                                                    Không thể tải danh sách khóa
-                                                    học.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-
-                                        {filteredCourses.map((course) => (
-                                            <TableRow
-                                                key={course.id}
-                                                className="border-b border-slate-100 hover:bg-slate-50/50"
-                                            >
-                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                    {course.orderIndex}
-                                                </TableCell>
-                                                <TableCell className="whitespace-normal px-4 py-3">
-                                                    <p className="text-sm font-medium text-slate-900">
-                                                        {course.title}
-                                                    </p>
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                    {course.slug}
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3 text-sm text-slate-600">
-                                                    {course.hskLevel}
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                    {
-                                                        course.totalStudentsEnrolled
-                                                    }
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3 text-sm font-medium text-slate-500">
-                                                    {course.totalTopics}
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Switch
-                                                            checked={
-                                                                course.isPublished
-                                                            }
-                                                            size="default"
-                                                            className="h-6 w-11 border border-slate-300 ring-1 ring-slate-200 data-checked:bg-emerald-600 data-unchecked:bg-slate-300"
-                                                            disabled={
-                                                                pendingCourseId ===
-                                                                course.id
-                                                            }
-                                                            onCheckedChange={(
-                                                                checked,
-                                                            ) =>
-                                                                handleOpenPublishDialog(
-                                                                    course.id,
-                                                                    course.title,
-                                                                    checked,
-                                                                )
-                                                            }
-                                                            aria-label={`Chuyển trạng thái xuất bản của ${course.title}`}
-                                                        />
-                                                        <Badge
-                                                            className={`${
-                                                                course.isPublished
-                                                                    ? "bg-green-100 text-green-700"
-                                                                    : "bg-slate-100 text-slate-600"
-                                                            }`}
-                                                        >
-                                                            {course.isPublished
-                                                                ? "Đã xuất bản"
-                                                                : "Nháp"}
-                                                        </Badge>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="px-4 py-3">
-                                                    <div className="flex gap-2">
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    type="button"
-                                                                    size="icon-sm"
-                                                                    variant="outline"
-                                                                    disabled={
-                                                                        pendingCourseId ===
-                                                                        course.id
-                                                                    }
-                                                                    onClick={() =>
-                                                                        void handleDeleteCourse(
-                                                                            course.id,
-                                                                            course.title,
-                                                                        )
-                                                                    }
-                                                                    className="text-rose-700 hover:text-rose-800"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                Xóa khóa học
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    asChild
-                                                                    type="button"
-                                                                    size="icon-sm"
-                                                                    variant="outline"
-                                                                    className="text-slate-700 hover:text-slate-900"
-                                                                >
-                                                                    <Link
-                                                                        href={`/cms/lessons/course/${course.id}?tab=settings`}
-                                                                    >
-                                                                        <PenSquare className="h-4 w-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                Sửa khóa học
-                                                            </TooltipContent>
-                                                        </Tooltip>
-
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    asChild
-                                                                    type="button"
-                                                                    size="icon-sm"
-                                                                    variant="outline"
-                                                                    className="text-slate-700 hover:text-slate-900"
-                                                                >
-                                                                    <Link
-                                                                        href={`/cms/lessons/course/${course.id}`}
-                                                                    >
-                                                                        <FolderOpen className="h-4 w-4" />
-                                                                    </Link>
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                Vào chi tiết
-                                                                khóa
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-
-                                        {!coursesQuery.isLoading &&
-                                            !coursesQuery.isError &&
-                                            filteredCourses.length === 0 && (
-                                                <TableRow className="hover:bg-transparent">
-                                                    <TableCell
-                                                        colSpan={9}
-                                                        className="h-24 text-center text-sm text-slate-500"
-                                                    >
-                                                        Không có khóa học phù
-                                                        hợp với bộ lọc hiện tại.
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                        <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white shadow-sm">
+                            <CourseManagementTable
+                                courses={displayCourses}
+                                isReorderMode={isReorderMode}
+                                pendingCourseId={pendingCourseId}
+                                isReorderPending={
+                                    reorderCourseMutation.isPending
+                                }
+                                isLoading={coursesQuery.isLoading}
+                                isError={coursesQuery.isError}
+                                onMoveCourse={handleMoveCourse}
+                                onOpenPublishDialog={handleOpenPublishDialog}
+                                onDeleteCourse={handleDeleteCourse}
+                            />
                         </div>
 
                         {!coursesQuery.isLoading &&
@@ -807,6 +745,34 @@ export default function CourseCmsPage() {
                     pendingCourseId === publishDialogState.courseId,
                 )}
                 onConfirm={handleConfirmPublishChange}
+            />
+
+            <ConfirmDialog
+                open={deleteDialogState.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteDialogState({
+                            open: false,
+                            courseId: null,
+                            courseTitle: "",
+                        });
+                        return;
+                    }
+
+                    setDeleteDialogState((current) => ({
+                        ...current,
+                        open,
+                    }));
+                }}
+                title="Xác nhận xóa khóa học"
+                description={`Khóa học \"${deleteDialogState.courseTitle}\" sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`}
+                confirmLabel="Xóa khóa học"
+                confirmClassName="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500"
+                isSubmitting={Boolean(
+                    deleteDialogState.courseId &&
+                    pendingCourseId === deleteDialogState.courseId,
+                )}
+                onConfirm={handleConfirmDeleteCourse}
             />
         </div>
     );

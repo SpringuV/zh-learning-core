@@ -98,7 +98,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         );
@@ -117,7 +117,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         );

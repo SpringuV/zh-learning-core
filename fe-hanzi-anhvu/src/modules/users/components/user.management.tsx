@@ -6,7 +6,7 @@ import {
     type FilterState,
     UserManagementFilters,
 } from "@/modules/users/components/user.management.filters";
-import { useInfiniteUserList } from "@/modules/users/hooks/use.user.query";
+import { useUserList } from "@/modules/users/hooks/use.user.query";
 import { cn } from "@/shared/lib/utils";
 import { Filter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -40,12 +40,9 @@ const UserManagementComponent = () => {
     const [appliedFilters, setAppliedFilters] =
         useState<FilterState>(defaultFilters);
 
-    // Keep only current page state, cursor chain is managed by useInfiniteQuery.
     const [currentPage, setCurrentPage] = useState(1);
 
-    const queryParams = useMemo<
-        Omit<UserListQueryParams, "searchAfterValues">
-    >(() => {
+    const queryParams = useMemo<UserListQueryParams>(() => {
         const mappedIsActive =
             appliedFilters.isActive === "all"
                 ? undefined
@@ -61,20 +58,14 @@ const UserManagementComponent = () => {
             sortBy: appliedFilters.sortBy,
             orderByDescending,
             take: itemsPerPage,
+            page: currentPage,
         };
-    }, [appliedFilters, itemsPerPage]);
+    }, [appliedFilters, itemsPerPage, currentPage]);
 
-    const userManagementData = useInfiniteUserList(queryParams);
-    const pages = userManagementData.data?.pages ?? [];
-    const loadedPages = pages.length;
-    const firstPageData = pages[0]?.data;
-    const currentPageData = pages[currentPage - 1]?.data;
+    const userManagementData = useUserList(queryParams);
+    const currentPageData = userManagementData.data?.data;
     const users = currentPageData?.items ?? [];
-    const totalDocs = firstPageData?.total ?? 0;
-    const canLoadMore =
-        loadedPages > 0
-            ? (pages[loadedPages - 1]?.data?.hasNextPage ?? false)
-            : false;
+    const totalDocs = currentPageData?.pagination?.total ?? 0;
 
     const handleApplyFilters = () => {
         setAppliedFilters(draftFilters);
@@ -91,48 +82,29 @@ const UserManagementComponent = () => {
         userManagementData.refetch();
     };
 
-    // Compute pagination values for CustomPagination component
-    // With infinite query, total pages = loaded pages + (one virtual next page when hasNextPage=true).
-    const estimatedPages = loadedPages + (canLoadMore ? 1 : 0);
-    const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
-    const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
+    const totalPages = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPagesForClamp =
+        userManagementData.isFetching && !currentPageData?.pagination
+            ? Math.max(1, currentPage)
+            : totalPages;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + users.length, totalDocs);
     const totalItems = totalDocs;
 
     useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
+        if (currentPage > totalPagesForClamp) {
+            setCurrentPage(totalPagesForClamp);
         }
-    }, [currentPage, totalPages]);
+    }, [currentPage, totalPagesForClamp]);
 
     const handlePageChange = useCallback(
         (page: number) => {
             // Validate page number
             if (page < 1 || page === currentPage) return;
-
-            // Page already loaded -> switch immediately.
-            if (page <= loadedPages) {
-                setCurrentPage(page);
-                return;
-            }
-
-            // Cursor-based pagination can only fetch one next page at a time.
-            if (
-                page === loadedPages + 1 &&
-                canLoadMore &&
-                !userManagementData.isFetchingNextPage
-            ) {
-                void userManagementData.fetchNextPage().then((result) => {
-                    const fetchedPageCount =
-                        result.data?.pages.length ?? loadedPages;
-                    if (fetchedPageCount >= page) {
-                        setCurrentPage(page);
-                    }
-                });
-            }
+            if (page > totalPages) return;
+            setCurrentPage(page);
         },
-        [currentPage, loadedPages, canLoadMore, userManagementData],
+        [currentPage, totalPages],
     );
 
     return (

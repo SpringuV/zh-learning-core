@@ -8,16 +8,13 @@ import {
 import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
 import {
-    useInfiniteQuery,
+    keepPreviousData,
     useMutation,
     useQuery,
     useQueryClient,
 } from "@tanstack/react-query";
 
-type ExerciseListBaseQueryParams = Omit<
-    ExerciseListQueryParams,
-    "searchAfterValues"
->;
+type ExerciseListBaseQueryParams = Partial<ExerciseListQueryParams>;
 
 const invalidateExerciseQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
@@ -53,25 +50,15 @@ export const useGetListExercises = (
     topicId: string,
     params: ExerciseListBaseQueryParams = {},
 ) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ["list-exercises", params, topicId],
-        initialPageParam: undefined as string | undefined,
-        queryFn: async ({ pageParam }) => {
-            return await exerciseApi.getListExercise(topicId, {
-                ...params,
-                searchAfterValues: pageParam,
-            });
+        queryFn: async () => {
+            return await exerciseApi.getListExercise(topicId, params);
         },
+        placeholderData: keepPreviousData,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         enabled: Boolean(topicId),
-        getNextPageParam: (lastPage) => {
-            const payload = lastPage.data;
-            if (!payload.hasNextPage || !payload.nextCursor) {
-                return undefined;
-            }
-            return payload.nextCursor;
-        },
     });
 };
 
@@ -79,25 +66,19 @@ export const useGetTopicExercisesOverview = (
     topicId: string,
     params: ExerciseListBaseQueryParams = {},
 ) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ["topic-exercises-overview", params, topicId],
-        initialPageParam: undefined as string | undefined,
-        queryFn: async ({ pageParam }) => {
-            return await exerciseApi.getTopicExercisesListOverview(topicId, {
-                ...params,
-                searchAfterValues: pageParam,
-            });
+        queryFn: async () => {
+            return await exerciseApi.getTopicExercisesListOverview(
+                topicId,
+                params,
+            );
         },
+        // Giữ lại dữ liệu trang trước trong lúc tải trang mới để tránh giật/flicker UI.
+        placeholderData: keepPreviousData,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         enabled: Boolean(topicId),
-        getNextPageParam: (lastPage) => {
-            const payload = lastPage.data;
-            if (!payload.hasNextPage || !payload.nextCursor) {
-                return undefined;
-            }
-            return payload.nextCursor;
-        },
     });
 };
 

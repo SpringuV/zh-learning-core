@@ -3,10 +3,7 @@ namespace Search.Infrastructure.Queries.Lesson.Search;
 public sealed record CourseSearchAdminQueries(
     string? Title = null,
     int Take = 30,
-    // Keyset pagination: JSON array của [sortValue, userId]
-    // Ví dụ: "[5, \"user-123\"]" khi sort by CurrentLevel
-    // Ensures stable pagination khi sort field thay đổi
-    string? SearchAfterValues = null,
+    int Page = 1,
     CourseSortBy SortBy = CourseSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
@@ -17,7 +14,7 @@ public sealed record CourseSearchAdminQueries(
 {
     public string CacheKey =>
     // kí tự O trong format string để serialize DateTime theo chuẩn ISO 8601 đảm bảo cache key ổn định và chính xác khi có trường DateTime
-        $"course-s-adm:{Title}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
+        $"course-s-adm:{Title}:{Take}:{Page}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 
     public string CacheScope => SearchCacheScopes.CourseAdminSearch;
@@ -39,17 +36,21 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
             {
                 _logger.LogInformation("Index {IndexName} does not exist. Returning empty search result.", ConstantIndexElastic.CourseIndex);
                 return new SearchQueryResult<CourseSearchItemAdminResponse>(
-                    Total: 0,
                     Items: [],
-                    HasNextPage: false,
-                    NextCursor: string.Empty);
+                    Pagination: new PaginationResponse(
+                        Page: request.Page,
+                        PageSize: request.Take,
+                        Total: 0));
             }
             var response = await _client.SearchAsync<CourseSearch>(s =>
             {
                 // Chỉ search trong course index
                 s.Indices(ConstantIndexElastic.CourseIndex);
-                // Lấy thêm 1 kết quả để kiểm tra xem có trang tiếp theo hay không
-                s.Size(request.Take + 1);
+                s.Size(request.Take);
+                if (request.Page > 1)
+                {
+                    s.From((request.Page - 1) * request.Take);
+                }
                 // Xây dựng query
                 // bool query để filter theo các field có trong request
                 s.Query(q => q.Bool(b =>
@@ -88,17 +89,6 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                 };
                 // suffix "keyword" để sort theo trường đã được keyword (không phân tích) đảm bảo thứ tự ổn định và chính xác
                 s.Sort(primarySort, s => s.Field(f => f.CourseId.Suffix("keyword"), SortOrder.Asc)); // Secondary sort by CourseId.keyword for stable pagination
-                if (!string.IsNullOrWhiteSpace(request.SearchAfterValues))
-                {
-                    if (SearchAfterCursorHelper.TryParseSearchAfterValues(request.SearchAfterValues, out var fieldValues))
-                    {
-                        s.SearchAfter(fieldValues);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Invalid SearchAfterValues format: {SearchAfterValues}", request.SearchAfterValues);
-                    }
-                }
             }, cancellationToken);
             if (!response.IsValidResponse)
             {
@@ -106,7 +96,7 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                 throw new Exception("Lỗi khi tìm kiếm khóa học. Vui lòng thử lại sau.");
             }
             var results = response.Documents
-                .Take(request.Take + 1) // Fetch one extra for pagination check
+                .Take(request.Take)
                 .Select(course => new CourseSearchItemAdminResponse(
                     Id: course.CourseId,
                     Title: course.Title,
@@ -129,7 +119,7 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                 // value là trường hợp totalHits là TotalValue (tức là khi total hits > 10k, 
                 // Elasticsearch sẽ trả về total hits dạng value thay vì count)
             }
-            return BuildPagedResult(results, request.Take, totalMatched, request.SortBy);
+            return BuildPagedResult(results, request.Page, request.Take, totalMatched);
         } 
         catch (Exception ex)
         {
@@ -139,48 +129,21 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
     }
     private SearchQueryResult<CourseSearchItemAdminResponse> BuildPagedResult(
         List<CourseSearchItemAdminResponse> results, 
+        int page,
         int take, 
-        long? totalMatched = null, 
-        CourseSortBy sortBy = CourseSortBy.CreatedAt)
+        long? totalMatched = null)
     {
         _logger.LogInformation("Query executed successfully: {DocumentCount} results returned", results.Count);
 
-        // hasNextPage: check if we have more docs than take (We fetched take + 1)
-        var hasNextPage = results.Count > take;
-        
         // totalMatched from response metadata is always accurate (total matching docs)
         var total = totalMatched ?? results.Count;
 
-        var nextCursor = string.Empty;
-        if (hasNextPage)
-        {
-            results.RemoveAt(results.Count - 1); // Remove the extra doc used for pagination check
-            var lastDoc = results[^1]; // ^1 is the last element in the list
-            var sortValue = GetSortValue(lastDoc, sortBy);
-            var cursorJson = SearchAfterCursorHelper.BuildCursor(sortValue, lastDoc.Id);
-            nextCursor = cursorJson;
-        }
-
         return new SearchQueryResult<CourseSearchItemAdminResponse>(
-            Total: total,
             Items: results,
-            HasNextPage: hasNextPage,
-            NextCursor: nextCursor);
-    }
-
-    private static object GetSortValue(CourseSearchItemAdminResponse course, CourseSortBy sortBy)
-    {
-        return sortBy switch
-        {
-            CourseSortBy.Title => course.Title,
-            CourseSortBy.HskLevel => course.HskLevel,
-            CourseSortBy.OrderIndex => course.OrderIndex,
-            CourseSortBy.TotalStudentsEnrolled => course.TotalStudentsEnrolled,
-            CourseSortBy.TotalTopics => course.TotalTopics,
-            CourseSortBy.CreatedAt => course.CreatedAt,
-            CourseSortBy.UpdatedAt => course.UpdatedAt,
-            _ => course.CreatedAt
-        };
+            Pagination: new PaginationResponse(
+                Page: page,
+                PageSize: take,
+                Total: total));
     }
 }
 

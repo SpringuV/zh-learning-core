@@ -1,16 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/shared/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 
 type CourseStatusConfirmDialogProps = {
     open: boolean;
@@ -40,33 +30,19 @@ export function CourseStatusConfirmDialog({
     const confirmLabel = nextPublished ? "Xác nhận xuất bản" : "Xác nhận";
 
     return (
-        <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {description}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isSubmitting}>
-                        Hủy
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        disabled={isSubmitting}
-                        onClick={(event) => {
-                            event.preventDefault();
-                            void onConfirm();
-                        }}
-                    >
-                        {isSubmitting && (
-                            <Loader2 className="mr-1 size-4 animate-spin" />
-                        )}
-                        {confirmLabel}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmDialog
+            open={open}
+            onOpenChange={onOpenChange}
+            title={title}
+            description={description}
+            confirmLabel={confirmLabel}
+            confirmClassName={
+                nextPublished
+                    ? undefined
+                    : "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500"
+            }
+            isSubmitting={isSubmitting}
+            onConfirm={onConfirm}
+        />
     );
 }

@@ -8,13 +8,12 @@ import {
     useState,
 } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { Input } from "@/shared/components/ui/input";
-import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -24,14 +23,17 @@ import {
 } from "@/shared/components/ui/select";
 import { CustomPagination } from "@/shared/components/cms/custom-pagination";
 import { CreateExerciseModal } from "@/modules/lesson/components/exercise/create-exercise-modal";
+import { ExerciseManagementTable } from "@/modules/lesson/components/exercise/exercise-management-table";
 import {
     useDeleteExercise,
     useGetTopicExercisesOverview,
     usePublishExercise,
+    useReOrderExercise,
     useUnPublishExercise,
 } from "@/modules/lesson/hooks/use.exercise.tanstack";
 import { useGetTopicDetail } from "@/modules/lesson/hooks/use.topic.tanstack";
 import {
+    ExerciseListItem,
     ExerciseListQueryParams,
     ExerciseSortBy,
     ExerciseType,
@@ -47,6 +49,21 @@ const initialExerciseQueryParams: ExerciseListQueryParams = {
     orderByDescending: true,
     sortBy: "CreatedAt",
     take: 50,
+};
+
+const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
+    if (fromIndex === toIndex) {
+        return items;
+    }
+
+    const nextItems = [...items];
+    const [moved] = nextItems.splice(fromIndex, 1);
+    if (!moved) {
+        return items;
+    }
+
+    nextItems.splice(toIndex, 0, moved);
+    return nextItems;
 };
 
 const exerciseTypeLabels: Record<ExerciseType, string> = {
@@ -101,9 +118,34 @@ export default function ExerciseManagementByTopic() {
     const [exerciseTypeFilter, setExerciseTypeFilter] =
         useState<ExerciseTypeFilter>("all");
     const [publishFilter, setPublishFilter] = useState<PublishFilter>("all");
+    const [isReorderMode, setIsReorderMode] = useState(false);
+    const [orderedExercises, setOrderedExercises] = useState<
+        ExerciseListItem[]
+    >([]);
+    const [isOrderDirty, setIsOrderDirty] = useState(false);
     const [pendingExerciseId, setPendingExerciseId] = useState<string | null>(
         null,
     );
+    const [deleteDialogState, setDeleteDialogState] = useState<{
+        open: boolean;
+        exerciseId: string | null;
+        exerciseQuestion: string;
+    }>({
+        open: false,
+        exerciseId: null,
+        exerciseQuestion: "",
+    });
+    const [publishDialogState, setPublishDialogState] = useState<{
+        open: boolean;
+        exerciseId: string | null;
+        exerciseQuestion: string;
+        nextPublished: boolean;
+    }>({
+        open: false,
+        exerciseId: null,
+        exerciseQuestion: "",
+        nextPublished: false,
+    });
 
     const deferredQuestion = useDeferredValue(queryParams.question ?? "");
 
@@ -119,6 +161,7 @@ export default function ExerciseManagementByTopic() {
                     ? undefined
                     : publishFilter === "published",
             take: itemsPerPage,
+            page: currentPage,
         }),
         [
             queryParams,
@@ -127,6 +170,7 @@ export default function ExerciseManagementByTopic() {
             exerciseTypeFilter,
             publishFilter,
             itemsPerPage,
+            currentPage,
         ],
     );
 
@@ -138,34 +182,57 @@ export default function ExerciseManagementByTopic() {
 
     const publishExerciseMutation = usePublishExercise();
     const unPublishExerciseMutation = useUnPublishExercise();
+    const reorderExerciseMutation = useReOrderExercise();
     const deleteExerciseMutation = useDeleteExercise();
 
-    const overviewPages = overviewQuery.data?.pages ?? [];
-    const loadedPages = overviewPages.length;
-    const firstPageData = overviewPages[0]?.data;
-    const currentPageData = overviewPages[currentPage - 1]?.data;
-    const topicMetadata = firstPageData?.parentMetadata ?? null;
+    const currentPageData = overviewQuery.data?.data;
+    const topicMetadata = currentPageData?.parentMetadata ?? null;
     const topicDetail = topicDetailQuery.data?.data;
     const effectiveTopicMetadata = topicDetail ?? topicMetadata;
     const pageExercises = currentPageData?.items ?? [];
+    const displayExercises = isReorderMode ? orderedExercises : pageExercises;
 
-    const canLoadMore =
-        loadedPages > 0
-            ? (overviewPages[loadedPages - 1]?.data?.hasNextPage ?? false)
-            : false;
-
-    const totalDocs = firstPageData?.total ?? 0;
-    const estimatedPages = loadedPages + (canLoadMore ? 1 : 0);
-    const pagesFromTotal = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
-    const totalPages = Math.max(1, Math.min(estimatedPages, pagesFromTotal));
+    const totalDocs = currentPageData?.pagination?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPagesForClamp =
+        overviewQuery.isFetching && !currentPageData?.pagination
+            ? Math.max(1, currentPage)
+            : totalPages;
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + pageExercises.length, totalDocs);
+    const endIndex = Math.min(startIndex + displayExercises.length, totalDocs);
+    const reorderBaseExercises = pageExercises;
+    const canPersistOrder =
+        isReorderMode &&
+        pageExercises.length > 0 &&
+        orderedExercises.length === pageExercises.length;
 
     useEffect(() => {
-        if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
+        if (!isReorderMode) {
+            return;
         }
-    }, [currentPage, totalPages]);
+
+        setOrderedExercises((current) => {
+            if (
+                current.length === reorderBaseExercises.length &&
+                current.every(
+                    (exercise, index) =>
+                        exercise.exerciseId ===
+                        reorderBaseExercises[index]?.exerciseId,
+                )
+            ) {
+                return current;
+            }
+
+            return reorderBaseExercises;
+        });
+        setIsOrderDirty(false);
+    }, [isReorderMode, reorderBaseExercises]);
+
+    useEffect(() => {
+        if (currentPage > totalPagesForClamp) {
+            setCurrentPage(totalPagesForClamp);
+        }
+    }, [currentPage, totalPagesForClamp]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -187,30 +254,87 @@ export default function ExerciseManagementByTopic() {
         setCurrentPage(1);
     };
 
+    const startReorderMode = () => {
+        setActiveTab("exercises");
+        setCurrentPage(1);
+        setSkillFilter("all");
+        setExerciseTypeFilter("all");
+        setPublishFilter("all");
+        setQueryParams((current) => ({
+            ...current,
+            question: "",
+            sortBy: "OrderIndex",
+            orderByDescending: false,
+        }));
+        setIsReorderMode(true);
+    };
+
+    const cancelReorderMode = () => {
+        setIsReorderMode(false);
+        setOrderedExercises([]);
+        setIsOrderDirty(false);
+    };
+
+    const handleMoveExercise = useCallback(
+        (activeId: string, overId: string) => {
+            setOrderedExercises((current) => {
+                const sourceIndex = current.findIndex(
+                    (exercise) => exercise.exerciseId === activeId,
+                );
+                const targetIndex = current.findIndex(
+                    (exercise) => exercise.exerciseId === overId,
+                );
+
+                if (sourceIndex < 0 || targetIndex < 0) {
+                    return current;
+                }
+
+                const next = moveItem(current, sourceIndex, targetIndex);
+                if (next !== current) {
+                    setIsOrderDirty(true);
+                }
+
+                return next;
+            });
+        },
+        [],
+    );
+
+    const saveExerciseOrder = async () => {
+        if (!canPersistOrder || orderedExercises.length === 0) {
+            toast.error(
+                "Chưa đủ dữ liệu để lưu thứ tự. Vui lòng đợi tải xong dữ liệu trang hiện tại.",
+            );
+            return;
+        }
+
+        if (!normalizedTopicId) {
+            toast.error("Không tìm thấy topicId để lưu thứ tự bài tập.");
+            return;
+        }
+
+        try {
+            await reorderExerciseMutation.mutateAsync({
+                topicId: normalizedTopicId,
+                orderedExerciseIds: orderedExercises.map(
+                    (exercise) => exercise.exerciseId,
+                ),
+            });
+            toast.success("Đã lưu thứ tự bài tập.");
+            cancelReorderMode();
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        }
+    };
+
     const handlePageChange = useCallback(
         (page: number) => {
             if (page < 1 || page === currentPage) return;
 
-            if (page <= loadedPages) {
-                setCurrentPage(page);
-                return;
-            }
-
-            if (
-                page === loadedPages + 1 &&
-                canLoadMore &&
-                !overviewQuery.isFetchingNextPage
-            ) {
-                void overviewQuery.fetchNextPage().then((result) => {
-                    const fetchedPageCount =
-                        result.data?.pages.length ?? loadedPages;
-                    if (fetchedPageCount >= page) {
-                        setCurrentPage(page);
-                    }
-                });
-            }
+            if (page > totalPages) return;
+            setCurrentPage(page);
         },
-        [currentPage, loadedPages, canLoadMore, overviewQuery],
+        [currentPage, totalPages],
     );
 
     const getErrorMessage = (error: unknown) => {
@@ -242,21 +366,43 @@ export default function ExerciseManagementByTopic() {
         exerciseId: string,
         isPublished: boolean,
     ) => {
-        const nextActionText = isPublished ? "hủy xuất bản" : "xuất bản";
-        const confirmed = window.confirm(
-            `Bạn có chắc muốn ${nextActionText} bài tập này không?`,
+        const targetExercise = displayExercises.find(
+            (exercise) => exercise.exerciseId === exerciseId,
         );
-        if (!confirmed) return;
 
-        setPendingExerciseId(exerciseId);
+        setPublishDialogState({
+            open: true,
+            exerciseId,
+            exerciseQuestion: targetExercise?.question ?? "bài tập này",
+            nextPublished: !isPublished,
+        });
+    };
+
+    const handleConfirmPublishExercise = async () => {
+        if (!publishDialogState.exerciseId) {
+            return;
+        }
+
+        setPendingExerciseId(publishDialogState.exerciseId);
         try {
-            if (isPublished) {
-                await unPublishExerciseMutation.mutateAsync(exerciseId);
-                toast.success("Đã hủy xuất bản bài tập.");
-            } else {
-                await publishExerciseMutation.mutateAsync(exerciseId);
+            if (publishDialogState.nextPublished) {
+                await publishExerciseMutation.mutateAsync(
+                    publishDialogState.exerciseId,
+                );
                 toast.success("Đã xuất bản bài tập.");
+            } else {
+                await unPublishExerciseMutation.mutateAsync(
+                    publishDialogState.exerciseId,
+                );
+                toast.success("Đã hủy xuất bản bài tập.");
             }
+
+            setPublishDialogState({
+                open: false,
+                exerciseId: null,
+                exerciseQuestion: "",
+                nextPublished: false,
+            });
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
@@ -264,19 +410,30 @@ export default function ExerciseManagementByTopic() {
         }
     };
 
-    const handleDeleteExercise = async (
-        exerciseId: string,
-        question: string,
-    ) => {
-        const confirmed = window.confirm(
-            `Xóa bài tập \"${question}\"? Hành động này không thể hoàn tác.`,
-        );
-        if (!confirmed) return;
+    const handleDeleteExercise = (exerciseId: string, question: string) => {
+        setDeleteDialogState({
+            open: true,
+            exerciseId,
+            exerciseQuestion: question,
+        });
+    };
 
-        setPendingExerciseId(exerciseId);
+    const handleConfirmDeleteExercise = async () => {
+        if (!deleteDialogState.exerciseId) {
+            return;
+        }
+
+        setPendingExerciseId(deleteDialogState.exerciseId);
         try {
-            await deleteExerciseMutation.mutateAsync(exerciseId);
+            await deleteExerciseMutation.mutateAsync(
+                deleteDialogState.exerciseId,
+            );
             toast.success("Đã xóa bài tập.");
+            setDeleteDialogState({
+                open: false,
+                exerciseId: null,
+                exerciseQuestion: "",
+            });
         } catch (error) {
             toast.error(getErrorMessage(error));
         } finally {
@@ -397,7 +554,8 @@ export default function ExerciseManagementByTopic() {
                         </div>
 
                         <p className="text-xs text-slate-500 sm:text-sm">
-                            Hiển thị {pageExercises.length}/{totalDocs} bài tập
+                            Hiển thị {displayExercises.length}/{totalDocs} bài
+                            tập
                         </p>
                     </div>
                 </div>
@@ -418,6 +576,7 @@ export default function ExerciseManagementByTopic() {
                                 }
                                 placeholder="Tìm theo câu hỏi..."
                                 className="h-9 min-w-64 flex-1 bg-white text-sm"
+                                disabled={isReorderMode}
                             />
 
                             <Select
@@ -425,6 +584,7 @@ export default function ExerciseManagementByTopic() {
                                 onValueChange={(value: SkillFilter) =>
                                     setSkillFilter(value)
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-32 bg-white text-sm">
                                     <SelectValue placeholder="Kỹ năng" />
@@ -449,6 +609,7 @@ export default function ExerciseManagementByTopic() {
                                 onValueChange={(value: ExerciseTypeFilter) =>
                                     setExerciseTypeFilter(value)
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Loại bài" />
@@ -475,6 +636,7 @@ export default function ExerciseManagementByTopic() {
                                 onValueChange={(value: PublishFilter) =>
                                     setPublishFilter(value)
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-44 bg-white text-sm">
                                     <SelectValue placeholder="Trạng thái" />
@@ -500,6 +662,7 @@ export default function ExerciseManagementByTopic() {
                                         sortBy: value,
                                     }))
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-40 bg-white text-sm">
                                     <SelectValue placeholder="Sắp xếp" />
@@ -529,6 +692,7 @@ export default function ExerciseManagementByTopic() {
                                         orderByDescending: value === "desc",
                                     }))
                                 }
+                                disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-36 bg-white text-sm">
                                     <SelectValue placeholder="Thứ tự" />
@@ -549,175 +713,84 @@ export default function ExerciseManagementByTopic() {
                                 size="sm"
                                 className="h-9 shrink-0"
                                 onClick={resetFilters}
+                                disabled={isReorderMode}
                             >
                                 Xóa lọc
                             </Button>
+
+                            {!isReorderMode && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-9 shrink-0"
+                                    onClick={startReorderMode}
+                                    disabled={overviewQuery.isLoading}
+                                >
+                                    Sắp xếp kéo thả
+                                </Button>
+                            )}
+
+                            {isReorderMode && (
+                                <>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="h-9 shrink-0"
+                                        onClick={() => void saveExerciseOrder()}
+                                        disabled={
+                                            reorderExerciseMutation.isPending ||
+                                            !isOrderDirty ||
+                                            !canPersistOrder
+                                        }
+                                    >
+                                        {reorderExerciseMutation.isPending
+                                            ? "Đang lưu..."
+                                            : "Lưu thứ tự"}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 shrink-0"
+                                        onClick={cancelReorderMode}
+                                        disabled={
+                                            reorderExerciseMutation.isPending
+                                        }
+                                    >
+                                        Hủy
+                                    </Button>
+                                </>
+                            )}
+
+                            {isReorderMode && !canPersistOrder && (
+                                <p className="w-full text-xs text-amber-700">
+                                    Chỉ sắp xếp trong trang hiện tại. Vui lòng
+                                    đợi tải xong dữ liệu trang trước khi lưu.
+                                </p>
+                            )}
                         </div>
 
                         <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white shadow-sm">
-                            <table className="w-full min-w-full text-left text-sm">
-                                <thead className="border-b border-slate-200/50 bg-slate-50/50">
-                                    <tr>
-                                        <th className="w-16 px-6 py-4 text-center font-semibold text-slate-600">
-                                            STT
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Câu hỏi
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Loại
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Kỹ năng
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Độ khó
-                                        </th>
-                                        <th className="px-6 py-4 font-semibold text-slate-600">
-                                            Trạng thái
-                                        </th>
-                                        <th className="px-6 py-4 text-right font-semibold text-slate-600">
-                                            Thao tác
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {isExercisesLoading && (
-                                        <tr>
-                                            <td
-                                                className="px-6 py-6 text-center text-slate-500"
-                                                colSpan={7}
-                                            >
-                                                Đang tải bài tập...
-                                            </td>
-                                        </tr>
-                                    )}
-
-                                    {!isExercisesLoading &&
-                                        overviewQuery.isError && (
-                                            <tr>
-                                                <td
-                                                    className="px-6 py-6 text-center text-red-600"
-                                                    colSpan={7}
-                                                >
-                                                    Không thể tải danh sách bài
-                                                    tập.
-                                                </td>
-                                            </tr>
-                                        )}
-
-                                    {!isExercisesLoading &&
-                                        !overviewQuery.isError &&
-                                        pageExercises.length === 0 && (
-                                            <tr>
-                                                <td
-                                                    className="px-6 py-6 text-center text-slate-500"
-                                                    colSpan={7}
-                                                >
-                                                    Chưa có bài tập nào trong
-                                                    topic này.
-                                                </td>
-                                            </tr>
-                                        )}
-
-                                    {!isExercisesLoading &&
-                                        !overviewQuery.isError &&
-                                        pageExercises.map((exercise, index) => (
-                                            <tr
-                                                key={exercise.exerciseId}
-                                                className="group border-b border-slate-50 transition-colors hover:bg-slate-50/50"
-                                            >
-                                                <td className="px-6 py-4 text-center font-medium text-slate-400">
-                                                    #{startIndex + index + 1}
-                                                </td>
-                                                <td className="px-6 py-4 font-medium text-slate-900">
-                                                    {exercise.question}
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-600">
-                                                    {exerciseTypeLabels[
-                                                        exercise.exerciseType
-                                                    ] ?? exercise.exerciseType}
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-600">
-                                                    {skillLabels[
-                                                        exercise.skillType
-                                                    ] ?? exercise.skillType}
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-600">
-                                                    {exercise.difficulty}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <Switch
-                                                            checked={
-                                                                exercise.isPublished
-                                                            }
-                                                            size="default"
-                                                            className="h-6 w-11 border border-slate-300 ring-1 ring-slate-200 data-checked:bg-emerald-600 data-unchecked:bg-slate-300"
-                                                            disabled={
-                                                                pendingExerciseId ===
-                                                                exercise.exerciseId
-                                                            }
-                                                            onCheckedChange={() =>
-                                                                void handleTogglePublishExercise(
-                                                                    exercise.exerciseId,
-                                                                    exercise.isPublished,
-                                                                )
-                                                            }
-                                                            aria-label={`Chuyển trạng thái xuất bản của ${exercise.question}`}
-                                                        />
-                                                        <Badge
-                                                            className={
-                                                                exercise.isPublished
-                                                                    ? "bg-green-100 text-green-700"
-                                                                    : "bg-slate-100 text-slate-600"
-                                                            }
-                                                        >
-                                                            {exercise.isPublished
-                                                                ? "Đã xuất bản"
-                                                                : "Nháp"}
-                                                        </Badge>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {pendingExerciseId ===
-                                                        exercise.exerciseId && (
-                                                        <p className="mb-2 text-[11px] text-slate-500">
-                                                            Đang xử lý...
-                                                        </p>
-                                                    )}
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={
-                                                                pendingExerciseId ===
-                                                                exercise.exerciseId
-                                                            }
-                                                            onClick={() =>
-                                                                void handleDeleteExercise(
-                                                                    exercise.exerciseId,
-                                                                    exercise.question,
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center gap-1 rounded border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                                        >
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                            Xóa
-                                                        </button>
-
-                                                        <Link
-                                                            href={`/cms/lessons/course/${normalizedCourseId}/topics/${normalizedTopicId}/exercises/${exercise.exerciseId}`}
-                                                        >
-                                                            <button className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
-                                                                Biên soạn
-                                                            </button>
-                                                        </Link>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                </tbody>
-                            </table>
+                            <ExerciseManagementTable
+                                exercises={displayExercises}
+                                startIndex={startIndex}
+                                isReorderMode={isReorderMode}
+                                isReorderPending={
+                                    reorderExerciseMutation.isPending
+                                }
+                                pendingExerciseId={pendingExerciseId}
+                                isLoading={isExercisesLoading}
+                                isError={overviewQuery.isError}
+                                normalizedCourseId={normalizedCourseId}
+                                normalizedTopicId={normalizedTopicId}
+                                exerciseTypeLabels={exerciseTypeLabels}
+                                skillLabels={skillLabels}
+                                onMoveExercise={handleMoveExercise}
+                                onTogglePublishExercise={
+                                    handleTogglePublishExercise
+                                }
+                                onDeleteExercise={handleDeleteExercise}
+                            />
                         </div>
                         {!isExercisesLoading &&
                             !overviewQuery.isError &&
@@ -894,6 +967,79 @@ export default function ExerciseManagementByTopic() {
                     </div>
                 )}
             </div>
+
+            <ConfirmDialog
+                open={deleteDialogState.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteDialogState({
+                            open: false,
+                            exerciseId: null,
+                            exerciseQuestion: "",
+                        });
+                        return;
+                    }
+
+                    setDeleteDialogState((current) => ({
+                        ...current,
+                        open,
+                    }));
+                }}
+                title="Xác nhận xóa bài tập"
+                description={`Bài tập \"${deleteDialogState.exerciseQuestion}\" sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`}
+                confirmLabel="Xóa bài tập"
+                confirmClassName="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500"
+                isSubmitting={Boolean(
+                    deleteDialogState.exerciseId &&
+                    pendingExerciseId === deleteDialogState.exerciseId,
+                )}
+                onConfirm={handleConfirmDeleteExercise}
+            />
+
+            <ConfirmDialog
+                open={publishDialogState.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPublishDialogState({
+                            open: false,
+                            exerciseId: null,
+                            exerciseQuestion: "",
+                            nextPublished: false,
+                        });
+                        return;
+                    }
+
+                    setPublishDialogState((current) => ({
+                        ...current,
+                        open,
+                    }));
+                }}
+                title={
+                    publishDialogState.nextPublished
+                        ? "Xác nhận xuất bản bài tập"
+                        : "Xác nhận hủy xuất bản bài tập"
+                }
+                description={
+                    publishDialogState.nextPublished
+                        ? `Bài tập \"${publishDialogState.exerciseQuestion}\" sẽ được xuất bản.`
+                        : `Bài tập \"${publishDialogState.exerciseQuestion}\" sẽ chuyển về trạng thái nháp.`
+                }
+                confirmLabel={
+                    publishDialogState.nextPublished
+                        ? "Xuất bản"
+                        : "Hủy xuất bản"
+                }
+                confirmClassName={
+                    publishDialogState.nextPublished
+                        ? undefined
+                        : "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500"
+                }
+                isSubmitting={Boolean(
+                    publishDialogState.exerciseId &&
+                    pendingExerciseId === publishDialogState.exerciseId,
+                )}
+                onConfirm={handleConfirmPublishExercise}
+            />
         </div>
     );
 }

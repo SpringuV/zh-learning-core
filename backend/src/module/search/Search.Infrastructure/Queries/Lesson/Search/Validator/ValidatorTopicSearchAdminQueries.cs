@@ -8,6 +8,10 @@ public sealed class TopicSearchAdminQueriesValidator : AbstractValidator<TopicSe
             .InclusiveBetween(1, 200)
             .WithMessage("Take must be between 1 and 200.");
 
+        RuleFor(x => x.Page)
+            .GreaterThanOrEqualTo(1)
+            .WithMessage("Page must be greater than or equal to 1.");
+
         RuleFor(x => x)
             .Must(x => !x.StartCreatedAt.HasValue || !x.EndCreatedAt.HasValue || x.StartCreatedAt <= x.EndCreatedAt)
             .WithMessage("StartCreatedAt must be less than or equal to EndCreatedAt.");
@@ -16,10 +20,6 @@ public sealed class TopicSearchAdminQueriesValidator : AbstractValidator<TopicSe
             .Must(BeValidTopicType)
             .When(x => !string.IsNullOrWhiteSpace(x.TopicType))
             .WithMessage($"TopicType is invalid. Supported values: {string.Join(", ", Enum.GetNames<TopicType>())}.");
-
-        RuleFor(x => x.SearchAfterValues)
-            .Must(v => string.IsNullOrWhiteSpace(v) || SearchAfterCursorHelper.TryParseSearchAfterValues(v, out _))
-            .WithMessage("SearchAfterValues format is invalid.");
     }
 
     private static bool BeValidTopicType(string? topicType)

@@ -11,15 +11,14 @@ public sealed record TopicExercisesOverviewAdminQueries(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    int Page = 1,
     ExerciseSortBy SortBy = ExerciseSortBy.CreatedAt,
     bool OrderByDescending = true
 ) : IRequest<ExerciseSearchWithTopicMetadataResponse>,
     ICacheableRequest<ExerciseSearchWithTopicMetadataResponse>,
     ICacheScopeRequest
 {
-    public string CacheKey => $"TopicExercisesOverviewAdmin:{TopicId}:{Question}:{IsPublished}:{SkillType}:{ExerciseType}:{Difficulty}:{Context}:{StartCreatedAt}:{EndCreatedAt}:{Take}:{SearchAfterValues}:{SortBy}:{OrderByDescending}";
+    public string CacheKey => $"TopicExercisesOverviewAdmin:{TopicId}:{Question}:{IsPublished}:{SkillType}:{ExerciseType}:{Difficulty}:{Context}:{StartCreatedAt}:{EndCreatedAt}:{Take}:{Page}:{SortBy}:{OrderByDescending}";
 
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1); // cache kết quả trong 5 phút
 
@@ -48,7 +47,7 @@ public sealed class TopicExercisesOverviewAdminQueriesHandler(
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         );
@@ -59,11 +58,9 @@ public sealed class TopicExercisesOverviewAdminQueriesHandler(
         var searchResult = await _mediator.Send(queries, cancellationToken);
         var topicMetadata = await LoadTopicMetadataAsync(request.TopicId, cancellationToken);
         return new ExerciseSearchWithTopicMetadataResponse(
-            Total: searchResult.Total,
+            ParentMetadata: topicMetadata,
             Items: searchResult.Items,
-            HasNextPage: searchResult.HasNextPage,
-            NextCursor: searchResult.NextCursor,
-            ParentMetadata: topicMetadata
+            Pagination: searchResult.Pagination
         );
     }
 

@@ -18,19 +18,19 @@ public class ReOrderTopicHandler(
     {
         try
         {
+            if (request.OrderedTopicIds.Count == 0)
+                throw new ArgumentException("Danh sách chủ đề sắp xếp không được để trống.");
+
+            if (request.OrderedTopicIds.Count != request.OrderedTopicIds.Distinct().Count())
+                throw new ArgumentException("Danh sách chủ đề sắp xếp không được chứa ID trùng lặp.");
+
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                var topics = await _topicRepository.GetByIdsAndCourseIdAsync(request.CourseId, request.OrderedTopicIds, cancellationToken);
-                
-                if (topics.Count() != request.OrderedTopicIds.Count)
-                    throw new KeyNotFoundException("Một số chủ đề không tồn tại trong khóa học này");
-                
-                for (int i = 0; i < topics.Count(); i++)
-                {
-                    topics.ElementAt(i).UpdateOrderIndex(i + 1);
-                }
-
-                await _topicRepository.UpdateRangeAsync(topics, cancellationToken);
+                // Reorder bằng 1 SQL command (2-phase trong CTE) để tránh va chạm unique index (CourseId, OrderIndex).
+                await _topicRepository.ReorderByIdsAndCourseIdAsync(
+                    request.CourseId,
+                    request.OrderedTopicIds,
+                    cancellationToken);
                 
                 var reorderEvent = new TopicReOrderedEvent(
                     CourseId: request.CourseId,
@@ -42,6 +42,11 @@ public class ReOrderTopicHandler(
             }, cancellationToken);
             
             return Result.SuccessResult(message: "Reorder successfully.");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid topic reorder request. Details: {Message}", ex.Message);
+            return Result.FailureResult("Dữ liệu sắp xếp không hợp lệ. " + ex.Message, (int)ErrorCode.INVALID_ARGUMENT);
         }
         catch (KeyNotFoundException ex)
         {

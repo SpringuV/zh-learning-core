@@ -12,5 +12,6 @@ public interface ICourseRepository
     Task DeleteAsync(Guid id, CancellationToken ct = default);
 
     Task UpdateRangeAsync(IEnumerable<CourseAggregate> courses, CancellationToken ct = default);
+    Task ReorderByIdsAsync(IReadOnlyList<Guid> orderedCourseIds, CancellationToken ct = default);
 
 }

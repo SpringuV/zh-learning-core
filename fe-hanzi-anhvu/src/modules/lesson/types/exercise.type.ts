@@ -1,4 +1,5 @@
 import { TopicType } from "@/modules/lesson/types/topic.type";
+import { PaginationInfo } from "@/shared/types/store.type";
 
 export type ExerciseSortBy = "CreatedAt" | "UpdatedAt" | "OrderIndex";
 
@@ -11,9 +12,9 @@ export interface ExerciseListQueryParams {
     context?: string;
     // default
     take?: number;
+    page?: number;
     startCreatedAt?: Date | string;
     endCreatedAt?: Date | string;
-    searchAfterValues?: string | null;
     sortBy?: ExerciseSortBy;
     orderByDescending?: boolean;
 }
@@ -98,10 +99,8 @@ export interface TopicMetadataForExerciseAdmin {
 
 export interface TopicExercisesOverviewResponse {
     parentMetadata: TopicMetadataForExerciseAdmin | null;
-    total: number;
     items: ExerciseListItem[];
-    hasNextPage: boolean;
-    nextCursor: string;
+    pagination: PaginationInfo;
 }
 
 export interface ExerciseReorderRequest {

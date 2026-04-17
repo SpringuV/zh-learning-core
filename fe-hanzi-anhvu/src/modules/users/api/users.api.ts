@@ -1,4 +1,5 @@
 import http from "@/shared/utils/http";
+import { PaginationInfo } from "@/shared/types/store.type";
 
 const endpoints = {
     getListUsers: "/search/v1/users",
@@ -19,7 +20,7 @@ export interface UserListQueryParams {
     isActive?: boolean;
     phoneNumber?: string;
     take?: number;
-    searchAfterValues?: string | null;
+    page?: number;
     sortBy?: UserSortBy;
     orderByDescending?: boolean;
 }
@@ -36,10 +37,8 @@ export interface UserListItem {
 }
 
 export interface UserListResponse {
-    total: number;
     items: UserListItem[];
-    hasNextPage: boolean;
-    nextCursor: string;
+    pagination: PaginationInfo;
 }
 
 function sanitizeQueryParams(params: UserListQueryParams) {

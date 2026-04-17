@@ -1,9 +1,11 @@
+import { PaginationInfo } from "@/shared/types/store.type";
+
 export type TopicSortBy =
     | "CreatedAt"
     | "UpdatedAt"
     | "TotalExercises"
     | "ExamYear"
-    | "TotalExercises";
+    | "OrderIndex";
 export type TopicType = "Learning" | "Exam";
 
 export interface TopicCreateRequest {
@@ -80,10 +82,8 @@ export interface CourseMetadataForTopicAdmin {
 
 export interface CourseTopicsOverviewResponse {
     parentMetadata: CourseMetadataForTopicAdmin | null;
-    total: number;
     items: TopicListItemAdmin[];
-    hasNextPage: boolean;
-    nextCursor: string;
+    pagination: PaginationInfo;
 }
 export interface TopicReOrderRequest {
     courseId: string;
@@ -99,5 +99,5 @@ export interface TopicQueryParams {
     sortBy?: TopicSortBy;
     orderByDescending?: boolean;
     take?: number;
-    searchAfterValues?: string | null;
+    page?: number;
 }

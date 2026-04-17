@@ -85,7 +85,7 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
             request.IsActive,
             request.PhoneNumber,
             request.Take,
-            request.SearchAfterValues,
+            request.Page,
             request.SortBy,
             request.OrderByDescending,
             request.StartCreatedAt,
@@ -95,10 +95,11 @@ public class UserSearchQueriesServices(ILogger<UserSearchQueriesServices> logger
 
         var result = await _mediator.Send(command, cancellationToken) 
             ?? new SearchQueryResult<UserSearchItemResponse>(
-                Total: 0,
                 Items: [],
-                HasNextPage: false,
-                NextCursor: string.Empty);
+                Pagination: new PaginationResponse(
+                    Page: request.Page,
+                    PageSize: request.Take,
+                    Total: 0));
 
         return result;
     }

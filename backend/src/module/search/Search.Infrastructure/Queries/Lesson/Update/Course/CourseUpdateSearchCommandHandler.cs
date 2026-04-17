@@ -216,35 +216,87 @@ public class CourseReOrderedSearchCommandHandler(ElasticsearchClient elasticClie
 
     public async Task<Unit> Handle(CourseReOrderedSearchCommand request, CancellationToken cancellationToken)
     {
+        if (request.OrderedCourseIds.Count == 0)
+        {
+            return Unit.Value;
+        }
+
+        var distinctCourseIdCount = request.OrderedCourseIds.Distinct().Count();
+        if (distinctCourseIdCount != request.OrderedCourseIds.Count)
+        {
+            throw new ArgumentException("OrderedCourseIds contains duplicate values.", nameof(request.OrderedCourseIds));
+        }
+
+        var ids = request.OrderedCourseIds
+            .Select(courseId => (Id)courseId.ToString("D"))
+            .ToArray();
+
+        var multiGetResponse = await _elasticClient.MultiGetAsync<CourseSearch>(m => m
+                .Index(ConstantIndexElastic.CourseIndex)
+                .Ids(new Ids(ids)),
+            cancellationToken);
+
+        if (!multiGetResponse.IsValidResponse)
+        {
+            var errorMessage = multiGetResponse.TryGetOriginalException(out var originalException)
+                ? originalException!.Message
+                : multiGetResponse.DebugInformation;
+            throw new InvalidOperationException($"Failed to fetch courses for reorder from Elasticsearch. Reason: {errorMessage}");
+        }
+
+        if (multiGetResponse.Docs.Count != request.OrderedCourseIds.Count)
+        {
+            throw new KeyNotFoundException("One or more courses were not found in search index during reorder.");
+        }
+
+        var docs = multiGetResponse.Docs.ToList();
+        var currentOrderIndexByCourseId = new Dictionary<Guid, int>(request.OrderedCourseIds.Count);
+        for (var i = 0; i < request.OrderedCourseIds.Count; i++)
+        {
+            var orderIndex = docs[i].Match(
+                getResult => getResult!.Source?.OrderIndex,
+                _ => null);
+
+            if (!orderIndex.HasValue)
+            {
+                throw new KeyNotFoundException($"Course with ID {request.OrderedCourseIds[i]} not found in search index.");
+            }
+
+            currentOrderIndexByCourseId[request.OrderedCourseIds[i]] = orderIndex.Value;
+        }
+
+        // Preserve existing slot values and only remap course IDs into those slots following the drag-drop order.
+        var targetOrderIndexes = currentOrderIndexByCourseId.Values
+            .OrderBy(orderIndex => orderIndex)
+            .ToArray();
+
         var bulkRequest = new BulkRequest();
         var operations = new List<IBulkOperation>();
 
         for (int i = 0; i < request.OrderedCourseIds.Count; i++)
         {
-            // Sử dụng Bulk API để cập nhật trường OrderIndex cho mỗi khóa học dựa trên vị trí của nó trong OrderedCourseIds
-            // các Id sẽ được truyền qua constructor của BulkUpdateOperation, đảm bảo rằng mỗi operation sẽ cập nhật đúng document tương ứng trong Elasticsearch
             operations.Add(new BulkUpdateOperation<CourseSearch, object>(request.OrderedCourseIds[i])
             {
                 Index = ConstantIndexElastic.CourseIndex,
-                Doc = new { OrderIndex = i + 1, request.UpdatedAt }
+                Doc = new { OrderIndex = targetOrderIndexes[i], request.UpdatedAt }
             });
         }
-        // Gán danh sách các operation vào BulkRequest để thực hiện một lần gọi duy nhất đến Elasticsearch, tối ưu hiệu suất và giảm thiểu số lượng request cần thiết
-        bulkRequest.Operations = operations;
-        var response = await _elasticClient.BulkAsync(bulkRequest, cancellationToken);
 
-        if (!response.Errors)
+        bulkRequest.Operations = operations;
+        var bulkResponse = await _elasticClient.BulkAsync(bulkRequest, cancellationToken);
+
+        if (!bulkResponse.Errors)
         {
             return Unit.Value;
         }
 
-        var failedItems = response.ItemsWithErrors
+        var failedItems = bulkResponse.ItemsWithErrors
             .Select(x => x.Error?.Reason)
             .Where(reason => !string.IsNullOrWhiteSpace(reason))
             .ToList();
         var reasonText = failedItems.Count > 0
             ? string.Join("; ", failedItems)
-            : (response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation);
+            : (bulkResponse.TryGetOriginalException(out var ex) ? ex!.Message : bulkResponse.DebugInformation);
 
         throw new InvalidOperationException($"Failed to reorder courses in Elasticsearch. Errors: {reasonText}");
     }

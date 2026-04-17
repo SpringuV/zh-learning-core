@@ -1,8 +1,12 @@
 namespace Lesson.Infrastructure.Repository;
 
+using Npgsql;
+using NpgsqlTypes;
+
 public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository> logger) : LessonRepositoryBase(logger), ITopicRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
+    private const int ReorderTempBase = 1_000_000_000;
 
     public async Task AddAsync(TopicAggregate topic, CancellationToken ct = default)
     {
@@ -73,6 +77,124 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
             "Không thể lấy các topic theo course ID và topic IDs",
             courseId, string.Join(",", ids)
         );
+    }
+
+    public async Task ReorderByIdsAndCourseIdAsync(Guid courseId, IReadOnlyList<Guid> orderedTopicIds, CancellationToken ct = default)
+    {
+        await ExecuteAsync(
+            async () =>
+            {
+                if (orderedTopicIds.Count == 0)
+                    return;
+
+                var courseIdParameter = new NpgsqlParameter<Guid>("courseId", courseId)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Uuid
+                };
+
+                var idsParameter = new NpgsqlParameter<Guid[]>("ids", orderedTopicIds.ToArray())
+                {
+                    NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid
+                };
+
+                var tempBaseParameter = new NpgsqlParameter<int>("tempBase", ReorderTempBase)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Integer
+                };
+
+                const string moveToTempSql = @"
+WITH input AS (
+    SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
+    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
+),
+selected AS (
+    SELECT t.""TopicId"", t.""OrderIndex""
+    FROM ""Topics"" t
+    JOIN input i ON t.""TopicId"" = i.""TopicId""
+    WHERE t.""CourseId"" = @courseId
+),
+guards AS (
+    SELECT
+        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+        (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
+        (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
+        (SELECT COALESCE(MAX(t.""OrderIndex""), 0)::int FROM ""Topics"" t WHERE t.""CourseId"" = @courseId) AS ""MaxOrderIndexInCourse""
+)
+UPDATE ""Topics"" AS t
+SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
+    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+FROM selected s
+CROSS JOIN guards g
+WHERE t.""TopicId"" = s.""TopicId""
+  AND t.""CourseId"" = @courseId
+  AND g.""InputCount"" = g.""DistinctInputCount""
+  AND g.""MatchedTopicsInCourse"" = g.""InputCount""
+  AND g.""MaxOrderIndexInCourse"" < @tempBase
+";
+
+                var movedToTempCount = await _dbContext.Database
+                    .ExecuteSqlRawAsync(moveToTempSql, [courseIdParameter, idsParameter, tempBaseParameter], ct);
+
+                if (movedToTempCount != orderedTopicIds.Count)
+                    throw new ArgumentException("Danh sách sắp xếp phải chứa ID duy nhất và tất cả ID phải thuộc khóa học tương ứng.");
+
+                var idsParameterFinal = new NpgsqlParameter<Guid[]>("ids", orderedTopicIds.ToArray())
+                {
+                    NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid
+                };
+
+                var tempBaseParameterFinal = new NpgsqlParameter<int>("tempBase", ReorderTempBase)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Integer
+                };
+
+                const string moveToFinalSql = @"
+WITH input AS (
+    SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
+    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
+),
+selected AS (
+    SELECT t.""TopicId"", (t.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
+    FROM ""Topics"" t
+    JOIN input i ON t.""TopicId"" = i.""TopicId""
+    WHERE t.""CourseId"" = @courseId
+),
+slots AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
+        s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
+    FROM selected s
+),
+guards AS (
+    SELECT
+        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+        (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
+        (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
+        (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
+)
+UPDATE ""Topics"" AS t
+SET ""OrderIndex"" = s.""TargetOrderIndex"",
+    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+FROM input i
+CROSS JOIN guards g
+JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
+WHERE t.""TopicId"" = i.""TopicId""
+  AND t.""CourseId"" = @courseId
+  AND g.""InputCount"" = g.""DistinctInputCount""
+  AND g.""MatchedTopicsInCourse"" = g.""InputCount""
+  AND g.""ValidOriginalOrderCount"" = g.""InputCount""
+";
+
+                var updatedCount = await _dbContext.Database
+                    .ExecuteSqlRawAsync(moveToFinalSql, [courseIdParameter, idsParameterFinal, tempBaseParameterFinal], ct);
+
+                if (updatedCount != orderedTopicIds.Count)
+                    throw new ArgumentException("Danh sách sắp xếp phải chứa ID duy nhất và tất cả ID phải thuộc khóa học tương ứng.");
+            },
+            "Database error when reordering topics. CourseId: {CourseId}",
+            "Unexpected error reordering topics",
+            "Không thể sắp xếp lại thứ tự chủ đề",
+            courseId);
     }
 
     public async Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default)

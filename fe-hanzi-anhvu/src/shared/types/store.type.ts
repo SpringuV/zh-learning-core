@@ -1,10 +1,14 @@
 export type UiStatus = "idle" | "loading" | "success" | "error" | "warning";
 
-export interface AdminBaseListResponse<T> {
+export interface PaginationInfo {
+    page: number;
+    pageSize: number;
     total: number;
+}
+
+export interface AdminBaseListResponse<T> {
     items: T[];
-    hasNextPage: boolean;
-    nextCursor: string;
+    pagination: PaginationInfo;
 }
 // Generic type T, default to void if not provided
 export type ParamTypes<T extends Record<string, unknown>> = Partial<T>;

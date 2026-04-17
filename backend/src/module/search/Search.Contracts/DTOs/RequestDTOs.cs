@@ -101,8 +101,7 @@ public sealed record ExerciseSearchQueryRequest(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    int Page = 1,
     ExerciseSortBy SortBy = ExerciseSortBy.CreatedAt,
     bool OrderByDescending = true);
 #endregion
@@ -195,8 +194,7 @@ public sealed record UserSearchQueryRequest(
     bool? IsActive = null,
     string? PhoneNumber = null,
     int Take = 30,
-    // Keyset cursor: JSON array [sortValue, userId]
-    string? SearchAfterValues = null,
+    int Page = 1,
     UserSortBy SortBy = UserSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
@@ -324,8 +322,7 @@ public enum CourseSortBy
 public sealed record CourseSearchQueryAdminRequest(
     string? Title = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    int Page = 1,
     CourseSortBy SortBy = CourseSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
@@ -351,8 +348,7 @@ public sealed record TopicSearchQueryRequest(
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
-    // keyset pagination sẽ dùng SearchAfter, sẽ lấy những document có CreatedAt nhỏ hơn timestamp của document cuối cùng trong page trước, để tránh việc skip nhiều document khi trang có nhiều kết quả
-    string? SearchAfterValues = null, // dùng để phân trang, timestamp của document cuối cùng trong page trước, sẽ lấy những document có CreatedAt nhỏ hơn timestamp này
+    int Page = 1,
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true);
 #endregion

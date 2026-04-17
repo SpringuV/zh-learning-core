@@ -37,9 +37,9 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
     {
         var query = new CourseSearchAdminQueries(
             Title: request.Title,
+            Page: request.Page,
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
-            SearchAfterValues: request.SearchAfterValues,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending,
             Take: request.Take);

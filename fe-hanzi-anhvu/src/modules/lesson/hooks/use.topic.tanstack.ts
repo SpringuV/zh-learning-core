@@ -6,8 +6,10 @@ import {
     TopicReOrderRequest,
     UpdateTopicRequest,
 } from "@/modules/lesson/types/topic.type";
+import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
+import { wait } from "@/shared/utils/helper";
 import {
-    useInfiniteQuery,
+    keepPreviousData,
     useMutation,
     useQuery,
     useQueryClient,
@@ -45,28 +47,18 @@ export const useGetListTopics = (
     courseId: string,
     params: TopicQueryParams = {},
 ) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ["list-topics", params, courseId],
-        initialPageParam: undefined as string | undefined,
-        queryFn: async ({ pageParam }) => {
-            // pageParam chính là giá trị của searchAfterValues được truyền vào hàm getListCourse để lấy trang tiếp theo
-            return await topicApi.getListTopics(courseId!, {
-                ...params,
-                searchAfterValues: pageParam,
-            });
+        queryFn: async () => {
+            return await topicApi.getListTopics(courseId!, params);
         },
+        placeholderData: keepPreviousData,
         refetchOnMount: true, // luôn refetch khi component mount để đảm bảo dữ liệu mới nhất, đặc biệt sau khi có thay đổi về chủ đề
         refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại,
         // nó sẽ chỉ refetch khi người dùng cuộn đến cuối danh sách hoặc gọi hàm refetch thủ công
         staleTime: 5 * 60 * 1000, // 5 phút
         gcTime: 10 * 60 * 1000, // 10 phút
-        getNextPageParam: (lastPage) => {
-            const payload = lastPage.data;
-            if (!payload.hasNextPage || !payload.nextCursor) {
-                return undefined;
-            }
-            return payload.nextCursor;
-        },
+        enabled: Boolean(courseId),
     });
 };
 
@@ -78,6 +70,7 @@ export const useCreateTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
         onError: (err) => {
@@ -90,27 +83,17 @@ export const useGetCourseTopicsOverview = (
     courseId: string,
     params: TopicQueryParams = {},
 ) => {
-    return useInfiniteQuery({
+    return useQuery({
         queryKey: ["course-topics-overview", params, courseId],
-        initialPageParam: undefined as string | undefined,
-        queryFn: async ({ pageParam }) => {
-            return await topicApi.getCourseTopicsOverview(courseId, {
-                ...params,
-                searchAfterValues: pageParam,
-            });
+        queryFn: async () => {
+            return await topicApi.getCourseTopicsOverview(courseId, params);
         },
+        placeholderData: keepPreviousData,
         staleTime: 5 * 60 * 1000,
         gcTime: 10 * 60 * 1000,
         refetchOnWindowFocus: false,
         refetchOnMount: true,
         enabled: Boolean(courseId),
-        getNextPageParam: (lastPage) => {
-            const payload: CourseTopicsOverviewResponse = lastPage.data;
-            if (!payload.hasNextPage || !payload.nextCursor) {
-                return undefined;
-            }
-            return payload.nextCursor;
-        },
     });
 };
 
@@ -123,6 +106,7 @@ export const usePublishTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
     });
@@ -137,6 +121,7 @@ export const useUnPublishTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
     });
@@ -151,6 +136,7 @@ export const useReOrderTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
     });
@@ -165,6 +151,7 @@ export const useUpdateTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
     });
@@ -179,6 +166,7 @@ export const useDeleteTopic = () => {
             return response.data;
         },
         onSuccess: async () => {
+            await wait(TimeAwaitHandlerApi);
             await invalidateTopicQueries(queryClient);
         },
     });

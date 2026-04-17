@@ -49,9 +49,9 @@ export type CourseSortBy =
 export interface CourseListQueryParams {
     title?: string;
     take?: number;
+    page?: number;
     startCreatedAt?: Date | string;
     endCreatedAt?: Date | string;
-    searchAfterValues?: string | null;
     sortBy?: CourseSortBy;
     orderByDescending?: boolean;
 }

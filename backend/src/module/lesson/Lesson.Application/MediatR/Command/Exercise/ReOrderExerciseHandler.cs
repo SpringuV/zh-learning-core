@@ -18,19 +18,19 @@ public class ReOrderExerciseHandler(
     {
         try
         {
+            if (request.OrderedExerciseIds.Count == 0)
+                throw new ArgumentException("Danh sách bài tập sắp xếp không được để trống.");
+
+            if (request.OrderedExerciseIds.Count != request.OrderedExerciseIds.Distinct().Count())
+                throw new ArgumentException("Danh sách bài tập sắp xếp không được chứa ID trùng lặp.");
+
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                var exercises = await _exerciseRepository.GetByTopicIdAndIdsAsync(request.TopicId, request.OrderedExerciseIds, cancellationToken);
-                
-                if (exercises.Count() != request.OrderedExerciseIds.Count)
-                    throw new KeyNotFoundException("Một số bài tập không tồn tại trong chủ đề này");
-                
-                for (int i = 0; i < exercises.Count(); i++)
-                {
-                    exercises.ElementAt(i).UpdateOrderIndex(i + 1);
-                }
-
-                await _exerciseRepository.UpdateRangeAsync(exercises, cancellationToken);
+                // Reorder bằng 1 SQL command (2-phase trong CTE) để đảm bảo thứ tự ổn định và tránh va chạm index trong tương lai.
+                await _exerciseRepository.ReorderByIdsAndTopicIdAsync(
+                    request.TopicId,
+                    request.OrderedExerciseIds,
+                    cancellationToken);
                 
                 var reorderEvent = new ExerciseReOrderedEvent(
                     TopicId: request.TopicId,
@@ -42,6 +42,11 @@ public class ReOrderExerciseHandler(
             }, cancellationToken);
             
             return Result.SuccessResult(message: "Reorder successfully.");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid exercise reorder request. Details: {Message}", ex.Message);
+            return Result.FailureResult("Dữ liệu sắp xếp không hợp lệ. " + ex.Message, (int)ErrorCode.INVALID_ARGUMENT);
         }
         catch (KeyNotFoundException ex)
         {

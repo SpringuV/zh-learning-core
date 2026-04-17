@@ -13,25 +13,18 @@ public class ReOrderCourseHandler(ICourseRepository courseRepository, ILessonUni
     {
         try
         {
+            if (request.OrderedCourseIds.Count == 0)
+                throw new ArgumentException("Danh sách khóa học sắp xếp không được để trống.");
+
+            if (request.OrderedCourseIds.Count != request.OrderedCourseIds.Distinct().Count())
+                throw new ArgumentException("Danh sách khóa học sắp xếp không được chứa ID trùng lặp.");
+
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                // 1 query thay vì N queries
-                var courses = await _courseRepository.GetByIdsAsync(
-                    request.OrderedCourseIds, 
+                // Reorder bằng 1 SQL command (2-phase trong CTE) để tránh va chạm unique index.
+                await _courseRepository.ReorderByIdsAsync(
+                    request.OrderedCourseIds,
                     cancellationToken);
-                
-                if (courses.Count() != request.OrderedCourseIds.Count)
-                    throw new KeyNotFoundException("Một số khóa học không tồn tại");
-
-                // Update tất cả OrderIndex
-                for (int i = 0; i < courses.Count(); i++)
-                {
-                    // Cập nhật OrderIndex dựa trên vị trí trong OrderedCourseIds, đảm bảo thứ tự chính xác
-                    courses.ElementAt(i).UpdateOrderIndex(i + 1);
-                }
-
-                // 1 update batch thay vì N updates
-                await _courseRepository.UpdateRangeAsync(courses, cancellationToken);
 
                 //  Publish 1 aggregated event thay vì N events
                 var reorderEvent = new CourseReOrderedEvent(
@@ -43,6 +36,11 @@ public class ReOrderCourseHandler(ICourseRepository courseRepository, ILessonUni
             }, cancellationToken);
 
             return Result.SuccessResult(message: "Reorder successfully.");
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid reorder request. Details: {Message}", ex.Message);
+            return Result.FailureResult("Dữ liệu sắp xếp không hợp lệ. " + ex.Message, (int)ErrorCode.INVALID_ARGUMENT);
         }
         catch (KeyNotFoundException ex)
         {

@@ -1,11 +1,15 @@
 namespace Lesson.Infrastructure.Repository;
 
+using Npgsql;
+using NpgsqlTypes;
+
 public class ExerciseRepository(
         LessonDbContext dbContext, 
         ILogger<ExerciseRepository> logger) 
     : LessonRepositoryBase(logger), IExerciseRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
+    private const int ReorderTempBase = 1_000_000_000;
 
     public async Task AddAsync(ExerciseAggregate exercise, CancellationToken ct = default)
     {
@@ -72,6 +76,124 @@ public class ExerciseRepository(
             "Database error retrieving exercises by topic ID: {TopicId}",
             "Unexpected error retrieving exercises by topic ID: {TopicId}",
             "Không thể truy xuất exercises theo topic ID",
+            topicId);
+    }
+
+    public async Task ReorderByIdsAndTopicIdAsync(Guid topicId, IReadOnlyList<Guid> orderedExerciseIds, CancellationToken ct = default)
+    {
+        await ExecuteAsync(
+            async () =>
+            {
+                if (orderedExerciseIds.Count == 0)
+                    return;
+
+                var topicIdParameter = new NpgsqlParameter<Guid>("topicId", topicId)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Uuid
+                };
+
+                var idsParameter = new NpgsqlParameter<Guid[]>("ids", orderedExerciseIds.ToArray())
+                {
+                    NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid
+                };
+
+                var tempBaseParameter = new NpgsqlParameter<int>("tempBase", ReorderTempBase)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Integer
+                };
+
+                const string moveToTempSql = @"
+WITH input AS (
+    SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
+    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
+),
+selected AS (
+    SELECT e.""ExerciseId"", e.""OrderIndex""
+    FROM ""Exercises"" e
+    JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
+    WHERE e.""TopicId"" = @topicId
+),
+guards AS (
+    SELECT
+        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+        (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
+        (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
+        (SELECT COALESCE(MAX(e.""OrderIndex""), 0)::int FROM ""Exercises"" e WHERE e.""TopicId"" = @topicId) AS ""MaxOrderIndexInTopic""
+)
+UPDATE ""Exercises"" AS e
+SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
+    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+FROM selected s
+CROSS JOIN guards g
+WHERE e.""ExerciseId"" = s.""ExerciseId""
+  AND e.""TopicId"" = @topicId
+  AND g.""InputCount"" = g.""DistinctInputCount""
+  AND g.""MatchedExercisesInTopic"" = g.""InputCount""
+  AND g.""MaxOrderIndexInTopic"" < @tempBase
+";
+
+                var movedToTempCount = await _dbContext.Database
+                    .ExecuteSqlRawAsync(moveToTempSql, [topicIdParameter, idsParameter, tempBaseParameter], ct);
+
+                if (movedToTempCount != orderedExerciseIds.Count)
+                    throw new ArgumentException("Danh sách sắp xếp phải chứa ID duy nhất và tất cả ID phải thuộc chủ đề tương ứng.");
+
+                var idsParameterFinal = new NpgsqlParameter<Guid[]>("ids", orderedExerciseIds.ToArray())
+                {
+                    NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Uuid
+                };
+
+                var tempBaseParameterFinal = new NpgsqlParameter<int>("tempBase", ReorderTempBase)
+                {
+                    NpgsqlDbType = NpgsqlDbType.Integer
+                };
+
+                const string moveToFinalSql = @"
+WITH input AS (
+    SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
+    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
+),
+selected AS (
+    SELECT e.""ExerciseId"", (e.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
+    FROM ""Exercises"" e
+    JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
+    WHERE e.""TopicId"" = @topicId
+),
+slots AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
+        s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
+    FROM selected s
+),
+guards AS (
+    SELECT
+        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+        (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
+        (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
+        (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
+)
+UPDATE ""Exercises"" AS e
+SET ""OrderIndex"" = s.""TargetOrderIndex"",
+    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+FROM input i
+CROSS JOIN guards g
+JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
+WHERE e.""ExerciseId"" = i.""ExerciseId""
+  AND e.""TopicId"" = @topicId
+  AND g.""InputCount"" = g.""DistinctInputCount""
+  AND g.""MatchedExercisesInTopic"" = g.""InputCount""
+  AND g.""ValidOriginalOrderCount"" = g.""InputCount""
+";
+
+                var updatedCount = await _dbContext.Database
+                    .ExecuteSqlRawAsync(moveToFinalSql, [topicIdParameter, idsParameterFinal, tempBaseParameterFinal], ct);
+
+                if (updatedCount != orderedExerciseIds.Count)
+                    throw new ArgumentException("Danh sách sắp xếp phải chứa ID duy nhất và tất cả ID phải thuộc chủ đề tương ứng.");
+            },
+            "Database error when reordering exercises. TopicId: {TopicId}",
+            "Unexpected error reordering exercises",
+            "Không thể sắp xếp lại thứ tự bài tập",
             topicId);
     }
 

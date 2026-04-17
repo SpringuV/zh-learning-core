@@ -2,6 +2,11 @@ using HanziAnhVu.Shared.Domain;
 
 namespace Search.Contracts.DTOs;
 
+public sealed record PaginationResponse(
+    int Page,
+    int PageSize,
+    long Total);
+
 #region Assignment Search DTOs
 public sealed record AssignmentIndexResponse(
     Guid AssignmentId, 
@@ -138,10 +143,8 @@ public sealed record CourseMetadataForTopicAdminResponse(
 
 public sealed record TopicSearchWithCourseMetadataResponse(
     CourseMetadataForTopicAdminResponse? ParentMetadata,
-    long Total,
     IReadOnlyList<TopicSearchItemAdminResponse> Items,
-    bool HasNextPage,
-    string NextCursor);
+    PaginationResponse Pagination);
 #endregion
 
 #region Exercise Search DTOs
@@ -180,10 +183,8 @@ public sealed record ExerciseSearchDetailResponse(
 );
 public sealed record ExerciseSearchWithTopicMetadataResponse(
     TopicMetadataForExerciseAdminResponse? ParentMetadata,
-    long Total,
     IReadOnlyList<ExerciseSearchItemAdminResponse> Items,
-    bool HasNextPage,
-    string NextCursor);
+    PaginationResponse Pagination);
 
 public sealed record ExerciseSearchItemAdminResponse(
     Guid ExerciseId,

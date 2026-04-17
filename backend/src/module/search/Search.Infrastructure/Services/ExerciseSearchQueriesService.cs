@@ -163,7 +163,7 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         );
@@ -211,7 +211,7 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
-            SearchAfterValues: request.SearchAfterValues,
+            Page: request.Page,
             SortBy: request.SortBy,
             OrderByDescending: request.OrderByDescending
         );
