@@ -16,41 +16,30 @@ Request flow:
 - Node.js 20+
 - .NET SDK 8.0+
 - Docker + Docker Compose
-- mkcert (optional, for trusted local HTTPS certificate)
+- Docker Desktop running (for Redis/Postgres/Elasticsearch containers)
 
-## Run with Docker
+## Recommended local workflow
 
 From repository root:
 
-Backend only (recommended first step):
+### 1) Run backend (.NET local build) with Aspire AppHost
 
-```bash
-docker compose up --build
-```
-
-Include frontend too:
-
-```bash
-docker compose --profile frontend up --build
-```
-
-Services:
-
-- Frontend: `http://localhost:3000`
-- .NET API: `http://localhost:8080`
-
-## Local run without Docker
-
-### 1) Run backend (.NET)
-
-From repository root, go to AppHost folder and run:
+Go to AppHost folder and run:
 
 ```bash
 cd .\backend\src\aspire-hanzi-anhvu\aspire-hanzi-anhvu.AppHost\
 dotnet run
 ```
 
-### 2) Run frontend
+When AppHost starts, infrastructure services are started in Docker:
+
+- Redis
+- PostgreSQL
+- Elasticsearch (with Kibana)
+
+The backend API is still built and run locally by .NET.
+
+### 2) Run frontend (local)
 
 From repository root, go to frontend folder and run:
 
