@@ -176,6 +176,7 @@ const SortableCourseRow = memo(function SortableCourseRow({
     );
 });
 
+// #region Table
 export function CourseManagementTable({
     courses,
     isReorderMode,
@@ -299,3 +300,4 @@ export function CourseManagementTable({
         </DndContext>
     );
 }
+// #endregion
