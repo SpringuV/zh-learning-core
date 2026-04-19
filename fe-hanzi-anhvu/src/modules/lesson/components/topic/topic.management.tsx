@@ -450,28 +450,39 @@ export default function TopicManagementByCourse() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between mt-2 gap-3">
-                    <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                <div className="flex flex-wrap items-center justify-between mt-2 p-3 gap-3">
+                    <div className="flex gap-1 rounded-lg p-1">
                         {[
                             { id: "topics", label: "Quản lý Topics" },
                             { id: "settings", label: "Cài đặt khóa học" },
                         ].map((tab) => (
-                            <Button
-                                type="button"
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                variant={
-                                    activeTab === tab.id ? "secondary" : "ghost"
-                                }
-                                size="sm"
-                                className={`rounded-md text-sm font-medium transition-all duration-300 ${
-                                    activeTab === tab.id
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:text-slate-900"
-                                }`}
-                            >
-                                {tab.label}
-                            </Button>
+                            <div className="group relative" key={tab.id}>
+                                <Button
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    variant={
+                                        activeTab === tab.id
+                                            ? "secondary"
+                                            : "ghost"
+                                    }
+                                    size="sm"
+                                    className={`rounded-md text-sm font-medium transition-all duration-300 ${
+                                        activeTab === tab.id
+                                            ? "text-orange-400! bg-white"
+                                            : "text-slate-600"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </Button>
+                                <div
+                                    aria-hidden
+                                    className={`pointer-events-none absolute bottom-0 left-0 z-10 h-0.5 w-full origin-center bg-amber-600 transition-all duration-300 ease-out ${
+                                        activeTab === tab.id
+                                            ? "scale-x-100 opacity-100"
+                                            : "scale-x-0 group-hover:scale-x-100"
+                                    }`}
+                                />
+                            </div>
                         ))}
                     </div>
 

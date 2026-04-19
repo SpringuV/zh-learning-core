@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 namespace HanziAnhvuHsk.Services;
 
 public sealed class CloudflareR2UsageSyncService(
-    IOptionsMonitor<MediaUploadOptions> optionsMonitor,
-    IHttpClientFactory httpClientFactory,
-    IMediaUsageState mediaUsageState,
+    IOptionsMonitor<MediaUploadOptions> optionsMonitor, // IOptionsMonitor để theo dõi thay đổi cấu hình media upload, cho phép bật/tắt tính năng sync usage và điều chỉnh tần suất sync mà không cần khởi động lại ứng dụng, cách dùng sẽ được thể hiện trong phần ExecuteAsync của BackgroundService.
+    IHttpClientFactory httpClientFactory, // IHttpClientFactory để tạo HttpClient có cấu hình sẵn để gọi API của Cloudflare, giúp quản lý kết nối hiệu quả và tái sử dụng HttpClient, gọi là webhook để lấy thông tin usage metrics của R2 từ Cloudflare.
+    IMediaUsageState mediaUsageState, // IMediaUsageState để lưu trữ trạng thái usage hiện tại của media, bao gồm phần trăm đã sử dụng và số bytes đã dùng, thông tin này sẽ được cập nhật sau khi gọi API của Cloudflare và có thể được các phần khác của ứng dụng truy xuất để hiển thị hoặc đưa ra cảnh báo khi gần đạt đến giới hạn lưu trữ.
     ILogger<CloudflareR2UsageSyncService> logger) : BackgroundService
 {
     // Định nghĩa các storage classes mà R2 có thể sử dụng để lưu trữ dữ liệu, bao gồm "standard" và "infrequentAccess". Các storage class này sẽ được sử dụng khi truy xuất dữ liệu từ API của Cloudflare để tính toán tổng dung lượng đã sử dụng.
@@ -23,7 +23,9 @@ public sealed class CloudflareR2UsageSyncService(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Lấy cấu hình hiện tại từ IOptionsMonitor, bao gồm việc kiểm tra xem tính năng sync usage có được bật hay không và tần suất sync được đặt là bao nhiêu. Sau đó, nếu tính năng sync được bật, gọi phương thức SyncUsageOnceAsync để thực hiện việc đồng bộ usage một lần. Nếu có lỗi xảy ra trong quá trình đồng bộ, sẽ được bắt và ghi log cảnh báo. Cuối cùng, chờ một khoảng thời gian được định nghĩa bởi tần suất sync trước khi thực hiện vòng lặp tiếp theo, cho phép việc điều chỉnh tần suất sync thông qua cấu hình mà không cần khởi động lại ứng dụng.
             var options = _optionsMonitor.CurrentValue;
+            // Tính toán khoảng thời gian delay giữa các lần sync dựa trên cấu hình UsageSyncIntervalSeconds, đảm bảo rằng giá trị này nằm trong khoảng từ 30 giây đến 3600 giây (1 giờ) để tránh việc sync quá thường xuyên hoặc quá hiếm.
             var interval = TimeSpan.FromSeconds(Math.Clamp(options.UsageSyncIntervalSeconds, 30, 3600));
 
             try

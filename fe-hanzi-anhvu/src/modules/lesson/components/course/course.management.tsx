@@ -400,7 +400,7 @@ export default function CourseCmsPage() {
 
                     <div className="mt-3 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                            <div className="flex gap-1 rounded-lg  p-1">
                                 {[
                                     {
                                         id: "courses",
@@ -413,31 +413,43 @@ export default function CourseCmsPage() {
                                         count: null,
                                     },
                                 ].map((tab) => (
-                                    <Button
-                                        type="button"
+                                    <div
                                         key={tab.id}
-                                        onClick={() =>
-                                            setActiveTab(tab.id as any)
-                                        }
-                                        variant={
-                                            activeTab === tab.id
-                                                ? "secondary"
-                                                : "ghost"
-                                        }
-                                        size="sm"
-                                        className={`rounded-md text-sm font-medium transition-all duration-300 ${
-                                            activeTab === tab.id
-                                                ? "bg-white text-slate-900 shadow-sm"
-                                                : "text-slate-600 hover:text-slate-900"
-                                        }`}
+                                        className="group relative"
                                     >
-                                        {tab.label}
-                                        {tab.count !== null && (
-                                            <span className="ml-2 rounded bg-slate-200 px-2 py-1 text-xs">
-                                                {tab.count}
-                                            </span>
-                                        )}
-                                    </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() =>
+                                                setActiveTab(tab.id as any)
+                                            }
+                                            variant={
+                                                activeTab === tab.id
+                                                    ? "secondary"
+                                                    : "ghost"
+                                            }
+                                            size="sm"
+                                            className={`rounded-md text-sm font-medium transition-all duration-300 ${
+                                                activeTab === tab.id
+                                                    ? "text-orange-400! bg-white"
+                                                    : "text-slate-600"
+                                            }`}
+                                        >
+                                            {tab.label}
+                                            {tab.count !== null && (
+                                                <span className="ml-2 rounded bg-gray-100 px-2 py-1 text-xs">
+                                                    {tab.count}
+                                                </span>
+                                            )}
+                                        </Button>
+                                        <div
+                                            aria-hidden
+                                            className={`pointer-events-none absolute bottom-0 left-0 z-10 h-0.5 w-full origin-center bg-amber-600 transition-all duration-300 ease-out ${
+                                                activeTab === tab.id
+                                                    ? "scale-x-100 opacity-100"
+                                                    : "scale-x-0 group-hover:scale-x-100"
+                                            }`}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                             <p className="text-xs text-slate-500 sm:text-sm">

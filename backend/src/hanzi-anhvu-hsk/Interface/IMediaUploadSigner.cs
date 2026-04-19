@@ -5,7 +5,7 @@ namespace Interface;
 public interface IMediaUploadSigner
 {
     Task<SignUploadUrlResponse> CreateSignedUploadUrlAsync(
-        SignUploadUrlRequest request,
-        ClaimsPrincipal user,
+        SignUploadUrlRequest request, // DTO chứa thông tin cần thiết để tạo signed URL
+        ClaimsPrincipal user, // thông tin người dùng để kiểm tra quyền hạn
         CancellationToken cancellationToken = default);
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { FileText, Settings2, ListChecks, MessageSquare, ExternalLink, Image as ImageIcon, Loader2, Music2, Plus, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { mediaUploadApi } from "@/modules/lesson/api/media-upload.api";
 import { useCreateExercise } from "@/modules/lesson/hooks/use.exercise.tanstack";
 import {
     ExerciseContext,
@@ -306,6 +307,9 @@ export function CreateExerciseModal({
     onCreated,
 }: CreateExerciseModalProps) {
     const createExerciseMutation = useCreateExercise();
+    const [uploadingField, setUploadingField] = useState<
+        "audio" | "image" | null
+    >(null);
     const [open, setOpen] = useState(false);
     const [formState, setFormState] =
         useState<ExerciseFormState>(initialFormState);
@@ -448,6 +452,81 @@ export function CreateExerciseModal({
         }
     };
 
+    const handleUploadMedia = async (file: File, field: "audio" | "image") => {
+        const expectedPrefix = field === "audio" ? "audio/" : "image/";
+        const allowByExtension =
+            field === "audio"
+                ? /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(file.name)
+                : /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(file.name);
+        const isAcceptedType =
+            file.type.length === 0
+                ? allowByExtension
+                : file.type.startsWith(expectedPrefix);
+
+        if (!isAcceptedType) {
+            const message =
+                field === "audio"
+                    ? "Vui lòng chọn file audio hợp lệ."
+                    : "Vui lòng chọn file image hợp lệ.";
+            toast.error(message);
+            return;
+        }
+
+        setUploadingField(field);
+
+        // #region Api Upload
+        // Lưu ý: mediaUploadApi.uploadToR2 sẽ tự động throw error nếu upload thất bại, nên không cần kiểm tra response ở đây nữa.
+        try {
+            const result = await mediaUploadApi.uploadToR2(
+                file,
+                field === "audio" ? "audio" : "images",
+            );
+
+            setFormState((current) => ({
+                ...current,
+                audioUrl:
+                    field === "audio" ? result.publicUrl : current.audioUrl,
+                imageUrl:
+                    field === "image" ? result.publicUrl : current.imageUrl,
+            }));
+
+            setFormErrors((current) => ({
+                ...current,
+                audioUrl: field === "audio" ? undefined : current.audioUrl,
+                imageUrl: field === "image" ? undefined : current.imageUrl,
+            }));
+
+            toast.success(
+                field === "audio"
+                    ? "Upload audio thành công."
+                    : "Upload image thành công.",
+            );
+        } catch (error) {
+            const message = mediaUploadApi.parseErrorMessage(error);
+
+            setFormErrors((current) => ({
+                ...current,
+                audioUrl: field === "audio" ? message : current.audioUrl,
+                imageUrl: field === "image" ? message : current.imageUrl,
+            }));
+
+            toast.error(message);
+        } finally {
+            setUploadingField(null);
+        }
+    };
+
+    const clearMediaUrl = (field: "audioUrl" | "imageUrl") => {
+        setFormState((current) => ({
+            ...current,
+            [field]: "",
+        }));
+        setFormErrors((current) => ({
+            ...current,
+            [field]: undefined,
+        }));
+    };
+
     return (
         <Dialog
             open={open}
@@ -477,8 +556,12 @@ export function CreateExerciseModal({
                     onSubmit={handleSubmit}
                     className="flex min-h-0 flex-1 flex-col"
                 >
-                    <div className="min-h-0 space-y-3 overflow-y-auto p-1 pr-2">
-                        <div className="space-y-3 rounded-md border border-slate-200 p-3">
+                    <div className="min-h-0 space-y-6 overflow-y-auto bg-slate-50/50 p-4 sm:p-6 pr-4">
+                        <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
+                                <FileText className="size-4 text-blue-500" />
+                                Nội dung bài tập
+                            </h3>
                             <div className="space-y-2">
                                 <Label htmlFor="exercise-topic-id">
                                     TopicId
@@ -536,7 +619,12 @@ export function CreateExerciseModal({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
+                                <Settings2 className="size-4 text-purple-500" />
+                                Phân loại & Thuộc tính
+                            </h3>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="space-y-2">
                                 <Label>Loại bài *</Label>
                                 <Select
@@ -643,6 +731,7 @@ export function CreateExerciseModal({
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
                         </div>
 
                         {isOptionRequired && (
@@ -779,49 +868,265 @@ export function CreateExerciseModal({
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 p-3 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="exercise-audio-url">
-                                    Audio URL
-                                </Label>
-                                <Input
-                                    id="exercise-audio-url"
-                                    value={formState.audioUrl}
-                                    onChange={(event) =>
-                                        setFormState((current) => ({
-                                            ...current,
-                                            audioUrl: event.target.value,
-                                        }))
-                                    }
-                                    placeholder="https://..."
-                                />
-                                {formErrors.audioUrl && (
-                                    <p className="text-xs text-red-600">
-                                        {formErrors.audioUrl}
-                                    </p>
-                                )}
+                        <div className="space-y-4 rounded-md border border-slate-200 bg-linear-to-br from-white to-slate-50 p-4">
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-slate-800">
+                                    Media đính kèm (tùy chọn)
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    Bạn có thể bỏ qua, hoặc tải lên file âm
+                                    thanh/hình ảnh.
+                                </p>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="exercise-image-url">
-                                    Image URL
-                                </Label>
-                                <Input
-                                    id="exercise-image-url"
-                                    value={formState.imageUrl}
-                                    onChange={(event) =>
-                                        setFormState((current) => ({
-                                            ...current,
-                                            imageUrl: event.target.value,
-                                        }))
-                                    }
-                                    placeholder="https://..."
-                                />
-                                {formErrors.imageUrl && (
-                                    <p className="text-xs text-red-600">
-                                        {formErrors.imageUrl}
-                                    </p>
-                                )}
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                                    <div className="flex items-center gap-2">
+                                        <Music2 className="size-4 text-blue-500" />
+                                        <Label className="text-sm font-bold text-slate-700">
+                                            Âm thanh
+                                        </Label>
+                                    </div>
+                                    <label
+                                        htmlFor="exercise-audio-file"
+                                        className={
+                                            "group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 py-4 transition-colors hover:bg-slate-100 " +
+                                            (createExerciseMutation.isPending ||
+                                            uploadingField !== null
+                                                ? "pointer-events-none opacity-50"
+                                                : "")
+                                        }
+                                    >
+                                        <div className="flex flex-col items-center justify-center text-center text-sm text-slate-500 group-hover:text-slate-700">
+                                            <Upload className="mb-1 size-5 text-slate-400 group-hover:text-blue-500" />
+                                            <span className="font-medium text-blue-600">
+                                                Nhấn để tải lên
+                                            </span>
+                                            <span className="text-xs">
+                                                Audio (.mp3, .wav)
+                                            </span>
+                                        </div>
+                                        <Input
+                                            id="exercise-audio-file"
+                                            className="hidden"
+                                            type="file"
+                                            accept="audio/*"
+                                            disabled={
+                                                createExerciseMutation.isPending ||
+                                                uploadingField !== null
+                                            }
+                                            onChange={(event) => {
+                                                const file =
+                                                    event.currentTarget
+                                                        .files?.[0];
+                                                event.currentTarget.value = "";
+                                                if (!file) return;
+                                                void handleUploadMedia(
+                                                    file,
+                                                    "audio",
+                                                );
+                                            }}
+                                        />
+                                    </label>
+                                    {uploadingField === "audio" && (
+                                        <p className="flex items-center justify-center gap-1 text-xs font-medium text-blue-600">
+                                            <Loader2 className="size-3 animate-spin" />
+                                            Đang upload...
+                                        </p>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 text-[10px] font-semibold uppercase text-slate-400">
+                                            Hoặc nhập URL
+                                        </span>
+                                        <div className="h-px w-full bg-slate-200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="exercise-audio-url"
+                                                value={formState.audioUrl}
+                                                onChange={(event) =>
+                                                    setFormState((c) => ({
+                                                        ...c,
+                                                        audioUrl:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                placeholder="https://..."
+                                                className="h-8 text-xs"
+                                                disabled={
+                                                    createExerciseMutation.isPending
+                                                }
+                                            />
+                                            {formState.audioUrl && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600"
+                                                    onClick={() =>
+                                                        clearMediaUrl(
+                                                            "audioUrl",
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        createExerciseMutation.isPending
+                                                    }
+                                                >
+                                                    <X className="size-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            {formState.audioUrl ? (
+                                                <a
+                                                    className="inline-flex max-w-50 items-center gap-1 truncate text-xs font-medium text-blue-600 hover:underline sm:max-w-62.5"
+                                                    href={formState.audioUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    title={formState.audioUrl}
+                                                >
+                                                    <Music2 className="size-3 shrink-0" />
+                                                    <span className="truncate">
+                                                        Nghe thử
+                                                    </span>
+                                                    <ExternalLink className="size-3 shrink-0" />
+                                                </a>
+                                            ) : (
+                                                <div />
+                                            )}
+                                            {formErrors.audioUrl && (
+                                                <p className="text-xs text-red-600">
+                                                    {formErrors.audioUrl}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                                    <div className="flex items-center gap-2">
+                                        <ImageIcon className="size-4 text-emerald-500" />
+                                        <Label className="text-sm font-bold text-slate-700">
+                                            Hình ảnh
+                                        </Label>
+                                    </div>
+                                    <label
+                                        htmlFor="exercise-image-file"
+                                        className={
+                                            "group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 py-4 transition-colors hover:bg-slate-100 " +
+                                            (createExerciseMutation.isPending ||
+                                            uploadingField !== null
+                                                ? "pointer-events-none opacity-50"
+                                                : "")
+                                        }
+                                    >
+                                        <div className="flex flex-col items-center justify-center text-center text-sm text-slate-500 group-hover:text-slate-700">
+                                            <Upload className="mb-1 size-5 text-slate-400 group-hover:text-emerald-500" />
+                                            <span className="font-medium text-emerald-600">
+                                                Nhấn để tải lên
+                                            </span>
+                                            <span className="text-xs">
+                                                Image (.jpg, .png, .webp)
+                                            </span>
+                                        </div>
+                                        <Input
+                                            id="exercise-image-file"
+                                            className="hidden"
+                                            type="file"
+                                            accept="image/*"
+                                            disabled={
+                                                createExerciseMutation.isPending ||
+                                                uploadingField !== null
+                                            }
+                                            onChange={(event) => {
+                                                const file =
+                                                    event.currentTarget
+                                                        .files?.[0];
+                                                event.currentTarget.value = "";
+                                                if (!file) return;
+                                                void handleUploadMedia(
+                                                    file,
+                                                    "image",
+                                                );
+                                            }}
+                                        />
+                                    </label>
+                                    {uploadingField === "image" && (
+                                        <p className="flex items-center justify-center gap-1 text-xs font-medium text-emerald-600">
+                                            <Loader2 className="size-3 animate-spin" />
+                                            Đang upload...
+                                        </p>
+                                    )}
+                                    <div className="flex items-center gap-2">
+                                        <span className="shrink-0 text-[10px] font-semibold uppercase text-slate-400">
+                                            Hoặc nhập URL
+                                        </span>
+                                        <div className="h-px w-full bg-slate-200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                id="exercise-image-url"
+                                                value={formState.imageUrl}
+                                                onChange={(event) =>
+                                                    setFormState((c) => ({
+                                                        ...c,
+                                                        imageUrl:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                placeholder="https://..."
+                                                className="h-8 text-xs"
+                                                disabled={
+                                                    createExerciseMutation.isPending
+                                                }
+                                            />
+                                            {formState.imageUrl && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600"
+                                                    onClick={() =>
+                                                        clearMediaUrl(
+                                                            "imageUrl",
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        createExerciseMutation.isPending
+                                                    }
+                                                >
+                                                    <X className="size-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            {formState.imageUrl ? (
+                                                <a
+                                                    className="inline-flex max-w-50 items-center gap-1 truncate text-xs font-medium text-emerald-600 hover:underline sm:max-w-62.5"
+                                                    href={formState.imageUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    title={formState.imageUrl}
+                                                >
+                                                    <ImageIcon className="size-3 shrink-0" />
+                                                    <span className="truncate">
+                                                        Xem ảnh
+                                                    </span>
+                                                    <ExternalLink className="size-3 shrink-0" />
+                                                </a>
+                                            ) : (
+                                                <div />
+                                            )}
+                                            {formErrors.imageUrl && (
+                                                <p className="text-xs text-red-600">
+                                                    {formErrors.imageUrl}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2 sm:col-span-2">
@@ -848,7 +1153,7 @@ export function CreateExerciseModal({
                             </div>
                         </div>
 
-                        <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-5 shadow-inner">
                             <p className="text-xs font-medium text-slate-600">
                                 JSON Body Preview
                             </p>

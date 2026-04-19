@@ -4,6 +4,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PreserveCompilationContext>true</PreserveCompilationContext>
+    <!--  Unique identifier for user secrets, used for development purposes to store sensitive data like connection strings and API keys securely on the local machine. This ID should be unique across projects to avoid conflicts when using the Secret Manager tool in .NET. -->
+    <UserSecretsId>62995c0d-ff2a-4937-be71-3f953f11b933</UserSecretsId> 
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.21.1" />

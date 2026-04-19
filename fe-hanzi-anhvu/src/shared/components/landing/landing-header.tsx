@@ -3,11 +3,9 @@ import Link from "next/link";
 import {
     Send,
     SunMedium,
-    Sparkles,
     BadgeCheck,
     CreditCard,
     Bell,
-    LogOut,
     Shield,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -56,9 +54,6 @@ export function LandingHeader() {
             <nav className="hidden items-center gap-7 text-sm font-semibold lg:flex">
                 <Link href="#features" className="hover:text-primary">
                     Khóa học
-                </Link>
-                <Link href="#review" className="hover:text-primary">
-                    Review
                 </Link>
                 <Link href="#zoom" className="hover:text-primary">
                     Zoom Trực Tiếp

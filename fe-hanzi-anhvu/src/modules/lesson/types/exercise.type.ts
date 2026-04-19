@@ -116,7 +116,7 @@ export interface UpdateExerciseRequest {
     skillType?: SkillType;
     difficulty?: ExerciseDifficulty;
     exerciseContext?: ExerciseContext;
-    isPublished?: boolean;
+    correctAnswer?: string;
     audioUrl?: string;
     imageUrl?: string;
     explanation?: string;

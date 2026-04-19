@@ -13,7 +13,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
-import { GripVertical, Trash2 } from "lucide-react";
+import { BookA, GripVertical, Trash2 } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Switch } from "@/shared/components/ui/switch";
 import {
@@ -85,7 +85,6 @@ function SortableExerciseRow({
         id: exercise.exerciseId,
         disabled: !isReorderMode || isReorderPending,
     });
-
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -171,15 +170,13 @@ function SortableExerciseRow({
                         className="inline-flex items-center gap-1 rounded border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Xóa
                     </button>
 
                     <Link
                         href={`/cms/lessons/course/${normalizedCourseId}/topics/${normalizedTopicId}/exercises/${exercise.exerciseId}`}
+                        className="inline-flex items-center rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600"
                     >
-                        <button className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
-                            Biên soạn
-                        </button>
+                        <BookA className="h-3.5 w-3.5" />
                     </Link>
                 </div>
             </td>
@@ -287,9 +284,7 @@ export function ExerciseManagementTable({
                     )}
 
                     <SortableContext
-                        items={exercises.map(
-                            (exercise) => exercise.exerciseId,
-                        )}
+                        items={exercises.map((exercise) => exercise.exerciseId)}
                         strategy={verticalListSortingStrategy}
                     >
                         {!isLoading &&

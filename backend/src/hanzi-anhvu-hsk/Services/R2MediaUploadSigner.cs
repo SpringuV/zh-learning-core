@@ -100,7 +100,7 @@ public sealed class R2MediaUploadSigner(
         {
             return;
         }
-
+        // Kiểm tra nếu tính năng hard stop theo usage được bật, thì so sánh phần trăm usage hiện tại với ngưỡng đã định nghĩa. Nếu usage hiện tại vượt quá hoặc bằng ngưỡng, sẽ ném một MediaUploadBlockedException để chặn việc tạo signed URL mới, nhằm tránh tình trạng vượt quá giới hạn lưu trữ đã đặt ra trên R2.
         var threshold = Math.Clamp(_options.HardStopUsagePercent, 1m, 100m);
         var currentUsagePercent = _mediaUsageState.CurrentUsagePercent ?? _options.CurrentUsagePercent;
         var current = Math.Max(0m, currentUsagePercent);

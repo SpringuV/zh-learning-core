@@ -14,10 +14,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
-import { GripVertical, Trash2 } from "lucide-react";
+import { BookAIcon, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Switch } from "@/shared/components/ui/switch";
 import { type CourseListItem } from "@/modules/lesson/types/coure.type";
+import { Maname } from "next/font/google";
 
 type CourseManagementTableProps = {
     courses: CourseListItem[];
@@ -140,34 +141,25 @@ const SortableCourseRow = memo(function SortableCourseRow({
                     </Badge>
                 </div>
             </td>
-            <td className="px-6 py-4 text-right">
+            <td className="px-2 py-1 text-right">
                 {pendingCourseId === course.id && (
                     <p className="mb-2 text-[11px] text-slate-500">
                         Đang xử lý...
                     </p>
                 )}
-                <div className="flex justify-end gap-2">
+                <div className="flex items-center justify-center gap-2">
                     <button
                         type="button"
                         disabled={pendingCourseId === course.id}
                         onClick={() => onDeleteCourse(course.id, course.title)}
-                        className="inline-flex items-center gap-1 rounded border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        className=" text-xs text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Xóa
                     </button>
 
-                    <Link
-                        href={`/cms/lessons/course/${course.id}?tab=settings`}
-                    >
-                        <button className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
-                            Chỉnh sửa
-                        </button>
-                    </Link>
-
                     <Link href={`/cms/lessons/course/${course.id}`}>
-                        <button className="rounded border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
-                            Quản lý topic
+                        <button className=" flex items-center bg-white text-xs text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-amber-600">
+                            <BookAIcon className="h-5 w-5" />
                         </button>
                     </Link>
                 </div>

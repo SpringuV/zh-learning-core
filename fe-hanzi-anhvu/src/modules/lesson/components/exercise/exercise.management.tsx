@@ -43,12 +43,26 @@ import {
 type ExerciseTypeFilter = ExerciseType | "all";
 type SkillFilter = SkillType | "all";
 type PublishFilter = "all" | "published" | "draft";
+type ExerciseFilterState = {
+    question: string;
+    sortBy: ExerciseSortBy;
+    orderByDescending: boolean;
+    page: number;
+    take: number;
+    skill: SkillFilter;
+    exerciseType: ExerciseTypeFilter;
+    publishStatus: PublishFilter;
+};
 
-const initialExerciseQueryParams: ExerciseListQueryParams = {
+const initialFilterState: ExerciseFilterState = {
     question: "",
     orderByDescending: true,
     sortBy: "CreatedAt",
+    page: 1,
     take: 50,
+    skill: "all",
+    exerciseType: "all",
+    publishStatus: "all",
 };
 
 const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
@@ -106,18 +120,12 @@ export default function ExerciseManagementByTopic() {
         [topicId],
     );
 
+    // #region State
     const [activeTab, setActiveTab] = useState<"exercises" | "settings">(
         "exercises",
     );
-    const [itemsPerPage, setItemsPerPage] = useState(50);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [queryParams, setQueryParams] = useState<ExerciseListQueryParams>(
-        initialExerciseQueryParams,
-    );
-    const [skillFilter, setSkillFilter] = useState<SkillFilter>("all");
-    const [exerciseTypeFilter, setExerciseTypeFilter] =
-        useState<ExerciseTypeFilter>("all");
-    const [publishFilter, setPublishFilter] = useState<PublishFilter>("all");
+    const [filterState, setFilterState] =
+        useState<ExerciseFilterState>(initialFilterState);
     const [isReorderMode, setIsReorderMode] = useState(false);
     const [orderedExercises, setOrderedExercises] = useState<
         ExerciseListItem[]
@@ -146,40 +154,46 @@ export default function ExerciseManagementByTopic() {
         exerciseQuestion: "",
         nextPublished: false,
     });
+    // #endregion
 
-    const deferredQuestion = useDeferredValue(queryParams.question ?? "");
+    const deferredQuestion = useDeferredValue(filterState.question);
 
+    // Kết hợp các tham số truy vấn lại với nhau, ưu tiên giá trị đã được defer
+    //  để tối ưu hiệu suất khi người dùng nhập liệu
     const effectiveQueryParams = useMemo<ExerciseListQueryParams>(
         () => ({
-            ...queryParams,
             question: deferredQuestion.trim() || undefined,
-            skillType: skillFilter === "all" ? undefined : skillFilter,
+            orderByDescending: filterState.orderByDescending,
+            sortBy: filterState.sortBy,
+            skillType:
+                filterState.skill === "all" ? undefined : filterState.skill,
             exerciseType:
-                exerciseTypeFilter === "all" ? undefined : exerciseTypeFilter,
-            isPublished:
-                publishFilter === "all"
+                filterState.exerciseType === "all"
                     ? undefined
-                    : publishFilter === "published",
-            take: itemsPerPage,
-            page: currentPage,
+                    : filterState.exerciseType,
+            isPublished:
+                filterState.publishStatus === "all"
+                    ? undefined
+                    : filterState.publishStatus === "published",
+            take: filterState.take,
+            page: filterState.page,
         }),
         [
-            queryParams,
             deferredQuestion,
-            skillFilter,
-            exerciseTypeFilter,
-            publishFilter,
-            itemsPerPage,
-            currentPage,
+            filterState.orderByDescending,
+            filterState.sortBy,
+            filterState.skill,
+            filterState.exerciseType,
+            filterState.publishStatus,
+            filterState.take,
+            filterState.page,
         ],
     );
-
+    // #region Data Fetching
     const overviewQuery = useGetTopicExercisesOverview(
         normalizedTopicId,
         effectiveQueryParams,
     );
-    const topicDetailQuery = useGetTopicDetail(normalizedTopicId);
-
     const publishExerciseMutation = usePublishExercise();
     const unPublishExerciseMutation = useUnPublishExercise();
     const reorderExerciseMutation = useReOrderExercise();
@@ -187,18 +201,16 @@ export default function ExerciseManagementByTopic() {
 
     const currentPageData = overviewQuery.data?.data;
     const topicMetadata = currentPageData?.parentMetadata ?? null;
-    const topicDetail = topicDetailQuery.data?.data;
-    const effectiveTopicMetadata = topicDetail ?? topicMetadata;
     const pageExercises = currentPageData?.items ?? [];
     const displayExercises = isReorderMode ? orderedExercises : pageExercises;
 
     const totalDocs = currentPageData?.pagination?.total ?? 0;
-    const totalPages = Math.max(1, Math.ceil(totalDocs / itemsPerPage));
+    const totalPages = Math.max(1, Math.ceil(totalDocs / filterState.take));
     const totalPagesForClamp =
         overviewQuery.isFetching && !currentPageData?.pagination
-            ? Math.max(1, currentPage)
+            ? Math.max(1, filterState.page)
             : totalPages;
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const startIndex = (filterState.page - 1) * filterState.take;
     const endIndex = Math.min(startIndex + displayExercises.length, totalDocs);
     const reorderBaseExercises = pageExercises;
     const canPersistOrder =
@@ -229,39 +241,46 @@ export default function ExerciseManagementByTopic() {
     }, [isReorderMode, reorderBaseExercises]);
 
     useEffect(() => {
-        if (currentPage > totalPagesForClamp) {
-            setCurrentPage(totalPagesForClamp);
+        if (filterState.page > totalPagesForClamp) {
+            setFilterState((current) => ({
+                ...current,
+                page: totalPagesForClamp,
+            }));
         }
-    }, [currentPage, totalPagesForClamp]);
+    }, [filterState.page, totalPagesForClamp]);
 
     useEffect(() => {
-        setCurrentPage(1);
+        setFilterState((current) =>
+            current.page === 1
+                ? current
+                : {
+                      ...current,
+                      page: 1,
+                  },
+        );
     }, [
-        queryParams.question,
-        queryParams.sortBy,
-        queryParams.orderByDescending,
-        skillFilter,
-        exerciseTypeFilter,
-        publishFilter,
-        itemsPerPage,
+        filterState.question,
+        filterState.sortBy,
+        filterState.orderByDescending,
+        filterState.skill,
+        filterState.exerciseType,
+        filterState.publishStatus,
+        filterState.take,
     ]);
+    // #endregion
 
     const resetFilters = () => {
-        setQueryParams(initialExerciseQueryParams);
-        setSkillFilter("all");
-        setExerciseTypeFilter("all");
-        setPublishFilter("all");
-        setCurrentPage(1);
+        setFilterState(initialFilterState);
     };
 
     const startReorderMode = () => {
         setActiveTab("exercises");
-        setCurrentPage(1);
-        setSkillFilter("all");
-        setExerciseTypeFilter("all");
-        setPublishFilter("all");
-        setQueryParams((current) => ({
+        setFilterState((current) => ({
             ...current,
+            page: 1,
+            skill: "all",
+            exerciseType: "all",
+            publishStatus: "all",
             question: "",
             sortBy: "OrderIndex",
             orderByDescending: false,
@@ -329,12 +348,15 @@ export default function ExerciseManagementByTopic() {
 
     const handlePageChange = useCallback(
         (page: number) => {
-            if (page < 1 || page === currentPage) return;
+            if (page < 1 || page === filterState.page) return;
 
             if (page > totalPages) return;
-            setCurrentPage(page);
+            setFilterState((current) => ({
+                ...current,
+                page,
+            }));
         },
-        [currentPage, totalPages],
+        [filterState.page, totalPages],
     );
 
     const getErrorMessage = (error: unknown) => {
@@ -444,7 +466,10 @@ export default function ExerciseManagementByTopic() {
     const isExercisesLoading = overviewQuery.isLoading;
 
     const handleExerciseCreated = async () => {
-        setCurrentPage(1);
+        setFilterState((current) => ({
+            ...current,
+            page: 1,
+        }));
     };
 
     return (
@@ -457,30 +482,29 @@ export default function ExerciseManagementByTopic() {
                                 variant="outline"
                                 className="bg-slate-100 text-slate-700 border-slate-200"
                             >
-                                Topic: {effectiveTopicMetadata?.title ?? "-"}
+                                Topic: {topicMetadata?.title ?? "-"}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className="bg-amber-50 text-amber-700 border-amber-200"
                             >
-                                Loại: {effectiveTopicMetadata?.topicType ?? "-"}
+                                Loại: {topicMetadata?.topicType ?? "-"}
                             </Badge>
                             <Badge
                                 variant="outline"
                                 className="bg-blue-50 text-blue-700 border-blue-200"
                             >
-                                Số bài:{" "}
-                                {effectiveTopicMetadata?.totalExercises ?? 0}
+                                Số bài: {topicMetadata?.totalExercises ?? 0}
                             </Badge>
                             <Badge
                                 variant="secondary"
                                 className={
-                                    effectiveTopicMetadata?.isPublished
+                                    topicMetadata?.isPublished
                                         ? "bg-emerald-100 text-emerald-700"
                                         : "bg-slate-100 text-slate-700"
                                 }
                             >
-                                {effectiveTopicMetadata?.isPublished
+                                {topicMetadata?.isPublished
                                     ? "Đang xuất bản"
                                     : "Bản nháp"}
                             </Badge>
@@ -489,23 +513,13 @@ export default function ExerciseManagementByTopic() {
                             Quản lý bài tập theo Topic
                         </h1>
                         <p className="mt-2 max-w-2xl text-sm text-slate-500">
-                            {effectiveTopicMetadata?.slug
-                                ? `Slug: ${effectiveTopicMetadata.slug}`
+                            {topicMetadata?.slug
+                                ? `Slug: ${topicMetadata.slug}`
                                 : "Vui lòng chờ dữ liệu topic."}
                         </p>
-                        {topicDetail?.description && (
-                            <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                                {topicDetail.description}
-                            </p>
-                        )}
                         {overviewQuery.isError && (
                             <p className="mt-2 text-sm text-red-600">
                                 Không thể tải danh sách bài tập.
-                            </p>
-                        )}
-                        {topicDetailQuery.isError && (
-                            <p className="mt-2 text-sm text-red-600">
-                                Không thể tải chi tiết topic.
                             </p>
                         )}
                     </div>
@@ -527,29 +541,40 @@ export default function ExerciseManagementByTopic() {
 
                 <div className="mt-3 rounded-xl border border-slate-200/70 bg-white p-3 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex gap-1 rounded-lg bg-slate-100/60 p-1">
+                        <div className="flex gap-1 rounded-lg p-1">
                             {[
                                 { id: "exercises", label: "Danh sách bài tập" },
                                 { id: "settings", label: "Cài đặt topic" },
                             ].map((tab) => (
-                                <Button
-                                    type="button"
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    variant={
-                                        activeTab === tab.id
-                                            ? "secondary"
-                                            : "ghost"
-                                    }
-                                    size="sm"
-                                    className={`rounded-md text-sm font-medium transition-all duration-300 ${
-                                        activeTab === tab.id
-                                            ? "bg-white text-slate-900 shadow-sm"
-                                            : "text-slate-600 hover:text-slate-900"
-                                    }`}
-                                >
-                                    {tab.label}
-                                </Button>
+                                <div key={tab.id} className="group relative">
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            setActiveTab(tab.id as any)
+                                        }
+                                        variant={
+                                            activeTab === tab.id
+                                                ? "secondary"
+                                                : "ghost"
+                                        }
+                                        size="sm"
+                                        className={`rounded-md text-sm font-medium transition-all duration-300 ${
+                                            activeTab === tab.id
+                                                ? "bg-white text-slate-900 shadow-sm"
+                                                : "text-slate-600"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </Button>
+                                    <div
+                                        aria-hidden
+                                        className={`pointer-events-none absolute bottom-0 left-0 z-10 h-0.5 w-full origin-center bg-amber-600 transition-all duration-300 ease-out ${
+                                            activeTab === tab.id
+                                                ? "scale-x-100 opacity-100"
+                                                : "scale-x-0 group-hover:scale-x-100"
+                                        }`}
+                                    />
+                                </div>
                             ))}
                         </div>
 
@@ -567,9 +592,9 @@ export default function ExerciseManagementByTopic() {
                         <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
-                                value={queryParams.question ?? ""}
+                                value={filterState.question}
                                 onChange={(event) =>
-                                    setQueryParams((current) => ({
+                                    setFilterState((current) => ({
                                         ...current,
                                         question: event.target.value,
                                     }))
@@ -580,9 +605,12 @@ export default function ExerciseManagementByTopic() {
                             />
 
                             <Select
-                                value={skillFilter}
+                                value={filterState.skill}
                                 onValueChange={(value: SkillFilter) =>
-                                    setSkillFilter(value)
+                                    setFilterState((current) => ({
+                                        ...current,
+                                        skill: value,
+                                    }))
                                 }
                                 disabled={isReorderMode}
                             >
@@ -605,9 +633,12 @@ export default function ExerciseManagementByTopic() {
                             </Select>
 
                             <Select
-                                value={exerciseTypeFilter}
+                                value={filterState.exerciseType}
                                 onValueChange={(value: ExerciseTypeFilter) =>
-                                    setExerciseTypeFilter(value)
+                                    setFilterState((current) => ({
+                                        ...current,
+                                        exerciseType: value,
+                                    }))
                                 }
                                 disabled={isReorderMode}
                             >
@@ -632,9 +663,12 @@ export default function ExerciseManagementByTopic() {
                             </Select>
 
                             <Select
-                                value={publishFilter}
+                                value={filterState.publishStatus}
                                 onValueChange={(value: PublishFilter) =>
-                                    setPublishFilter(value)
+                                    setFilterState((current) => ({
+                                        ...current,
+                                        publishStatus: value,
+                                    }))
                                 }
                                 disabled={isReorderMode}
                             >
@@ -655,9 +689,9 @@ export default function ExerciseManagementByTopic() {
                             </Select>
 
                             <Select
-                                value={queryParams.sortBy ?? "CreatedAt"}
+                                value={filterState.sortBy}
                                 onValueChange={(value: ExerciseSortBy) =>
-                                    setQueryParams((current) => ({
+                                    setFilterState((current) => ({
                                         ...current,
                                         sortBy: value,
                                     }))
@@ -682,12 +716,12 @@ export default function ExerciseManagementByTopic() {
 
                             <Select
                                 value={
-                                    queryParams.orderByDescending
+                                    filterState.orderByDescending
                                         ? "desc"
                                         : "asc"
                                 }
                                 onValueChange={(value) =>
-                                    setQueryParams((current) => ({
+                                    setFilterState((current) => ({
                                         ...current,
                                         orderByDescending: value === "desc",
                                     }))
@@ -796,17 +830,20 @@ export default function ExerciseManagementByTopic() {
                             !overviewQuery.isError &&
                             totalDocs > 0 && (
                                 <CustomPagination
-                                    currentPage={currentPage}
+                                    currentPage={filterState.page}
                                     totalPages={totalPages}
-                                    itemsPerPage={itemsPerPage}
+                                    itemsPerPage={filterState.take}
                                     startIndex={startIndex}
                                     endIndex={endIndex}
                                     totalItems={totalDocs}
                                     totalDocs={totalDocs}
                                     onPageChange={handlePageChange}
                                     onItemsPerPageChange={(value) => {
-                                        setItemsPerPage(value);
-                                        setCurrentPage(1);
+                                        setFilterState((current) => ({
+                                            ...current,
+                                            take: value,
+                                            page: 1,
+                                        }));
                                     }}
                                 />
                             )}
@@ -818,22 +855,7 @@ export default function ExerciseManagementByTopic() {
                         <h2 className="mb-6 text-xl font-semibold text-slate-900">
                             Cài đặt Topic
                         </h2>
-
-                        {topicDetailQuery.isLoading &&
-                            !effectiveTopicMetadata && (
-                                <p className="text-sm text-slate-600">
-                                    Đang tải thông tin topic...
-                                </p>
-                            )}
-
-                        {!topicDetailQuery.isLoading &&
-                            !effectiveTopicMetadata && (
-                                <p className="text-sm text-red-600">
-                                    Không thể hiển thị thông tin topic.
-                                </p>
-                            )}
-
-                        {effectiveTopicMetadata && (
+                        {topicMetadata && (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div>
@@ -841,7 +863,7 @@ export default function ExerciseManagementByTopic() {
                                             Tên topic
                                         </label>
                                         <Input
-                                            value={effectiveTopicMetadata.title}
+                                            value={topicMetadata.title}
                                             readOnly
                                             className="h-10 bg-slate-50"
                                         />
@@ -852,26 +874,12 @@ export default function ExerciseManagementByTopic() {
                                             Slug
                                         </label>
                                         <Input
-                                            value={effectiveTopicMetadata.slug}
+                                            value={topicMetadata.slug}
                                             readOnly
                                             className="h-10 bg-slate-50"
                                         />
                                     </div>
                                 </div>
-
-                                {topicDetail?.description && (
-                                    <div>
-                                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                                            Mô tả
-                                        </label>
-                                        <textarea
-                                            rows={4}
-                                            value={topicDetail.description}
-                                            readOnly
-                                            className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900"
-                                        />
-                                    </div>
-                                )}
 
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div>
@@ -879,9 +887,7 @@ export default function ExerciseManagementByTopic() {
                                             Loại topic
                                         </label>
                                         <Input
-                                            value={
-                                                effectiveTopicMetadata.topicType
-                                            }
+                                            value={topicMetadata.topicType}
                                             readOnly
                                             className="h-10 bg-slate-50"
                                         />
@@ -893,7 +899,7 @@ export default function ExerciseManagementByTopic() {
                                         </label>
                                         <Input
                                             value={
-                                                effectiveTopicMetadata.isPublished
+                                                topicMetadata.isPublished
                                                     ? "Đang xuất bản"
                                                     : "Bản nháp"
                                             }
@@ -908,7 +914,7 @@ export default function ExerciseManagementByTopic() {
                                         </label>
                                         <Input
                                             value={String(
-                                                effectiveTopicMetadata.estimatedTimeMinutes ??
+                                                topicMetadata.estimatedTimeMinutes ??
                                                     0,
                                             )}
                                             readOnly
@@ -922,7 +928,7 @@ export default function ExerciseManagementByTopic() {
                                         </label>
                                         <Input
                                             value={String(
-                                                effectiveTopicMetadata.totalExercises,
+                                                topicMetadata.totalExercises,
                                             )}
                                             readOnly
                                             className="h-10 bg-slate-50"
@@ -930,8 +936,7 @@ export default function ExerciseManagementByTopic() {
                                     </div>
                                 </div>
 
-                                {effectiveTopicMetadata.topicType ===
-                                    "Exam" && (
+                                {topicMetadata.topicType === "Exam" && (
                                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                         <div>
                                             <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -939,7 +944,7 @@ export default function ExerciseManagementByTopic() {
                                             </label>
                                             <Input
                                                 value={String(
-                                                    effectiveTopicMetadata.examYear ??
+                                                    topicMetadata.examYear ??
                                                         "-",
                                                 )}
                                                 readOnly
@@ -953,7 +958,7 @@ export default function ExerciseManagementByTopic() {
                                             </label>
                                             <Input
                                                 value={
-                                                    effectiveTopicMetadata.examCode ??
+                                                    topicMetadata.examCode ??
                                                     "-"
                                                 }
                                                 readOnly

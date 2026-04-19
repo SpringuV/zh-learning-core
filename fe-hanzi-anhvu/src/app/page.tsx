@@ -2,13 +2,12 @@ import { Metadata } from "next";
 import { LandingFeatures } from "@/shared/components/landing/landing-features";
 import { LandingHeader } from "@/shared/components/landing/landing-header";
 import { LandingHero } from "@/shared/components/landing/landing-hero";
-import { LandingReviewStats } from "@/shared/components/landing/landing-review-stats";
 import { LandingZoomSection } from "@/shared/components/landing/landing-zoom-section";
 
 export const metadata: Metadata = {
     title: "Landing Page - HanZi Live",
     description:
-        "Landing page học tiếng Trung với ôn tập và lớp Zoom trực tiếp",
+        "Landing page học tiếng Trung với ôn tập, ôn thi HSKK và lớp học trực tiếp",
 };
 
 export default function Home() {
@@ -30,7 +29,6 @@ export default function Home() {
                 </div>
             </section>
             <LandingFeatures />
-            <LandingReviewStats />
             <LandingZoomSection />
         </main>
     );

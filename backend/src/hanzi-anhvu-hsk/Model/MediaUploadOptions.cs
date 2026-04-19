@@ -1,5 +1,10 @@
 namespace Model;
 
+// Đây là class chứa các cấu hình liên quan đến việc upload media, bao gồm 
+// endpoint, bucket name, access key, secret key, URL public base để truy cập media sau khi upload,
+// thời gian hết hạn của signed URL, cũng như các cấu hình liên quan đến việc bật/tắt tính năng upload
+// và đồng bộ usage với Cloudflare R2. Các cấu hình này sẽ được sử dụng trong quá trình tạo signed URL
+// để upload media và trong BackgroundService để đồng bộ usage metrics từ Cloudflare R2.
 public sealed class MediaUploadOptions
 {
     public const string SectionName = "MediaUpload";
