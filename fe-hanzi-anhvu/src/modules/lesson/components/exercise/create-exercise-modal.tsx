@@ -1,7 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FileText, Settings2, ListChecks, MessageSquare, ExternalLink, Image as ImageIcon, Loader2, Music2, Plus, Trash2, Upload, X } from "lucide-react";
+import {
+    ExternalLink,
+    FileText,
+    Image as ImageIcon,
+    Loader2,
+    Music2,
+    Plus,
+    Settings2,
+    Trash2,
+    Upload,
+    X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { mediaUploadApi } from "@/modules/lesson/api/media-upload.api";
 import { useCreateExercise } from "@/modules/lesson/hooks/use.exercise.tanstack";
@@ -556,12 +567,8 @@ export function CreateExerciseModal({
                     onSubmit={handleSubmit}
                     className="flex min-h-0 flex-1 flex-col"
                 >
-                    <div className="min-h-0 space-y-6 overflow-y-auto bg-slate-50/50 p-4 sm:p-6 pr-4">
-                        <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
-                                <FileText className="size-4 text-blue-500" />
-                                Nội dung bài tập
-                            </h3>
+                    <div className="min-h-0 space-y-3 overflow-y-auto p-1 pr-2">
+                        <div className="space-y-3 rounded-md border border-slate-200 p-3">
                             <div className="space-y-2">
                                 <Label htmlFor="exercise-topic-id">
                                     TopicId
@@ -619,12 +626,7 @@ export function CreateExerciseModal({
                             </div>
                         </div>
 
-                        <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
-                                <Settings2 className="size-4 text-purple-500" />
-                                Phân loại & Thuộc tính
-                            </h3>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-3 rounded-md border border-slate-200 p-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="space-y-2">
                                 <Label>Loại bài *</Label>
                                 <Select
@@ -731,7 +733,6 @@ export function CreateExerciseModal({
                                     </SelectContent>
                                 </Select>
                             </div>
-                        </div>
                         </div>
 
                         {isOptionRequired && (
@@ -1153,7 +1154,7 @@ export function CreateExerciseModal({
                             </div>
                         </div>
 
-                        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-5 shadow-inner">
+                        <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
                             <p className="text-xs font-medium text-slate-600">
                                 JSON Body Preview
                             </p>

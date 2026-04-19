@@ -488,3 +488,4 @@ $RECYCLE.BIN/
 **/deploy/
 AGENTS.md
 AGENT_WORKFLOW_PLAYBOOK.md
+.agents/
