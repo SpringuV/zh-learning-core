@@ -9,7 +9,7 @@ public class ExerciseRepository(
     : LessonRepositoryBase(logger), IExerciseRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
-    private const int ReorderTempBase = 1_000_000_000;
+    private const int ReorderTempBase = 1_000_000_000; // Giá trị lớn để tạm thời di chuyển OrderIndex trong quá trình sắp xếp lại
 
     public async Task AddAsync(ExerciseAggregate exercise, CancellationToken ct = default)
     {

@@ -11,6 +11,7 @@ public class TopicConfiguration : IEntityTypeConfiguration<TopicAggregate>
         builder.ToTable("Topics");
         // Configure the Topic entity
         builder.HasKey(c => c.TopicId);
+        builder.HasIndex(t => t.Slug).IsUnique(); // đảm bảo không có 2 topic nào có cùng slug
         builder.HasIndex(t => t.CourseId); // tạo index trên CourseId để truy vấn nhanh hơn
         builder.HasIndex(t => t.ExamCode); // tạo index trên ExamCode để truy vấn nhanh hơn
         builder.HasIndex(t => new { t.CourseId, t.OrderIndex }).IsUnique(); // đảm bảo mỗi topic trong cùng course có orderIndex khác nhau

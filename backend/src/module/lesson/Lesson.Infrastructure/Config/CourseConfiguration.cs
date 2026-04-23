@@ -6,7 +6,7 @@ public class CourseConfiguration : IEntityTypeConfiguration<CourseAggregate>
     {
         builder.ToTable("Courses");
         builder.HasKey(c => c.CourseId);
-        builder.HasIndex(c => c.CourseId).IsUnique();
+        builder.HasIndex(c => c.Slug).IsUnique(); // đảm bảo không có 2 khóa học nào có cùng slug
         builder.HasIndex(c => c.OrderIndex).IsUnique(); // đảm bảo không có 2 khóa học nào có cùng order index
         builder.Property(c => c.Title).IsRequired();
         builder.Property(c => c.Description).IsRequired(false);

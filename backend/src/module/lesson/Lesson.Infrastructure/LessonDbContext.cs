@@ -1,19 +1,15 @@
-using System.Reflection;
-using Lesson.Domain.Entities;
-using Lesson.Domain.Entities.Exercise;
-using Lesson.Infrastructure.Outbox;
-using Microsoft.EntityFrameworkCore;
-
 namespace Lesson.Infrastructure;
 
 public class LessonDbContext(DbContextOptions<LessonDbContext> options) : DbContext(options)
 {
     public DbSet<CourseAggregate> Courses { get; set; } = null!;
     public DbSet<ExerciseAttemptAggregate> ExerciseAttempts { get; set; } = null!;
+    public DbSet<UserTopicExerciseSessionItem> UserExerciseSessionItems { get; set; } = null!;
     public DbSet<TopicProgressAggregate> TopicProgresses { get; set; } = null!;
     public DbSet<UserTopicExerciseSessionAggregate> UserExerciseSessions { get; set; } = null!;
     public DbSet<TopicAggregate> Topics { get; set; } = null!;
     public DbSet<ExerciseAggregate> Exercises { get; set; } = null!;
+    public DbSet<FlashcardAggregate> Flashcards { get; set; } = null!;
 
     public DbSet<LessonModuleOutboxMessage> LessonOutboxMessages { get; set; } = null!;
     // hàm này được gọi khi EF Core xây dựng mô hình dữ liệu (model) từ các class C#.

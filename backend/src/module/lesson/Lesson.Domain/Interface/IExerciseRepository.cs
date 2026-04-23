@@ -1,6 +1,3 @@
-using Lesson.Domain.Entities;
-using Lesson.Domain.Entities.Exercise;
-
 namespace Lesson.Domain.Interface;
 
 public interface IExerciseRepository

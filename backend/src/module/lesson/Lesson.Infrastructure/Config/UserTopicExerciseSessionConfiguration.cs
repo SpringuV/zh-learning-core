@@ -23,10 +23,11 @@ public class UserTopicExerciseSessionConfiguration : IEntityTypeConfiguration<Us
         builder.Property(s => s.TopicId).IsRequired(false);
         builder.Property(s => s.TotalScore).IsRequired(false);
         builder.Property(s => s.CompletedAt).IsRequired(false);
+        builder.Property(s => s.CurrentSequenceNo).IsRequired();
+        builder.Property(s => s.TotalExercises).IsRequired();
         
         // Cross-module: UserId is soft reference to users table (no FK constraint)
         // Same-module: TopicId is optional FK to topic (can exist without topic context)
-        builder.Property(s => s.TopicId).IsRequired(false);
         
         builder.HasOne<TopicAggregate>()
             .WithMany()
@@ -38,5 +39,10 @@ public class UserTopicExerciseSessionConfiguration : IEntityTypeConfiguration<Us
         builder.HasIndex(s => s.TopicId);
         builder.HasIndex(s => new { s.UserId, s.Status });
         builder.HasIndex(s => s.StartedAt);
+
+        builder.HasMany(s => s.SessionItems)
+            .WithOne()
+            .HasForeignKey(i => i.SessionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

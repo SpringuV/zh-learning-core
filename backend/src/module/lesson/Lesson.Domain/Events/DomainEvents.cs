@@ -327,6 +327,53 @@ public sealed record UserTopicExerciseSessionAbandonedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
+public sealed record UserTopicExerciseSessionSnapshotInitializedEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    int TotalExercises,
+    int CurrentSequenceNo,
+    DateTime InitializedAt,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record UserTopicExerciseSessionItemViewedEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    Guid SessionItemId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    DateTime ViewedAt,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record UserTopicExerciseSessionItemCompletedEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    Guid SessionItemId,
+    Guid? AttemptId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    DateTime CompletedAt,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record UserTopicExerciseSessionItemSkippedEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    Guid SessionItemId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    DateTime SkippedAt,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
 // ============= EXERCISE ATTEMPT EVENTS =============
 
 /// <summary>
@@ -455,7 +502,6 @@ public sealed record FlashcardCreatedEvent(
     string MeaningVi,
     string? MeaningEn,
     string PhraseType,           // word|phrase|idiom|sentence
-    int OrderIndex,
     string? AudioUrl,
     int? HskLevel,
     bool IsHskCore,
@@ -491,11 +537,6 @@ public sealed record FlashcardPhraseTypeUpdatedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record FlashcardOrderIndexUpdatedEvent(
-    Guid FlashcardId,
-    int OrderIndex,
-    DateTime UpdatedAt
-) : BaseDomainEvent, INotification;
 
 public sealed record FlashcardAudioUrlUpdatedEvent(
     Guid FlashcardId,

@@ -153,7 +153,7 @@ public class ExerciseAggregate: BaseAggregateRoot
         // Enforce option rules ngay từ bước create để tránh tạo draft sai cấu trúc.
         exercise.ValidateOptions();
 
-        exercise.Slug = GenerateSlug($"{exercise.ExerciseType}-{exercise.Question[..Math.Min(20, exercise.Question.Length)]}");
+        exercise.Slug = GenerateSlug($"{exercise.ExerciseType}-{exercise.Question[..Math.Min(20, exercise.Question.Length)]}-{exercise.ExerciseId:N}");
         
         exercise.AddDomainEvent(new ExerciseCreatedEvent(
             exercise.ExerciseId,
@@ -243,7 +243,7 @@ public class ExerciseAggregate: BaseAggregateRoot
             throw new ArgumentException("Question cannot be empty", nameof(newQuestion));
         
         Question = newQuestion;
-        Slug = GenerateSlug($"{ExerciseType}-{newQuestion[..Math.Min(20, newQuestion.Length)]}");
+        Slug = GenerateSlug($"{ExerciseType}-{newQuestion[..Math.Min(20, newQuestion.Length)]}-{ExerciseId:N}");
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new ExerciseQuestionUpdatedEvent(ExerciseId, newQuestion, Slug, UpdatedAt));
     }
@@ -251,7 +251,7 @@ public class ExerciseAggregate: BaseAggregateRoot
     public void UpdateExerciseType(ExerciseType newExerciseType)
     {
         ExerciseType = newExerciseType;
-        Slug = GenerateSlug($"{ExerciseType}-{Question[..Math.Min(20, Question.Length)]}");
+        Slug = GenerateSlug($"{ExerciseType}-{Question[..Math.Min(20, Question.Length)]}-{ExerciseId:N}");
         UpdatedAt = DateTime.UtcNow;
         ValidateOptions();
         AddDomainEvent(new ExerciseTypeUpdatedEvent(ExerciseId, TopicId, newExerciseType, Slug, UpdatedAt));

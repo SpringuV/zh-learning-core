@@ -10,7 +10,7 @@ public class ExerciseConfiguration : IEntityTypeConfiguration<ExerciseAggregate>
         // Key configuration
         builder.HasKey(e => e.ExerciseId);
         builder.Property(e => e.ExerciseId).IsRequired();
-        
+        builder.HasIndex(e => e.Slug).IsUnique(); // đảm bảo không có 2 bài tập nào có cùng slug
         // Required properties
         builder.Property(e => e.TopicId).IsRequired();
         builder.Property(e => e.Question).IsRequired();

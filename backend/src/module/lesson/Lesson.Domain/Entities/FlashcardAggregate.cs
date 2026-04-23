@@ -19,7 +19,6 @@ public class FlashcardAggregate : BaseAggregateRoot
     public string MeaningVi { get; private set; } = null!;          // meaning_vi
     public string? MeaningEn { get; private set; } = null;          // meaning_en (optional)
     public PhraseType PhraseType { get; private set; } = PhraseType.Word; // e.g. "word", "phrase", "idiom", "sentence"   
-    public int OrderIndex { get; private set; }
     public string AudioUrl { get; private set; } = string.Empty; // optional, for pronunciation
     public int? HskLevel { get; private set; } = null; // 1-9 theo chuẩn HSK. Null nếu không thuộc HSK
     public bool IsHskCore { get; private set; } = false; // true nếu là từ vựng HSK core, false nếu là từ phụ hoặc không thuộc HSK
@@ -43,7 +42,6 @@ public class FlashcardAggregate : BaseAggregateRoot
         string pinyin, 
         string meaningVi, 
         PhraseType phraseType, 
-        int orderIndex,  
         string audioUrl = "",
         string? meaningEn = null, 
         int? hskLevel = null, 
@@ -66,8 +64,6 @@ public class FlashcardAggregate : BaseAggregateRoot
             throw new ArgumentException("Pinyin cannot be empty.", nameof(pinyin));
         if (string.IsNullOrWhiteSpace(meaningVi))
             throw new ArgumentException("MeaningVi cannot be empty.", nameof(meaningVi));
-        if (orderIndex < 0)
-            throw new ArgumentException("OrderIndex cannot be negative.", nameof(orderIndex));
 
         var now = DateTime.UtcNow;
         var flashcard = new FlashcardAggregate
@@ -80,7 +76,6 @@ public class FlashcardAggregate : BaseAggregateRoot
             MeaningVi = meaningVi,
             MeaningEn = meaningEn,
             PhraseType = phraseType,
-            OrderIndex = orderIndex,
             AudioUrl = audioUrl,
             HskLevel = hskLevel,
             IsHskCore = isHskCore,
@@ -105,7 +100,6 @@ public class FlashcardAggregate : BaseAggregateRoot
             flashcard.MeaningVi,
             flashcard.MeaningEn,
             flashcard.PhraseType.ToString(),
-            flashcard.OrderIndex,
             flashcard.AudioUrl,
             flashcard.HskLevel,
             flashcard.IsHskCore,
@@ -153,16 +147,6 @@ public class FlashcardAggregate : BaseAggregateRoot
         PhraseType = newPhraseType;
         UpdatedAt = DateTime.UtcNow;
         AddDomainEvent(new FlashcardPhraseTypeUpdatedEvent(FlashcardId, newPhraseType.ToString(), UpdatedAt));
-    }
-
-    public void UpdateOrderIndex(int newOrderIndex)
-    {
-        if (newOrderIndex < 0)
-            throw new ArgumentException("OrderIndex cannot be negative.", nameof(newOrderIndex));
-        
-        OrderIndex = newOrderIndex;
-        UpdatedAt = DateTime.UtcNow;
-        AddDomainEvent(new FlashcardOrderIndexUpdatedEvent(FlashcardId, newOrderIndex, UpdatedAt));
     }
 
     public void UpdateAudioUrl(string newAudioUrl)

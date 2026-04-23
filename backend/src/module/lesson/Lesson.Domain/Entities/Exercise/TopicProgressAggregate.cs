@@ -1,5 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Events;
 namespace Lesson.Domain.Entities.Exercise;
 /// <summary>
 /// Aggregate Root: User's cumulative progress for a specific topic

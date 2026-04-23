@@ -6,10 +6,8 @@ public class FlashcardConfiguration : IEntityTypeConfiguration<FlashcardAggregat
     {
         builder.ToTable("Flashcards");
         builder.HasIndex(f => f.FlashcardId).IsUnique();
-        builder.HasIndex(f => new { f.CourseId, f.TopicId, f.OrderIndex }).IsUnique(); // đảm bảo không có 2 flashcard nào trong cùng 1 topic có cùng order index
         builder.HasIndex(f => f.CourseId);
         builder.HasIndex(f => f.TopicId);
-        builder.HasIndex(f => f.OrderIndex);
 
         // Key configuration
         builder.HasKey(f => f.FlashcardId);
@@ -22,7 +20,6 @@ public class FlashcardConfiguration : IEntityTypeConfiguration<FlashcardAggregat
         builder.Property(f => f.Pinyin).IsRequired();
         builder.Property(f => f.MeaningVi).IsRequired();
         builder.Property(f => f.PhraseType).IsRequired();
-        builder.Property(f => f.OrderIndex).IsRequired();
         builder.Property(f => f.CreatedAt).IsRequired();
         builder.Property(f => f.UpdatedAt).IsRequired();
         builder.Property(f => f.IsHskCore).IsRequired();

@@ -13,6 +13,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
 {
     public Guid AttemptId { get; private set; }
     public Guid SessionId { get; private set; } // FK to user_exercise_session (same module)
+    public Guid? SessionItemId { get; private set; } // Soft ref to session snapshot item within the same learning session
     public Guid ExerciseId { get; private set; } // Soft ref to exercise.id (cross-module)
     public string Answer { get; private set; } = string.Empty;
     public float Score { get; private set; } = 0f;
@@ -30,6 +31,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
     /// </summary>
     public static ExerciseAttemptAggregate Create(
         Guid sessionId,
+        Guid? sessionItemId,
         Guid userId, // for denormalized event payload (from session)
         Guid? topicId, // for denormalized event payload (from session, nullable)
         Guid exerciseId,
@@ -40,6 +42,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         string answer)
     {
         if (sessionId == Guid.Empty) throw new ArgumentException("SessionId không được để trống");
+        if (sessionItemId.HasValue && sessionItemId.Value == Guid.Empty) throw new ArgumentException("SessionItemId không được để trống");
         if (userId == Guid.Empty) throw new ArgumentException("UserId không được để trống");
         if (exerciseId == Guid.Empty) throw new ArgumentException("ExerciseId không được để trống");
         if (string.IsNullOrWhiteSpace(question)) throw new ArgumentException("Question không được để trống");
@@ -49,6 +52,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         {
             AttemptId = Guid.CreateVersion7(),
             SessionId = sessionId,
+            SessionItemId = sessionItemId,
             ExerciseId = exerciseId,
             Answer = answer,
             CreatedAt = DateTime.UtcNow,
