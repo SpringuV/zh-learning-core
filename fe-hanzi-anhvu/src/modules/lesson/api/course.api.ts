@@ -1,6 +1,7 @@
 import {
     CourseCreateRequest,
     CourseCreateResponseApi,
+    CourseDashboardItem,
     CourseListItem,
     CourseListQueryParams,
     CourseReOrderRequest,
@@ -8,12 +9,14 @@ import {
 } from "@/modules/lesson/types/coure.type";
 import {
     AdminBaseListResponse,
+    BaseResponse,
     sanitizeQueryParams,
 } from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
 
 // #region API Endpoints
 const endPoints = {
+    // admin course management
     createCourse: "lesson/v1/course",
     publishCourse: (courseId: string) => `lesson/v1/course/${courseId}/publish`,
     unPublishCourse: (courseId: string) =>
@@ -22,6 +25,8 @@ const endPoints = {
     updateCourse: `lesson/v1/course`,
     reOrderCourse: "lesson/v1/course/reorder",
     deleteCourse: (courseId: string) => `lesson/v1/course/${courseId}`,
+    // client course
+    loadCoursesForDashboard: "search/v1/courses/dashboard",
 };
 // #endregion
 
@@ -54,5 +59,10 @@ export const courseApi = {
     },
     async deleteCourse(courseId: string) {
         return await http.delete(endPoints.deleteCourse(courseId));
+    },
+    async loadCoursesForDashboard() {
+        return await http.get<BaseResponse<CourseDashboardItem[]>>(
+            endPoints.loadCoursesForDashboard,
+        );
     },
 };

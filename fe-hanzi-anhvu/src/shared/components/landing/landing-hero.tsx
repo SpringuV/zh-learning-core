@@ -25,7 +25,7 @@ export function LandingHero() {
                     size="lg"
                     className="bg-[#14b8a6] text-white hover:bg-[#0f9e90]"
                 >
-                    <Link href="/dashboard">
+                    <Link href="/u/dashboard">
                         <BookOpen className="size-4" />
                         Bắt đầu ôn tập
                     </Link>

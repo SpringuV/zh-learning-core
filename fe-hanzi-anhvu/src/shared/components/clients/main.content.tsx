@@ -1,75 +1,62 @@
-import { ArrowRight, Sparkles, Users } from "lucide-react";
-
-const courseItems = [
-    {
-        title: "DSA #1: Nền tảng - Complexity, Toán học & Bit Manipulation",
-        description:
-            "Phần 1/13 trong lộ trình DSA. Bao gồm lý thuyết chi tiết, code Python, mô phỏng từng bước và bài LeetCode.",
-        lessons: "5 bài học",
-        students: "1386 học viên",
-    },
-    {
-        title: "Nhập môn lập trình Python",
-        description:
-            "Khóa học lập trình Python dành cho người chưa biết gì. Học mà như không học, mỗi khái niệm được giải thích qua ví dụ trực quan.",
-        lessons: "47 bài học",
-        students: "480 học viên",
-    },
-    {
-        title: "Nền Tảng Database",
-        description:
-            "5 câu hỏi phỏng vấn nền tảng về Database: DBMS Languages, ACID, Normalization, ER Diagram và SQL Joins.",
-        lessons: "5 bài học",
-        students: "395 học viên",
-    },
-    {
-        title: "DSA #2: Arrays & Strings",
-        description:
-            "Phần 2/13 trong lộ trình DSA. Bao gồm lý thuyết chi tiết, code Python, mô phỏng từng bước và bài LeetCode.",
-        lessons: "10 bài học",
-        students: "273 học viên",
-    },
-    {
-        title: "Làm quen với Git",
-        description:
-            "Khóa học đầu tiên giúp bạn hiểu Git là gì, tại sao cần dùng, cách cài đặt GitHub Desktop, tạo repository và commit thay đổi.",
-        lessons: "21 bài học",
-        students: "220 học viên",
-    },
-    {
-        title: "DSA #3: Searching & Sorting",
-        description:
-            "Phần 3/13 trong lộ trình DSA. Bao gồm lý thuyết chi tiết, code Python, mô phỏng từng bước và bài LeetCode.",
-        lessons: "9 bài học",
-        students: "194 học viên",
-    },
-];
+"use client";
+import { useGetCourseForDashboard } from "@/modules/lesson/hooks/use.course.tanstack";
+import { CourseDashboardItem } from "@/modules/lesson/types/coure.type";
+import { Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export function ClientDashboardMainContent() {
+    const courseDashboardList = useGetCourseForDashboard();
+    if (courseDashboardList.isLoading || courseDashboardList.isFetching) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Sparkles className="animate-spin" size={48} />
+            </div>
+        );
+    }
+    if (courseDashboardList.isError) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <p className="text-red-500">Có lỗi xảy ra.</p>
+            </div>
+        );
+    }
+    if (courseDashboardList.data?.data == null) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full gap-4">
+                <Sparkles size={48} className="text-slate-400" />
+                <p className="text-slate-500">
+                    Hiện tại không có khóa học nào.
+                </p>
+            </div>
+        );
+    }
     return (
         <section className="min-h-0 flex-1 w-full overflow-y-auto px-4 py-6 md:px-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {courseItems.map((item, index) => (
-                    <div
-                        key={index}
-                        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-                    >
-                        <h3 className="font-semibold text-slate-800">
-                            {item.title}
-                        </h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                            {item.description}
-                        </p>
-                        <div className="mt-4 flex items-center justify-between">
-                            <span className="text-xs font-medium text-slate-500">
-                                {item.lessons}
-                            </span>
-                            <span className="text-xs font-medium text-slate-500">
-                                {item.students}
-                            </span>
-                        </div>
-                    </div>
-                ))}
+                {courseDashboardList.data?.data.map(
+                    (item: CourseDashboardItem, index: number) => (
+                        <Link
+                            key={index}
+                            href={`/u/${item.slug}`}
+                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                        >
+                            <h3 className="font-semibold text-slate-800">
+                                {item.title}
+                            </h3>
+                            <p className="mt-2 text-sm text-slate-600">
+                                {item.description}
+                            </p>
+                            <div className="mt-4 flex items-center justify-between">
+                                <span className="text-xs font-medium text-slate-500">
+                                    {item.totalTopics} topics
+                                </span>
+                                <span className="text-xs font-medium text-slate-500">
+                                    {item.totalStudentsEnrolled} students
+                                </span>
+                            </div>
+                        </Link>
+                    ),
+                )}
             </div>
         </section>
     );

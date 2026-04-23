@@ -70,6 +70,19 @@ export interface TopicDetailResponse {
     updatedAt: string;
 }
 
+export interface TopicClientDashboardItemResponse {
+    id: string;
+    title: string;
+    slug: string;
+    topicType: TopicType;
+    examYear?: number | null;
+    examCode?: string | null;
+    estimatedTimeMinutes: number;
+    description: string;
+    totalExercises: number;
+    orderIndex: number;
+}
+
 export interface CourseMetadataForTopicAdmin {
     id: string;
     title: string;

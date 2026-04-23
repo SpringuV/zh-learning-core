@@ -2,6 +2,24 @@ namespace HanziAnhVuHsk.Apis.SearchApi;
 
 public static class LessonSearchApi
 {
+    #region Course dashboard
+    public static async Task<IResult> LoadCoursesForDashboardClient([FromServices] ICourseSearchQueriesService courseSearchQueriesService, CancellationToken ct)
+    {
+        try
+        {
+            var result = await courseSearchQueriesService.GetCourseForDashboardClientAsync(ct);
+            return result.Success ? Results.Ok(result) : LessonApi.Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
     #region Course Admin
     public static async Task<IResult> SearchCourses([AsParameters] CourseSearchQueryAdminRequest request, [FromServices] ICourseSearchQueriesService courseSearchQueriesService, CancellationToken ct)
     {
@@ -24,7 +42,24 @@ public static class LessonSearchApi
         }
     }
     #endregion
-
+    #region Topic Client
+    public static async Task<IResult> SearchTopicsForClient([FromRoute] string slug, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, CancellationToken ct)
+    {
+        try
+        {
+            var results = await topicSearchQueriesService.GetTopicForDashboardClientAsync(slug, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
     #region Topic Admin
     public static async Task<IResult> SearchTopics([AsParameters] TopicSearchQueryRequest request, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, CancellationToken ct)
     {

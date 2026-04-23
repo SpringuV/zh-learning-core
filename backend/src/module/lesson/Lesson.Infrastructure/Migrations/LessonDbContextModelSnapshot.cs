@@ -63,10 +63,10 @@ namespace Lesson.Infrastructure.Migrations
 
                     b.HasKey("CourseId");
 
-                    b.HasIndex("CourseId")
+                    b.HasIndex("OrderIndex")
                         .IsUnique();
 
-                    b.HasIndex("OrderIndex")
+                    b.HasIndex("Slug")
                         .IsUnique();
 
                     b.ToTable("Courses", (string)null);
@@ -136,6 +136,9 @@ namespace Lesson.Infrastructure.Migrations
 
                     b.HasKey("ExerciseId");
 
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
                     b.HasIndex("TopicId");
 
                     b.HasIndex("TopicId", "OrderIndex");
@@ -174,6 +177,9 @@ namespace Lesson.Infrastructure.Migrations
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SessionItemId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -182,6 +188,8 @@ namespace Lesson.Infrastructure.Migrations
                     b.HasIndex("ExerciseId");
 
                     b.HasIndex("SessionId");
+
+                    b.HasIndex("SessionItemId");
 
                     b.HasIndex("SessionId", "ExerciseId");
 
@@ -248,6 +256,9 @@ namespace Lesson.Infrastructure.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("CurrentSequenceNo")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -259,6 +270,9 @@ namespace Lesson.Infrastructure.Migrations
 
                     b.Property<Guid?>("TopicId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("TotalExercises")
+                        .HasColumnType("integer");
 
                     b.Property<float?>("TotalScore")
                         .HasColumnType("real");
@@ -277,6 +291,57 @@ namespace Lesson.Infrastructure.Migrations
                     b.HasIndex("UserId", "Status");
 
                     b.ToTable("UserTopicExerciseSessions", (string)null);
+                });
+
+            modelBuilder.Entity("Lesson.Domain.Entities.Exercise.UserTopicExerciseSessionItem", b =>
+                {
+                    b.Property<Guid>("SessionItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AttemptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SequenceNo")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ViewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("SessionItemId");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("SessionId", "OrderIndex")
+                        .IsUnique();
+
+                    b.HasIndex("SessionId", "SequenceNo")
+                        .IsUnique();
+
+                    b.ToTable("UserTopicExerciseSessionItems", (string)null);
                 });
 
             modelBuilder.Entity("Lesson.Domain.Entities.FlashcardAggregate", b =>
@@ -320,9 +385,6 @@ namespace Lesson.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
                     b.Property<int>("PhraseType")
                         .HasColumnType("integer");
 
@@ -355,12 +417,7 @@ namespace Lesson.Infrastructure.Migrations
                     b.HasIndex("FlashcardId")
                         .IsUnique();
 
-                    b.HasIndex("OrderIndex");
-
                     b.HasIndex("TopicId");
-
-                    b.HasIndex("CourseId", "TopicId", "OrderIndex")
-                        .IsUnique();
 
                     b.ToTable("Flashcards", (string)null);
                 });
@@ -417,6 +474,9 @@ namespace Lesson.Infrastructure.Migrations
                     b.HasIndex("CourseId");
 
                     b.HasIndex("ExamCode");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.HasIndex("CourseId", "OrderIndex")
                         .IsUnique();
@@ -495,6 +555,15 @@ namespace Lesson.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("Lesson.Domain.Entities.Exercise.UserTopicExerciseSessionItem", b =>
+                {
+                    b.HasOne("Lesson.Domain.Entities.Exercise.UserTopicExerciseSessionAggregate", null)
+                        .WithMany("SessionItems")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Lesson.Domain.Entities.FlashcardAggregate", b =>
                 {
                     b.HasOne("Lesson.Domain.Entities.CourseAggregate", null)
@@ -517,6 +586,11 @@ namespace Lesson.Infrastructure.Migrations
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Lesson.Domain.Entities.Exercise.UserTopicExerciseSessionAggregate", b =>
+                {
+                    b.Navigation("SessionItems");
                 });
 #pragma warning restore 612, 618
         }

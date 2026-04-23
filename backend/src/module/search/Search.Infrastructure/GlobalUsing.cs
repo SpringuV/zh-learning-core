@@ -9,12 +9,15 @@ global using Search.Contracts.DTOs;
 global using Search.Contracts.Interfaces;
 global using Search.Application.Entities;
 global using Search.Infrastructure.Queries.Users.Indexs;
+global using HanziAnhVu.Shared.Contracts;
+global using HanziAnhVu.Shared.Contracts.Enums;
+global using Search.Infrastructure.Queries.Lesson.Update.Topic;
+global using Search.Infrastructure.Queries.Lesson.Client;
 
 global using HanziAnhVu.Shared.EventBus.Abstracts;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Search.Infrastructure.Services;
-global using Search.Infrastructure.Queries.Common;
 global using FluentValidation;
 global using Microsoft.Extensions.Hosting;
 global using Search.Infrastructure.Queries.Lesson.Search;

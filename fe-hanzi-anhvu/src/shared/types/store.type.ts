@@ -6,6 +6,28 @@ export interface PaginationInfo {
     total: number;
 }
 
+export interface BaseResponse<T = void> {
+    // Generic type T, default to void if not provided
+    success: boolean;
+    message: string;
+    data?: T;
+    errorCode?: number;
+}
+
+// factory functions to create success and error responses
+export const BaseResponse = {
+    success: <T>(data: T, message = "Success"): BaseResponse<T> => ({
+        success: true,
+        message,
+        data: data,
+    }),
+    error: (message: string, errorCode?: number): BaseResponse => ({
+        success: false,
+        message,
+        errorCode: errorCode,
+    }),
+};
+
 export interface AdminBaseListResponse<T> {
     items: T[];
     pagination: PaginationInfo;

@@ -1,12 +1,15 @@
 import { topicApi } from "@/modules/lesson/api/topic.api";
 import {
-    CourseTopicsOverviewResponse,
     TopicCreateRequest,
     TopicQueryParams,
     TopicReOrderRequest,
     UpdateTopicRequest,
 } from "@/modules/lesson/types/topic.type";
-import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
+import {
+    GcTime,
+    StaleTime,
+    TimeAwaitHandlerApi,
+} from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
 import {
     keepPreviousData,
@@ -29,6 +32,20 @@ const invalidateTopicQueries = (
     ]);
 };
 
+export const useGetTopicsForClient = (slug: string) => {
+    return useQuery({
+        queryKey: ["topics-for-client", slug],
+        queryFn: async () => {
+            return await topicApi.getTopicsForClient(slug);
+        },
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        staleTime: StaleTime,
+        gcTime: GcTime,
+        enabled: Boolean(slug), // Chỉ chạy query khi slug có giá trị hợp lệ
+    });
+};
+
 export const useGetTopicDetail = (topicId: string) => {
     return useQuery({
         queryKey: ["topic-detail", topicId],
@@ -38,8 +55,8 @@ export const useGetTopicDetail = (topicId: string) => {
         enabled: Boolean(topicId),
         refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
         refetchOnMount: true,
-        staleTime: 5 * 60 * 1000, // 5 phút
-        gcTime: 10 * 60 * 1000, // 10 phút
+        staleTime: StaleTime,
+        gcTime: GcTime,
     });
 };
 
@@ -56,8 +73,8 @@ export const useGetListTopics = (
         refetchOnMount: true, // luôn refetch khi component mount để đảm bảo dữ liệu mới nhất, đặc biệt sau khi có thay đổi về chủ đề
         refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại,
         // nó sẽ chỉ refetch khi người dùng cuộn đến cuối danh sách hoặc gọi hàm refetch thủ công
-        staleTime: 5 * 60 * 1000, // 5 phút
-        gcTime: 10 * 60 * 1000, // 10 phút
+        staleTime: StaleTime,
+        gcTime: GcTime,
         enabled: Boolean(courseId),
     });
 };
@@ -89,8 +106,8 @@ export const useGetCourseTopicsOverview = (
             return await topicApi.getCourseTopicsOverview(courseId, params);
         },
         placeholderData: keepPreviousData,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
+        staleTime: StaleTime,
+        gcTime: GcTime,
         refetchOnWindowFocus: false,
         refetchOnMount: true,
         enabled: Boolean(courseId),

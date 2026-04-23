@@ -86,7 +86,16 @@ public sealed record UserSearchResponse (
 public sealed record CourseIndexResponse(
     Guid CourseId,
     DateTime CreatedAt);
-
+public sealed record CourseSearchForDashboardClientResponse(
+    Guid Id,
+    string Title,
+    string Description,
+    int HskLevel,
+    int OrderIndex,
+    long TotalTopics,
+    long TotalStudentsEnrolled,
+    string Slug
+);
 public sealed record CourseSearchItemAdminResponse(
     Guid Id,
     string Title,
@@ -105,6 +114,19 @@ public sealed record CourseSearchItemAdminResponse(
 public sealed record TopicIndexResponse(
     Guid TopicId,
     DateTime CreatedAt);
+
+public sealed record TopicSearchForDashboardClientResponse(
+    Guid Id,
+    string Title,
+    string Slug,
+    int OrderIndex,
+    string TopicType,
+    int? ExamYear,
+    string? ExamCode,
+    long EstimatedTimeMinutes,
+    string Description,
+    long TotalExercises);
+
 public sealed record TopicSearchDetailResponse(
     Guid Id,
     string Title,

@@ -1,4 +1,5 @@
-using Search.Infrastructure.Queries.Lesson.Delete;
+using HanziAnhVu.Shared.Contracts;
+using Search.Infrastructure.Queries.Lesson.Client;
 using Search.Infrastructure.Queries.Lesson.Update.Course;
 
 namespace Search.Infrastructure.Services;
@@ -7,6 +8,7 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
 {
     private readonly ILogger<CourseSearchQueriesServices> _logger = logger;
     private readonly IMediator _mediator = mediator;
+    #region  Index
     public async Task<CourseIndexResponse> IndexAsync(CourseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default)
     {
         var command = new CourseIndexCommand(
@@ -24,7 +26,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         return await _mediator.Send(command, cancellationToken);
 
     }
-
+    #endregion
+    #region Delete
     public async Task DeleteAsync(CourseDeletedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseDeletedSearchCommand(
@@ -32,7 +35,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region CourseSearchItemAdmin
     public async Task<SearchQueryResult<CourseSearchItemAdminResponse>> GetCourseSearchItemAdminAsync(CourseSearchQueryAdminRequest request, CancellationToken cancellationToken = default)
     {
         var query = new CourseSearchAdminQueries(
@@ -45,7 +49,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
             Take: request.Take);
         return await _mediator.Send(query, cancellationToken);
     }
-
+    #endregion
+    #region Publish
     public async Task PublishAsync(CoursePublishedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CoursePublishedSearchCommand(
@@ -54,7 +59,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UnPublish
     public async Task UnPublishAsync(CourseUnPublishedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseUnPublishedSearchCommand(
@@ -63,7 +69,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region ReOrder
     public async Task ReOrderAsync(CourseReorderSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseReOrderedSearchCommand(
@@ -72,7 +79,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UpdateTotalTopics
     public async Task UpdateTotalTopicsAsync(CourseTotalTopicsUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseTotalTopicsUpdatedSearchCommand(
@@ -82,7 +90,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UpdateTitle
     public async Task UpdateTitleAsync(CourseTitleUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseTitleUpdatedSearchCommand(
@@ -93,7 +102,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UpdateDescription
     public async Task UpdateDescriptionAsync(CourseDescriptionUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseDescriptionUpdatedSearchCommand(
@@ -103,7 +113,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
-
+    #endregion
+    #region UpdateHskLevel
     public async Task UpdateHskLevelAsync(CourseHskLevelUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default)
     {
         var command = new CourseHskLevelUpdatedSearchCommand(
@@ -113,4 +124,13 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         );
         await _mediator.Send(command, cancellationToken);
     }
+    #endregion
+    #region DashboardClientCourse
+    public Task<Result<IEnumerable<CourseSearchForDashboardClientResponse>>> GetCourseForDashboardClientAsync(CancellationToken cancellationToken = default)
+    {
+        var query = new CourseSearchForDashboardClientQueries();
+        return _mediator.Send(query, cancellationToken);
+    }
+    #endregion
+
 }

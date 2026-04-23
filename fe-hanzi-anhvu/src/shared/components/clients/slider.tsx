@@ -1,6 +1,7 @@
 import { BookOpen, Gem, Map, Route, ChevronRight, History } from "lucide-react";
 
 const learningItems = [
+    // mục ôn tập, mục này sẽ hiển thị các bài học mà học viên đánh dấu là cần ôn tập thêm vào đây
     { label: "Ôn tập", icon: History, active: false },
     { label: "Khóa học của tôi", icon: BookOpen, active: false },
     { label: "Lộ trình học", icon: Route, active: false },
@@ -23,8 +24,10 @@ export function ClientDashboardSidebar({
         >
             <div
                 className={
-                    "rounded-2xl border border-slate-200 bg-slate-50 " +
-                    (collapsed ? "p-2" : "p-3")
+                    "rounded-2xl " +
+                    (collapsed
+                        ? "p-2"
+                        : "p-3 border border-slate-200 bg-slate-50 ")
                 }
             >
                 <div

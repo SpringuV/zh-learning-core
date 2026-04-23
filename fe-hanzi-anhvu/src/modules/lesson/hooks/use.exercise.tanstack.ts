@@ -5,7 +5,11 @@ import {
     ExerciseReorderRequest,
     UpdateExerciseRequest,
 } from "@/modules/lesson/types/exercise.type";
-import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
+import {
+    GcTime,
+    StaleTime,
+    TimeAwaitHandlerApi,
+} from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
 import {
     keepPreviousData,
@@ -41,8 +45,8 @@ export const useGetExerciseDetail = (exerciseId: string) => {
         enabled: Boolean(exerciseId),
         refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
         refetchOnMount: true,
-        staleTime: 5 * 60 * 1000, // 5 phút
-        gcTime: 10 * 60 * 1000, // 10 phút
+        staleTime: StaleTime,
+        gcTime: GcTime,
     });
 };
 
@@ -56,8 +60,8 @@ export const useGetListExercises = (
             return await exerciseApi.getListExercise(topicId, params);
         },
         placeholderData: keepPreviousData,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
+        staleTime: StaleTime,
+        gcTime: GcTime,
         enabled: Boolean(topicId),
     });
 };
@@ -76,8 +80,8 @@ export const useGetTopicExercisesOverview = (
         },
         // Giữ lại dữ liệu trang trước trong lúc tải trang mới để tránh giật/flicker UI.
         placeholderData: keepPreviousData,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
+        staleTime: StaleTime,
+        gcTime: GcTime,
         enabled: Boolean(topicId),
     });
 };

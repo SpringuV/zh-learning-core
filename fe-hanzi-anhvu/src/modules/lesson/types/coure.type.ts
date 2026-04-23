@@ -1,3 +1,5 @@
+import { BaseResponse } from "@/shared/types/store.type";
+
 /*
 Tính năng	            interface	            type
 Extend	            ✅ Dùng extends	    ✅ Dùng & (intersection)
@@ -5,28 +7,6 @@ Merge declarations	✅ Tự động	        ❌ Không được
 Union types	        ❌ Không	            ✅ Được
 Primitives	        ❌ Không	            ✅ Được (e.g., type ID = string)
 */
-interface BaseResponse<T = void> {
-    // Generic type T, default to void if not provided
-    success: boolean;
-    message: string;
-    Data?: T;
-    ErrorCode?: number;
-}
-
-// factory functions to create success and error responses
-const BaseResponse = {
-    success: <T>(data: T, message = "Success"): BaseResponse<T> => ({
-        success: true,
-        message,
-        Data: data,
-    }),
-    error: (message: string, errorCode?: number): BaseResponse => ({
-        success: false,
-        message,
-        ErrorCode: errorCode,
-    }),
-};
-
 export interface CourseCreateRequest {
     Title: string;
     Description: string;
@@ -55,7 +35,16 @@ export interface CourseListQueryParams {
     sortBy?: CourseSortBy;
     orderByDescending?: boolean;
 }
-
+export interface CourseDashboardItem {
+    id: string;
+    title: string;
+    description: string;
+    hskLevel: number;
+    orderIndex: number;
+    totalTopics: number;
+    totalStudentsEnrolled: number;
+    slug: string;
+}
 export interface CourseListItem {
     id: string;
     title: string;

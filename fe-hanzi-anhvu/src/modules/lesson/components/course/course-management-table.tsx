@@ -18,7 +18,6 @@ import { BookAIcon, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { Switch } from "@/shared/components/ui/switch";
 import { type CourseListItem } from "@/modules/lesson/types/coure.type";
-import { Maname } from "next/font/google";
 
 type CourseManagementTableProps = {
     courses: CourseListItem[];

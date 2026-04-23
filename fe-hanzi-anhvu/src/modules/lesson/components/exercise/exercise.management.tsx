@@ -31,7 +31,7 @@ import {
     useReOrderExercise,
     useUnPublishExercise,
 } from "@/modules/lesson/hooks/use.exercise.tanstack";
-import { useGetTopicDetail } from "@/modules/lesson/hooks/use.topic.tanstack";
+
 import {
     ExerciseListItem,
     ExerciseListQueryParams,

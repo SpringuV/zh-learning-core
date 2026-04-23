@@ -1,4 +1,4 @@
-import { ClientDashboardShell } from "@/shared/components/clients/dashboard.shell";
+import { ClientDashboardMainContent } from "@/shared/components/clients/main.content";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const DashboardClientPage = () => {
-    return <ClientDashboardShell />;
+    return <ClientDashboardMainContent />;
 };
 
 export default DashboardClientPage;

@@ -25,6 +25,7 @@ import {
     Shield,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 const navItems = [{ label: "Mới Cafe", icon: Coffee, active: true }];
 
@@ -157,8 +158,9 @@ export function ClientDashboardHeader({
                         {session?.user?.roles?.includes("Administrators") && (
                             <DropdownMenuGroup>
                                 <DropdownMenuItem>
-                                    <Shield className="size-4" />
-                                    Admin Panel
+                                    <Link href="/cms/dashboard">
+                                        Admin Panel
+                                    </Link>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         )}

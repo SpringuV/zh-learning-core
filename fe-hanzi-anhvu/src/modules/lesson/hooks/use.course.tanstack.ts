@@ -5,7 +5,11 @@ import {
     CourseReOrderRequest,
     UpdateCourseRequest,
 } from "@/modules/lesson/types/coure.type";
-import { TimeAwaitHandlerApi } from "@/shared/utils/contants";
+import {
+    GcTime,
+    StaleTime,
+    TimeAwaitHandlerApi,
+} from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
 import {
     keepPreviousData,
@@ -22,6 +26,7 @@ const invalidateCourseQueries = (
     return queryClient.invalidateQueries({ queryKey: ["list-course"] });
 };
 
+// #region ListCourse
 export const useGetListCourse = (params: CourseListBaseQueryParams = {}) => {
     return useQuery({
         queryKey: ["list-course", params],
@@ -30,11 +35,13 @@ export const useGetListCourse = (params: CourseListBaseQueryParams = {}) => {
         },
         placeholderData: keepPreviousData,
         refetchOnMount: false, //
-        staleTime: 5 * 60 * 1000, // 5 phút
-        gcTime: 10 * 60 * 1000, // 10 phút
+        staleTime: StaleTime,
+        gcTime: GcTime,
     });
 };
 
+// #endregion
+// #region Create
 export const useCreateCourse = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -50,7 +57,8 @@ export const useCreateCourse = () => {
         },
     });
 };
-
+// #endregion
+// #region Publish
 export const usePublishCourse = () => {
     const queryClient = useQueryClient();
 
@@ -65,7 +73,8 @@ export const usePublishCourse = () => {
         },
     });
 };
-
+// #endregion
+// #region UnPublish
 export const useUnPublishCourse = () => {
     const queryClient = useQueryClient();
 
@@ -80,7 +89,8 @@ export const useUnPublishCourse = () => {
         },
     });
 };
-
+// #endregion
+// #region Reorder
 export const useReOrderCourse = () => {
     const queryClient = useQueryClient();
 
@@ -95,7 +105,22 @@ export const useReOrderCourse = () => {
         },
     });
 };
-
+// #endregion
+// #region GetDashboardCourses
+export const useGetCourseForDashboard = () => {
+    return useQuery({
+        queryKey: ["dashboard-courses"],
+        queryFn: async () => {
+            return (await courseApi.loadCoursesForDashboard()).data;
+        },
+        placeholderData: keepPreviousData,
+        refetchOnMount: false, //
+        staleTime: StaleTime,
+        gcTime: GcTime,
+    });
+};
+// #endregion
+// #region Update
 export const useUpdateCourse = () => {
     const queryClient = useQueryClient();
 
@@ -110,7 +135,8 @@ export const useUpdateCourse = () => {
         },
     });
 };
-
+// #endregion
+// #region Delete
 export const useDeleteCourse = () => {
     const queryClient = useQueryClient();
 

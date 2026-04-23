@@ -1,5 +1,6 @@
 import {
     CourseTopicsOverviewResponse,
+    TopicClientDashboardItemResponse,
     TopicCreateRequest,
     TopicCreateResponseData,
     TopicDetailResponse,
@@ -10,6 +11,7 @@ import {
 } from "@/modules/lesson/types/topic.type";
 import {
     AdminBaseListResponse,
+    BaseResponse,
     sanitizeQueryParams,
 } from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
@@ -25,6 +27,7 @@ const endPoints = {
     reOrderTopic: "lesson/v1/topic/reorder",
     deleteTopic: (topicId: string) => `lesson/v1/topic/${topicId}`,
     detailTopic: (topicId: string) => `search/v1/topics/${topicId}`,
+    topicsForClient: (slug: string) => `search/v1/topics/dashboard/${slug}`,
 };
 
 export const topicApi = {
@@ -78,7 +81,14 @@ export const topicApi = {
         return await http.delete(endPoints.deleteTopic(topicId));
     },
     async getTopicDetail(topicId: string) {
-        return await http.get<TopicDetailResponse>(endPoints.detailTopic(topicId));
+        return await http.get<TopicDetailResponse>(
+            endPoints.detailTopic(topicId),
+        );
+    },
+    async getTopicsForClient(slug: string) {
+        return await http.get<BaseResponse<TopicClientDashboardItemResponse[]>>(
+            endPoints.topicsForClient(slug),
+        );
     },
 };
 // #endregion
