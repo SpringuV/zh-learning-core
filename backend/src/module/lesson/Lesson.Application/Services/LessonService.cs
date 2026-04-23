@@ -111,6 +111,14 @@ public class LessonService(IMediator mediator) : ILessonService
         ), cancellationToken);
     }
 
+    public Task<Result<StartLearningResponseDTO>> StartLearningAsync(StartLearningRequestDTO request, CancellationToken cancellationToken)
+    {
+        return _mediator.Send(new StartLearningCommand(
+            UserId: request.UserId,
+            TopicId: request.TopicId
+        ), cancellationToken);
+    }
+
     public async Task<Result> UnPublishCourseAsync(Guid courseId, CancellationToken cancellationToken)
     {
         return await _mediator.Send(new UnPublishCourseCommand(

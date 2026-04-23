@@ -287,6 +287,7 @@ public sealed record ExerciseUnpublishedEvent(
 ) : BaseDomainEvent, INotification;
 
 #endregion
+#region ExerciseSession
 // ============= USER EXERCISE SESSION EVENTS =============
 
 /// <summary>
@@ -296,9 +297,8 @@ public sealed record ExerciseUnpublishedEvent(
 public sealed record UserTopicExerciseSessionStartedEvent(
     Guid SessionId,
     Guid UserId,
-    Guid? TopicId,
-    DateTime StartedAt,
-    DateTime UpdatedAt
+    Guid TopicId,
+    DateTime StartedAt
 ) : BaseDomainEvent, INotification;
 
 /// <summary>
@@ -330,9 +330,10 @@ public sealed record UserTopicExerciseSessionAbandonedEvent(
 public sealed record UserTopicExerciseSessionSnapshotInitializedEvent(
     Guid SessionId,
     Guid UserId,
-    Guid? TopicId,
+    Guid TopicId,
     int TotalExercises,
     int CurrentSequenceNo,
+    IReadOnlyList<UserTopicExerciseSessionItemSnapshot> SessionItems,
     DateTime InitializedAt,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
@@ -373,7 +374,8 @@ public sealed record UserTopicExerciseSessionItemSkippedEvent(
     DateTime SkippedAt,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
-
+#endregion
+#region ExerciseAttempt
 // ============= EXERCISE ATTEMPT EVENTS =============
 
 /// <summary>
@@ -440,7 +442,8 @@ public sealed record ExerciseAttemptAnswerChangedEvent(
     string NewAnswer,
     DateTime ChangedAt
 ) : BaseDomainEvent, INotification;
-
+#endregion
+#region UserTopicProgress
 // ============= USER PROGRESS EVENTS =============
 
 /// <summary>
@@ -486,7 +489,7 @@ public record UserTopicProgressResetEvent(
     Guid TopicId,
     DateTime ResetAt
 ) : BaseDomainEvent, INotification;
-
+#endregion
 // ============= FLASHCARD EVENTS =============
 #region Flashcard events
 /// <summary>

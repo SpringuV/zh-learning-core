@@ -12,6 +12,9 @@ public static class LessonApiExtensions
     }
     public static RouteGroupBuilder MapLessonApi(this RouteGroupBuilder group)
     {
+        // topic progress + exercise session
+        group.MapPost("/topic-progress/exercise-session/started", TopicApi.StartLearning).WithName("HandleExerciseSessionStarted");
+
         // course
         group.MapPost("/course", CourseApi.CreateCourse).WithName("CreateCourse");
         group.MapPost("/course/{courseId:guid}/publish", CourseApi.PublishCourse).WithName("PublishCourse");

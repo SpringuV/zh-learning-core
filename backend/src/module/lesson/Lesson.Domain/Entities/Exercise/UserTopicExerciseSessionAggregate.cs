@@ -17,7 +17,7 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
 {
     public Guid SessionId { get; private set; }
     public Guid UserId { get; private set; } // Soft ref to users.id (cross-module)
-    public Guid? TopicId { get; private set; } // Optional: FK to topic.id (same module)
+    public Guid TopicId { get; private set; }
     public int CurrentSequenceNo { get; private set; } = 0; // For ordering attempts within session
     public ExerciseSessionStatus Status { get; private set; } = ExerciseSessionStatus.InProgress;
     public float? TotalScore { get; private set; } // Calculated from exercise attempts
@@ -38,10 +38,11 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
     /// <summary>
     /// Factory method: Create new session (standalone or with topic context)
     /// </summary>
-    public static UserTopicExerciseSessionAggregate Create(Guid userId, Guid? topicId = null)
+    public static UserTopicExerciseSessionAggregate Create(Guid userId, Guid topicId)
     {
         if (userId == Guid.Empty) throw new ArgumentException("UserId không được để trống");
-        
+        if (topicId == Guid.Empty) throw new ArgumentException("TopicId không được để trống");
+
         var session = new UserTopicExerciseSessionAggregate
         {
             SessionId = Guid.CreateVersion7(),
@@ -56,7 +57,6 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
             session.SessionId,
             userId,
             topicId,
-            session.StartedAt,
             session.StartedAt
         ));
         return session;
@@ -85,6 +85,19 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
         // Reset to first item when setting new snapshot (e.g. when starting a new session or updating snapshot mid-session)
         CurrentSequenceNo = TotalExercises > 0 ? _sessionItems[0].SequenceNo : 0;
 
+        // Emit a single snapshot-initialized event with the denormalized item list for read models.
+        var itemSnapshots = _sessionItems
+            .Select(item => new UserTopicExerciseSessionItemSnapshot(
+                item.SessionItemId,
+                item.ExerciseId,
+                item.SequenceNo,
+                item.OrderIndex,
+                item.AttemptId,
+                item.Status,
+                item.ViewedAt,
+                item.AnsweredAt))
+            .ToList();
+
         var now = DateTime.UtcNow;
         AddDomainEvent(new UserTopicExerciseSessionSnapshotInitializedEvent(
             SessionId,
@@ -92,6 +105,7 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
             TopicId,
             TotalExercises,
             CurrentSequenceNo,
+            itemSnapshots,
             now,
             now
         ));

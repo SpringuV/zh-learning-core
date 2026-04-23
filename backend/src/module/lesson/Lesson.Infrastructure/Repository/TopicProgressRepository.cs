@@ -1,8 +1,23 @@
+using Microsoft.Extensions.Caching.Distributed;
+
 namespace Lesson.Infrastructure.Repository;
 
-public class TopicProgressRepository(LessonDbContext dbContext, ILogger<TopicProgressRepository> logger) : LessonRepositoryBase(logger), ITopicProgressRepository
+public class TopicProgressRepository(IDistributedCache cache, LessonDbContext dbContext, ILogger<TopicProgressRepository> logger) : LessonRepositoryBase(logger), ITopicProgressRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
+    private readonly IDistributedCache _cache = cache;
+
+    // add cache
+    public async Task<TopicProgressAggregate?> GetByUserIdAndTopicIdAsync(Guid userId, Guid topicId, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteAsync(
+            async () => await _dbContext.TopicProgresses
+                .FirstOrDefaultAsync(tp => tp.UserId == userId && tp.TopicId == topicId, cancellationToken),
+            "Database error when retrieving topic progress by user/topic: {UserId}, {TopicId}",
+            "Unexpected error retrieving topic progress by user/topic",
+            "Không thể truy xuất topic progress theo user/topic",
+            userId, topicId);
+    }
 
     public async Task AddAsync(TopicProgressAggregate topicProgress, CancellationToken cancellationToken = default)
     {

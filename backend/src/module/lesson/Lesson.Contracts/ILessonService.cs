@@ -21,6 +21,7 @@ public interface ILessonService
     Task<Result> ReorderTopicsAsync(TopicReorderRequestDTO request, CancellationToken cancellationToken);
     Task<Result<CreateTopicResponseDTO>> CreateTopicAsync(TopicCreateRequestDTO request, CancellationToken cancellationToken);
     Task<Result> UpdateTopicAsync(UpdateTopicRequestDTO request, CancellationToken cancellationToken);
+    Task<Result<StartLearningResponseDTO>> StartLearningAsync(StartLearningRequestDTO request, CancellationToken cancellationToken);
     #endregion
 
     #region Exercise

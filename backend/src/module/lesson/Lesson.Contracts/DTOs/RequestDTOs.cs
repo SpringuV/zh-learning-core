@@ -32,6 +32,11 @@ public sealed record TopicCreateRequestDTO(
     int? ExamYear = null,
     string? ExamCode = null
 );
+public sealed record StartLearningRequestDTO (
+    Guid TopicId,
+    Guid UserId
+);
+
 public sealed record UpdateTopicRequestDTO(
     Guid TopicId,
     string? Title,

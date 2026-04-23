@@ -8,6 +8,17 @@ public enum UserTopicExerciseSessionItemStatus
     Skipped = 3
 }
 
+public sealed record UserTopicExerciseSessionItemSnapshot(
+    Guid SessionItemId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    Guid? AttemptId,
+    UserTopicExerciseSessionItemStatus Status,
+    DateTime? ViewedAt,
+    DateTime? AnsweredAt
+);
+
 /// <summary>
 /// Snapshot item for one exercise inside a topic learning session.
 /// Stores ordering and lightweight progress state only.

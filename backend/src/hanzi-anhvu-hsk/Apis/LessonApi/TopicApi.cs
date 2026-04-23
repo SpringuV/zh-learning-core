@@ -105,4 +105,21 @@ public class TopicApi
     }
 
     #endregion
+    #region StartLearning
+    public static async Task<IResult> StartLearning(
+        [FromBody] StartLearningRequestDTO request,
+        ILessonService lessonService,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await lessonService.StartLearningAsync(request, ct);
+            return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
 }

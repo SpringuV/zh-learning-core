@@ -278,10 +278,33 @@ public sealed record ExerciseOptionsUpdatedIntegrationEvent(
 #endregion
 
 #region Session Exercise Events
+public sealed record UserTopicExerciseSessionSnapshotInitializedIntegrationEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    int TotalExercises,
+    int CurrentSequenceNo,
+    List<UserTopicExerciseSessionItemSnapshotIntegrationEvent> SessionItems,
+    DateTime InitializedAt,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+// rich event with denormalized session item data for search optimization
+public sealed record UserTopicExerciseSessionItemSnapshotIntegrationEvent(
+    Guid SessionItemId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    Guid? AttemptId,
+    string Status,
+    DateTime? ViewedAt,
+    DateTime? AnsweredAt
+): IntegrationEvent;
+
 public sealed record UserTopicExerciseSessionStartedIntegrationEvent(
     Guid SessionId,
     Guid UserId,
-    Guid? TopicId,
+    Guid TopicId,
     DateTime StartedAt
 ): IntegrationEvent;
 

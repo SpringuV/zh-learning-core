@@ -1,12 +1,23 @@
 namespace Lesson.Infrastructure.Repository;
 
+using Microsoft.Extensions.Caching.Distributed;
 using Npgsql;
 using NpgsqlTypes;
 
-public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository> logger) : LessonRepositoryBase(logger), ITopicRepository
+public class TopicRepository(
+    LessonDbContext dbContext,
+    IDistributedCache distributedCache,
+    ICacheVersionService cacheVersionService,
+    ILogger<TopicRepository> logger) : LessonRepositoryBase(logger), ITopicRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
+    private readonly IDistributedCache _distributedCache = distributedCache;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
     private const int ReorderTempBase = 1_000_000_000;
+    private static readonly DistributedCacheEntryOptions TopicCacheOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+    };
 
     public async Task AddAsync(TopicAggregate topic, CancellationToken ct = default)
     {
@@ -38,6 +49,8 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
             "Unexpected error deleting topic",
             "Không thể xóa topic khỏi database",
             id);
+
+            await InvalidateTopicCacheAsync(id, ct);
     }
 
     public async Task<IEnumerable<TopicAggregate>> GetAllByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
@@ -60,9 +73,57 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
         return await _dbContext.Topics.Where(t => t.CourseId == courseId).ToListAsync(ct);
     }
 
-    public async Task<TopicAggregate?> GetByIdAsync(Guid TopicId, CancellationToken ct = default)
+    public async Task<TopicAggregate?> GetByIdAsync(Guid topicId, CancellationToken ct = default)
     {
-        return await _dbContext.Topics.FindAsync([TopicId], ct); // FindAsync sẽ tìm kiếm theo khóa chính (primary key) của bảng, ở đây là Id của TopicAggregate.
+        if (topicId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var cacheKey = await BuildTopicCacheKeyAsync(topicId, ct);
+
+        try
+        {
+            var cachedBytes = await _distributedCache.GetAsync(cacheKey, ct);
+            if (cachedBytes is { Length: > 0 })
+            {
+                var cachedTopic = JsonSerializer.Deserialize<TopicAggregate>(cachedBytes);
+                if (cachedTopic is not null)
+                {
+                    return cachedTopic;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to read topic cache for {TopicId}", topicId);
+        }
+
+        var topic = await ExecuteAsync(
+            async () => await _dbContext.Topics
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.TopicId == topicId, ct),
+            "Database error retrieving topic: {TopicId}",
+            "Unexpected error retrieving topic",
+            "Không thể truy xuất topic từ database",
+            topicId);
+
+        if (topic is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var payload = JsonSerializer.SerializeToUtf8Bytes(topic);
+            await _distributedCache.SetAsync(cacheKey, payload, TopicCacheOptions, ct);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to store topic cache for {TopicId}", topicId);
+        }
+
+        return topic;
     }
 
     public async Task<IEnumerable<TopicAggregate>> GetByIdsAndCourseIdAsync(Guid courseId, IEnumerable<Guid> ids, CancellationToken ct = default)
@@ -79,7 +140,7 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
         );
     }
 
-    public async Task ReorderByIdsAndCourseIdAsync(Guid courseId, IReadOnlyList<Guid> orderedTopicIds, CancellationToken ct = default)
+    private async Task ReorderByIdsAndCourseIdAsyncLegacy(Guid courseId, IReadOnlyList<Guid> orderedTopicIds, CancellationToken ct = default)
     {
         await ExecuteAsync(
             async () =>
@@ -103,34 +164,34 @@ public class TopicRepository(LessonDbContext dbContext, ILogger<TopicRepository>
                 };
 
                 const string moveToTempSql = @"
-WITH input AS (
-    SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
-    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
-),
-selected AS (
-    SELECT t.""TopicId"", t.""OrderIndex""
-    FROM ""Topics"" t
-    JOIN input i ON t.""TopicId"" = i.""TopicId""
-    WHERE t.""CourseId"" = @courseId
-),
-guards AS (
-    SELECT
-        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
-        (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
-        (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
-        (SELECT COALESCE(MAX(t.""OrderIndex""), 0)::int FROM ""Topics"" t WHERE t.""CourseId"" = @courseId) AS ""MaxOrderIndexInCourse""
-)
-UPDATE ""Topics"" AS t
-SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
-    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
-FROM selected s
-CROSS JOIN guards g
-WHERE t.""TopicId"" = s.""TopicId""
-  AND t.""CourseId"" = @courseId
-  AND g.""InputCount"" = g.""DistinctInputCount""
-  AND g.""MatchedTopicsInCourse"" = g.""InputCount""
-  AND g.""MaxOrderIndexInCourse"" < @tempBase
-";
+                    WITH input AS (
+                        SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
+                        FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
+                    ),
+                    selected AS (
+                        SELECT t.""TopicId"", t.""OrderIndex""
+                        FROM ""Topics"" t
+                        JOIN input i ON t.""TopicId"" = i.""TopicId""
+                        WHERE t.""CourseId"" = @courseId
+                    ),
+                    guards AS (
+                        SELECT
+                            (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+                            (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
+                            (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
+                            (SELECT COALESCE(MAX(t.""OrderIndex""), 0)::int FROM ""Topics"" t WHERE t.""CourseId"" = @courseId) AS ""MaxOrderIndexInCourse""
+                    )
+                    UPDATE ""Topics"" AS t
+                    SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
+                        ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+                    FROM selected s
+                    CROSS JOIN guards g
+                    WHERE t.""TopicId"" = s.""TopicId""
+                    AND t.""CourseId"" = @courseId
+                    AND g.""InputCount"" = g.""DistinctInputCount""
+                    AND g.""MatchedTopicsInCourse"" = g.""InputCount""
+                    AND g.""MaxOrderIndexInCourse"" < @tempBase
+                    ";
 
                 var movedToTempCount = await _dbContext.Database
                     .ExecuteSqlRawAsync(moveToTempSql, [courseIdParameter, idsParameter, tempBaseParameter], ct);
@@ -149,41 +210,41 @@ WHERE t.""TopicId"" = s.""TopicId""
                 };
 
                 const string moveToFinalSql = @"
-WITH input AS (
-    SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
-    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
-),
-selected AS (
-    SELECT t.""TopicId"", (t.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
-    FROM ""Topics"" t
-    JOIN input i ON t.""TopicId"" = i.""TopicId""
-    WHERE t.""CourseId"" = @courseId
-),
-slots AS (
-    SELECT
-        ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
-        s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
-    FROM selected s
-),
-guards AS (
-    SELECT
-        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
-        (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
-        (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
-        (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
-)
-UPDATE ""Topics"" AS t
-SET ""OrderIndex"" = s.""TargetOrderIndex"",
-    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
-FROM input i
-CROSS JOIN guards g
-JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
-WHERE t.""TopicId"" = i.""TopicId""
-  AND t.""CourseId"" = @courseId
-  AND g.""InputCount"" = g.""DistinctInputCount""
-  AND g.""MatchedTopicsInCourse"" = g.""InputCount""
-  AND g.""ValidOriginalOrderCount"" = g.""InputCount""
-";
+                    WITH input AS (
+                        SELECT u.""TopicId"", u.""Position""::int AS ""FinalOrder""
+                        FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""TopicId"", ""Position"")
+                    ),
+                    selected AS (
+                        SELECT t.""TopicId"", (t.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
+                        FROM ""Topics"" t
+                        JOIN input i ON t.""TopicId"" = i.""TopicId""
+                        WHERE t.""CourseId"" = @courseId
+                    ),
+                    slots AS (
+                        SELECT
+                            ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
+                            s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
+                        FROM selected s
+                    ),
+                    guards AS (
+                        SELECT
+                            (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+                            (SELECT COUNT(DISTINCT ""TopicId"")::int FROM input) AS ""DistinctInputCount"",
+                            (SELECT COUNT(*)::int FROM selected) AS ""MatchedTopicsInCourse"",
+                            (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
+                    )
+                    UPDATE ""Topics"" AS t
+                    SET ""OrderIndex"" = s.""TargetOrderIndex"",
+                        ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+                    FROM input i
+                    CROSS JOIN guards g
+                    JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
+                    WHERE t.""TopicId"" = i.""TopicId""
+                    AND t.""CourseId"" = @courseId
+                    AND g.""InputCount"" = g.""DistinctInputCount""
+                    AND g.""MatchedTopicsInCourse"" = g.""InputCount""
+                    AND g.""ValidOriginalOrderCount"" = g.""InputCount""
+                    ";
 
                 var updatedCount = await _dbContext.Database
                     .ExecuteSqlRawAsync(moveToFinalSql, [courseIdParameter, idsParameterFinal, tempBaseParameterFinal], ct);
@@ -199,17 +260,47 @@ WHERE t.""TopicId"" = i.""TopicId""
 
     public async Task<int?> GetMaxOrderIndexAsync(CancellationToken ct = default)
     {
+        
         return await ExecuteAsync(
-            async () =>
+        async () =>
             {
-                // Keep projection nullable so empty Topics table returns null instead of throwing.
-                return await _dbContext.Topics
-                    .Select(t => (int?)t.OrderIndex)
-                    .MaxAsync(ct);
+                // cache kết quả OrderIndex tối đa vì nó thường được gọi khi tạo topic mới để xác định OrderIndex của topic mới sẽ là bao nhiêu (thường là max + 1)
+                var cacheKey = "MaxOrderIndexTopic";
+                try
+                {
+                    var cachedBytes = await _distributedCache.GetAsync(cacheKey, ct);
+                    if (cachedBytes is { Length: > 0 })
+                    {
+                        var cachedValue = BitConverter.ToInt32(cachedBytes, 0);
+                        return cachedValue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to read max order index topic cache");
+                }
+
+                // Nếu cache miss, truy vấn database để lấy max OrderIndex
+                var maxOrderIndex = await _dbContext.Topics
+                        .Select(t => (int?)t.OrderIndex)
+                        .MaxAsync(ct);
+                try
+                {
+                    var bytes = BitConverter.GetBytes(maxOrderIndex ?? -1);
+                    await _distributedCache.SetAsync(cacheKey, bytes, TopicCacheOptions, ct);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to set max order index topic cache");
+                }
+        
+                return maxOrderIndex;
+                    // Keep projection nullable so empty Topics table returns null instead of throwing.
             },
             "Database error getting max OrderIndex",
             "Error getting max OrderIndex",
-            "Không thể lấy OrderIndex tối đa");
+            "Không thể lấy OrderIndex tối đa"
+        );
     }
 
     public async Task UpdateAsync(TopicAggregate topic, CancellationToken ct = default)
@@ -224,17 +315,59 @@ WHERE t.""TopicId"" = i.""TopicId""
             "Unexpected error updating topic",
             "Không thể cập nhật topic",
             topic.TopicId);
+
+        await InvalidateTopicCacheAsync(topic.TopicId, ct);
     }
 
-    public Task UpdateRangeAsync(IEnumerable<TopicAggregate> topics, CancellationToken ct = default)
+    public async Task UpdateRangeAsync(IEnumerable<TopicAggregate> topics, CancellationToken ct = default)
     {
-        return ExecuteAsync(() =>
+        var topicList = topics.ToList();
+
+        await ExecuteAsync(
+            () =>
             {
-                _dbContext.Topics.UpdateRange(topics);
+                _dbContext.Topics.UpdateRange(topicList);
                 // await _dbContext.SaveChangesAsync(ct); // Để UnitOfWork xử lý SaveChangesAsync
             },
             "Database error when updating topics",
             "Unexpected error updating topics",
             "Không thể cập nhật các topic");
+
+        foreach (var topicId in topicList.Select(topic => topic.TopicId).Distinct())
+        {
+            await InvalidateTopicCacheAsync(topicId, ct);
+        }
     }
+
+    public async Task ReorderByIdsAndCourseIdAsync(Guid courseId, IReadOnlyList<Guid> orderedTopicIds, CancellationToken ct = default)
+    {
+        await ReorderByIdsAndCourseIdAsyncLegacy(courseId, orderedTopicIds, ct);
+
+        foreach (var topicId in orderedTopicIds.Distinct())
+        {
+            await InvalidateTopicCacheAsync(topicId, ct);
+        }
+    }
+
+    private async Task<string> BuildTopicCacheKeyAsync(Guid topicId, CancellationToken ct)
+    {
+        var scope = BuildTopicCacheScope(topicId);
+        var versionToken = await _cacheVersionService.GetVersionTokenAsync(scope, ct);
+        return $"{scope}:v:{versionToken}";
+    }
+
+    private async Task InvalidateTopicCacheAsync(Guid topicId, CancellationToken ct)
+    {
+        try
+        {
+            await _cacheVersionService.InvalidateScopeAsync(BuildTopicCacheScope(topicId), ct);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to invalidate topic cache for {TopicId}", topicId);
+        }
+    }
+
+    private static string BuildTopicCacheScope(Guid topicId)
+        => $"lesson:topic:by-id:{topicId:D}";
 }

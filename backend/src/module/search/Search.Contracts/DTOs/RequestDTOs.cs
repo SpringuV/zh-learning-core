@@ -352,3 +352,47 @@ public sealed record TopicSearchQueryRequest(
     TopicSortBy SortBy = TopicSortBy.CreatedAt,
     bool OrderByDescending = true);
 #endregion
+
+#region ProgressTopicSearch
+public sealed record TopicProgressCreatedQueriesRequest(
+    Guid TopicProgressId,
+    int TotalAnswered,
+    int TotalCorrect,
+    int TotalAttempts,
+    DateTime CreatedAt,
+    Guid UserId,
+    Guid TopicId,
+    float? AccuracyRate,
+    int TotalWrong,
+    float TotalScore
+);
+
+public sealed record ExerciseSessionStartedQueriesRequest(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    DateTime StartedAt
+);
+
+public sealed record ExerciseSessionItemSnapshot(
+    Guid SessionItemId,
+    Guid ExerciseId,
+    int SequenceNo,
+    int OrderIndex,
+    Guid? AttemptId,
+    string Status,
+    DateTime? ViewedAt,
+    DateTime? AnsweredAt
+);
+
+public sealed record ExerciseSessionSnapshotInitializedQueriesRequest(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    int TotalExercises,
+    int CurrentSequenceNo,
+    IReadOnlyList<ExerciseSessionItemSnapshot> SessionItems,
+    DateTime InitializedAt,
+    DateTime UpdatedAt
+);
+#endregion
