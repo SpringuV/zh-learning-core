@@ -4,11 +4,14 @@ import {
     ExerciseListItem,
     ExerciseListQueryParams,
     ExerciseReorderRequest,
+    ExerciseSessionPracticeItemWithoutAnswerResponse,
     TopicExercisesOverviewResponse,
     UpdateExerciseRequest,
 } from "@/modules/lesson/types/exercise.type";
+import { ExerciseSessionItemsSnapshotItemsResponse } from "@/modules/lesson/types/topic.type";
 import {
     AdminBaseListResponse,
+    BaseResponse,
     sanitizeQueryParams,
 } from "@/shared/types/store.type";
 import http from "@/shared/utils/http";
@@ -26,6 +29,12 @@ const endPoints = {
     updateExercise: `lesson/v1/exercise`,
     deleteExercise: (exerciseId: string) => `lesson/v1/exercise/${exerciseId}`,
     detailExercise: (exerciseId: string) => `search/v1/exercises/${exerciseId}`,
+    getExerciseSessionPracticeItemWithoutAnswer: (exerciseId: string) =>
+        `search/v1/exercises/${exerciseId}/practice-item`,
+    getSessionItemsSnapshot: (sessionId: string, slug: string) =>
+        `search/v1/exercise-session-items-snapshot/${sessionId}/${slug}`,
+    saveAnswer: "lesson/v1/topic-progress/exercise-session/save-answer",
+    sessionComplete: "lesson/v1/topic-progress/exercise-session/completed",
 };
 //#endregion
 
@@ -80,5 +89,25 @@ export const exerciseApi = {
         return await http.get<ExerciseDetailResponse>(
             endPoints.detailExercise(exerciseId),
         );
+    },
+    async getExerciseSessionPracticeItemWithoutAnswer(exerciseId: string) {
+        return await http.get<
+            BaseResponse<ExerciseSessionPracticeItemWithoutAnswerResponse>
+        >(endPoints.getExerciseSessionPracticeItemWithoutAnswer(exerciseId));
+    },
+    async getSessionItemsSnapshot(sessionId: string, slug: string) {
+        return await http.get<
+            BaseResponse<ExerciseSessionItemsSnapshotItemsResponse>
+        >(endPoints.getSessionItemsSnapshot(sessionId, slug));
+    },
+    async saveAnswer(payload: {
+        sessionId: string;
+        exerciseId: string;
+        answer: string;
+    }) {
+        return await http.post(endPoints.saveAnswer, payload);
+    },
+    async completeSession(payload: { sessionId: string; slugTopic: string }) {
+        return await http.post(endPoints.sessionComplete, payload);
     },
 };

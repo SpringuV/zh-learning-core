@@ -165,8 +165,7 @@ public class ExerciseApi
             {
                 return Results.Unauthorized();
             }
-            var requestWithUserId = request with { UserId = userId };
-            var result = await lessonService.SaveAnswerAsync(requestWithUserId, ct);
+            var result = await lessonService.SaveAnswerAsync(request, userId, ct);
             return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

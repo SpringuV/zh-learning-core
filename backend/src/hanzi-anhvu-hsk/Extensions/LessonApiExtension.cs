@@ -14,7 +14,9 @@ public static class LessonApiExtensions
     {
         // topic progress + exercise session
         group.MapPost("/topic-progress/exercise-session/{slugTopic}/started", TopicApi.StartLearning).WithName("HandleExerciseSessionStarted");
-
+        group.MapPost("/topic-progress/exercise-session/completed", TopicApi.CompleteLearning).WithName("HandleExerciseSessionCompleted");
+        group.MapPost("/topic-progress/exercise-session/save-answer", ExerciseApi.SaveAnswer).WithName("HandleAttemptExercise");
+        
         // course
         group.MapPost("/course", CourseApi.CreateCourse).WithName("CreateCourse");
         group.MapPost("/course/{courseId:guid}/publish", CourseApi.PublishCourse).WithName("PublishCourse");

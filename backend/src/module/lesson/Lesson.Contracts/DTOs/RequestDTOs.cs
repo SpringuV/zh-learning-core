@@ -51,8 +51,7 @@ public sealed record TopicReorderRequestDTO(
 
 public sealed record CompleteLearningSessionRequestDTO(
     Guid SessionId,
-    string SlugTopic,
-    Guid UserId
+    string SlugTopic
 );
 #endregion
 
@@ -60,7 +59,6 @@ public sealed record CompleteLearningSessionRequestDTO(
 public sealed record SaveAnswerRequestDTO(
     Guid ExerciseId,
     Guid SessionId,
-    Guid UserId,
     string Answer
 );
 public sealed record ExerciseCreateRequestDTO(

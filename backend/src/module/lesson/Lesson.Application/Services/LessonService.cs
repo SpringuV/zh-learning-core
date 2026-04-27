@@ -119,12 +119,12 @@ public class LessonService(IMediator mediator) : ILessonService
         ), cancellationToken);
     }
 
-    public async Task<Result<SaveAnswerResponseDTO>> SaveAnswerAsync(SaveAnswerRequestDTO request, CancellationToken cancellationToken)
+    public async Task<Result<SaveAnswerResponseDTO>> SaveAnswerAsync(SaveAnswerRequestDTO request, Guid userId, CancellationToken cancellationToken)
     {
         var command = new SaveAnswerCommand(
             ExerciseId: request.ExerciseId,
             SessionId: request.SessionId,
-            UserId: request.UserId,
+            UserId: userId,
             Answer: request.Answer
         );
         return await _mediator.Send(command, cancellationToken);
@@ -191,11 +191,11 @@ public class LessonService(IMediator mediator) : ILessonService
         ), cancellationToken);
     }
 
-    public async Task<Result<CompleteLearningSessionResponseDTO>> CompleteLearningAsync(CompleteLearningSessionRequestDTO request, CancellationToken cancellationToken)
+    public async Task<Result<CompleteLearningSessionResponseDTO>> CompleteLearningAsync(CompleteLearningSessionRequestDTO request, Guid userId, CancellationToken cancellationToken)
     {
         var command = new SubmitCompleteLearningSessionCommand(
             SessionId: request.SessionId,
-            UserId: request.UserId,
+            UserId: userId,
             SlugTopic: request.SlugTopic
         );
         return await _mediator.Send(command, cancellationToken);

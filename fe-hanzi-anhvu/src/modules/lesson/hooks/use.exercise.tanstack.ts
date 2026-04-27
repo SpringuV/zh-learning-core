@@ -3,8 +3,10 @@ import {
     ExerciseCreateRequest,
     ExerciseListQueryParams,
     ExerciseReorderRequest,
+    ExerciseSessionPracticeItemWithoutAnswerResponse,
     UpdateExerciseRequest,
 } from "@/modules/lesson/types/exercise.type";
+import { BaseResponse } from "@/shared/types/store.type";
 import {
     GcTime,
     StaleTime,
@@ -20,6 +22,7 @@ import {
 
 type ExerciseListBaseQueryParams = Partial<ExerciseListQueryParams>;
 
+// #region Invalidate exercise queries
 const invalidateExerciseQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
 ) => {
@@ -35,7 +38,87 @@ const invalidateExerciseQueries = (
         }),
     ]);
 };
+//#region Save answer
+export const useSaveAnswer = () => {
+    return useMutation({
+        mutationFn: async (payload: {
+            sessionId: string;
+            exerciseId: string;
+            answer: string;
+        }) => {
+            const response = await exerciseApi.saveAnswer(payload);
+            return response.data;
+        },
+        onError: (error) => {
+            console.error("Error saving answer:", error);
+        },
+    });
+};
 
+// #endregion
+// #region CompleteSession
+export const useCompleteExerciseSessionMutation = () => {
+    return useMutation({
+        mutationFn: async (payload: {
+            sessionId: string;
+            slugTopic: string;
+        }) => {
+            const response = await exerciseApi.completeSession(payload);
+            return response.data;
+        },
+        onError: (error) => {
+            console.error("Error completing exercise session:", error);
+        },
+    });
+};
+
+// #endregion
+// #region GetSessionItemsSnapshot
+export const useGetSessionItemsSnapshot = (
+    sessionId: string,
+    slugTopic: string,
+) => {
+    return useQuery({
+        queryKey: ["session-items-snapshot", sessionId, slugTopic],
+        queryFn: async () => {
+            const response = await exerciseApi.getSessionItemsSnapshot(
+                sessionId,
+                slugTopic,
+            );
+            return response.data;
+        },
+        refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
+        refetchOnMount: false, // không tự động refetch khi component được mount lại
+        staleTime: StaleTime,
+        gcTime: GcTime,
+        enabled: Boolean(sessionId) && Boolean(slugTopic),
+    });
+};
+// #endregion
+
+// #region ExerciseSessionPractice
+export const useExerciseSessionPracticeWithoutAnswer = (exerciseId: string) => {
+    return useQuery({
+        queryKey: ["start-exercise-session-practice", exerciseId],
+        queryFn: async (): Promise<
+            BaseResponse<ExerciseSessionPracticeItemWithoutAnswerResponse>
+        > => {
+            const response =
+                await exerciseApi.getExerciseSessionPracticeItemWithoutAnswer(
+                    exerciseId,
+                );
+            return response.data;
+        },
+        enabled: Boolean(exerciseId),
+        refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
+        refetchOnMount: false, // không tự động refetch khi component được mount lại
+        staleTime: StaleTime,
+        gcTime: GcTime,
+    });
+};
+// #endregion
+
+// #region Exercise detail
 export const useGetExerciseDetail = (exerciseId: string) => {
     return useQuery({
         queryKey: ["exercise-detail", exerciseId],
@@ -49,7 +132,8 @@ export const useGetExerciseDetail = (exerciseId: string) => {
         gcTime: GcTime,
     });
 };
-
+// #endregion
+// #region Exercise list Admin
 export const useGetListExercises = (
     topicId: string,
     params: ExerciseListBaseQueryParams = {},
@@ -65,6 +149,7 @@ export const useGetListExercises = (
         enabled: Boolean(topicId),
     });
 };
+// #endregion
 
 export const useGetTopicExercisesOverview = (
     topicId: string,

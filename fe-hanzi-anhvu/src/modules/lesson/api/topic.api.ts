@@ -1,5 +1,7 @@
 import {
+    CountinueLearningSessionResponse,
     CourseTopicsOverviewResponse,
+    StartLearningTopicResponse,
     TopicClientDashboardItemResponse,
     TopicCreateRequest,
     TopicCreateResponseData,
@@ -18,6 +20,8 @@ import http from "@/shared/utils/http";
 
 // #region API Endpoints
 const endPoints = {
+    startLearning: (slug: string) =>
+        `lesson/v1/topic-progress/exercise-session/${slug}/started`,
     createTopic: "lesson/v1/topic",
     listTopics: "search/v1/topics",
     courseTopics: "search/v1/course-topics",
@@ -28,7 +32,10 @@ const endPoints = {
     deleteTopic: (topicId: string) => `lesson/v1/topic/${topicId}`,
     detailTopic: (topicId: string) => `search/v1/topics/${topicId}`,
     topicsForClient: (slug: string) => `search/v1/topics/dashboard/${slug}`,
+    countinueLearningSessionForTopicClient: (slug: string) =>
+        `search/v1/topics/${slug}/continue-learning-session`,
 };
+// #endregion
 
 export const topicApi = {
     async createTopic(payload: TopicCreateRequest) {
@@ -88,6 +95,16 @@ export const topicApi = {
     async getTopicsForClient(slug: string) {
         return await http.get<BaseResponse<TopicClientDashboardItemResponse[]>>(
             endPoints.topicsForClient(slug),
+        );
+    },
+    async startLearningTopic(slugTopic: string) {
+        return await http.post<BaseResponse<StartLearningTopicResponse>>(
+            endPoints.startLearning(slugTopic),
+        );
+    },
+    async continueLearningSessionForTopicClient(slug: string) {
+        return await http.get<BaseResponse<CountinueLearningSessionResponse>>(
+            endPoints.countinueLearningSessionForTopicClient(slug),
         );
     },
 };

@@ -112,6 +112,7 @@ public sealed record ExerciseAttemptBatchScoredRequestDTO(
     IReadOnlyList<ExerciseAttemptBatchScoredItemDTO> Attempts
 );
 
+
 public sealed record ExerciseSessionCompletedRequestDTO(
     Guid SessionId,
     Guid UserId,

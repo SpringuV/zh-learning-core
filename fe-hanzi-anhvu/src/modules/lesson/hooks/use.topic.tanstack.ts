@@ -1,5 +1,7 @@
 import { topicApi } from "@/modules/lesson/api/topic.api";
 import {
+    CountinueLearningSessionResponse,
+    StartLearningTopicResponse,
     TopicCreateRequest,
     TopicQueryParams,
     TopicReOrderRequest,
@@ -11,6 +13,7 @@ import {
     TimeAwaitHandlerApi,
 } from "@/shared/utils/contants";
 import { wait } from "@/shared/utils/helper";
+import { BaseResponse } from "@/shared/types/store.type";
 import {
     keepPreviousData,
     useMutation,
@@ -18,6 +21,11 @@ import {
     useQueryClient,
 } from "@tanstack/react-query";
 
+// cache key, from component A -> component B without props drilling, we can use this key to get data in cache and pass to component B, avoid refetching data again
+export const startLearningTopicQueryKey = (slugTopic: string) =>
+    ["start-learning-topic", slugTopic] as const;
+
+// #region Invalidate topic queries
 const invalidateTopicQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
 ) => {
@@ -31,7 +39,44 @@ const invalidateTopicQueries = (
         }),
     ]);
 };
+// #endregion
 
+// #region CountinueLearningTopic
+export const useCountinueLearningTopic = (slugTopic: string) => {
+    return useQuery({
+        queryKey: ["countinue-learning-topic", slugTopic],
+        queryFn: async (): Promise<
+            BaseResponse<CountinueLearningSessionResponse>
+        > => {
+            const res =
+                await topicApi.continueLearningSessionForTopicClient(slugTopic);
+            return res.data;
+        },
+        enabled: Boolean(slugTopic),
+        refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
+        refetchOnMount: true,
+        staleTime: StaleTime,
+        gcTime: GcTime,
+    });
+};
+// #endregion
+
+// #region StartLearningTopic
+export const useStartLearningTopicMutation = () => {
+    return useMutation({
+        mutationFn: async (
+            slugTopic: string,
+        ): Promise<BaseResponse<StartLearningTopicResponse>> => {
+            const response = await topicApi.startLearningTopic(slugTopic);
+            return response.data;
+        },
+        onError: (err) => {
+            console.error("Start learning topic error:", err);
+        },
+    });
+};
+// #endregion
+// #region TopicsForClient
 export const useGetTopicsForClient = (slug: string) => {
     return useQuery({
         queryKey: ["topics-for-client", slug],
@@ -45,7 +90,7 @@ export const useGetTopicsForClient = (slug: string) => {
         enabled: Boolean(slug), // Chỉ chạy query khi slug có giá trị hợp lệ
     });
 };
-
+// #endregion
 export const useGetTopicDetail = (topicId: string) => {
     return useQuery({
         queryKey: ["topic-detail", topicId],

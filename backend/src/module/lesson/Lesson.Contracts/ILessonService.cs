@@ -15,7 +15,7 @@ public interface ILessonService
     #endregion
     
     #region Topic
-    Task<Result<SaveAnswerResponseDTO>> SaveAnswerAsync(SaveAnswerRequestDTO request, CancellationToken cancellationToken);
+    Task<Result<SaveAnswerResponseDTO>> SaveAnswerAsync(SaveAnswerRequestDTO request, Guid userId, CancellationToken cancellationToken);
     Task<Result> DeleteTopicAsync(Guid topicId, CancellationToken cancellationToken);
     Task<Result> PublishTopicAsync(Guid topicId, CancellationToken cancellationToken);
     Task<Result> UnPublishTopicAsync(Guid topicId, CancellationToken cancellationToken);
@@ -23,7 +23,7 @@ public interface ILessonService
     Task<Result<CreateTopicResponseDTO>> CreateTopicAsync(TopicCreateRequestDTO request, CancellationToken cancellationToken);
     Task<Result> UpdateTopicAsync(UpdateTopicRequestDTO request, CancellationToken cancellationToken);
     Task<Result<StartLearningResponseDTO>> StartLearningAsync(StartLearningRequestDTO request, CancellationToken cancellationToken);
-    Task<Result<CompleteLearningSessionResponseDTO>> CompleteLearningAsync(CompleteLearningSessionRequestDTO request, CancellationToken cancellationToken);
+    Task<Result<CompleteLearningSessionResponseDTO>> CompleteLearningAsync(CompleteLearningSessionRequestDTO request, Guid userId, CancellationToken cancellationToken);
     #endregion
 
     #region Exercise
