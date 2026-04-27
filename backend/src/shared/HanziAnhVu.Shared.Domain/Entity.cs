@@ -80,3 +80,21 @@ public abstract class Entity
         return !(left == right);
     }
 }
+
+public sealed record ExerciseAttemptBatchScoredItemDTO(
+    Guid AttemptId,
+    Guid ExerciseId,
+    SkillType SkillType,
+    float Score,
+    bool IsCorrect,
+    string CorrectAnswer,
+    IReadOnlyList<ExerciseOption> Options,
+    ExerciseType ExerciseType,
+    ExerciseDifficulty Difficulty,
+    string Explanation,
+    string? AudioUrl,
+    string? ImageUrl,
+    string Question,
+    string Description,
+    DateTime UpdatedAt
+);

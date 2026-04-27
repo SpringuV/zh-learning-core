@@ -15,8 +15,8 @@ public class ExerciseAttemptConfiguration : IEntityTypeConfiguration<ExerciseAtt
         // Required properties
         builder.Property(e => e.ExerciseId).IsRequired();
         builder.Property(e => e.SessionId).IsRequired();
-        builder.Property(e => e.SessionItemId).IsRequired(false);
         builder.Property(e => e.Answer).IsRequired();
+        builder.Property(e => e.SkillType).IsRequired();
         builder.Property(e => e.Score).IsRequired();
         builder.Property(e => e.IsCorrect).IsRequired();
         builder.Property(e => e.CreatedAt).IsRequired();
@@ -37,7 +37,6 @@ public class ExerciseAttemptConfiguration : IEntityTypeConfiguration<ExerciseAtt
         
         // Indexes
         builder.HasIndex(e => e.SessionId);
-        builder.HasIndex(e => e.SessionItemId);
         builder.HasIndex(e => e.ExerciseId);
         builder.HasIndex(e => new { e.SessionId, e.ExerciseId });
     }

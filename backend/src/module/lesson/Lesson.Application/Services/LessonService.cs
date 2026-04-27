@@ -115,8 +115,19 @@ public class LessonService(IMediator mediator) : ILessonService
     {
         return _mediator.Send(new StartLearningCommand(
             UserId: request.UserId,
-            TopicId: request.TopicId
+            SlugTopic: request.SlugTopic
         ), cancellationToken);
+    }
+
+    public async Task<Result<SaveAnswerResponseDTO>> SaveAnswerAsync(SaveAnswerRequestDTO request, CancellationToken cancellationToken)
+    {
+        var command = new SaveAnswerCommand(
+            ExerciseId: request.ExerciseId,
+            SessionId: request.SessionId,
+            UserId: request.UserId,
+            Answer: request.Answer
+        );
+        return await _mediator.Send(command, cancellationToken);
     }
 
     public async Task<Result> UnPublishCourseAsync(Guid courseId, CancellationToken cancellationToken)
@@ -178,5 +189,15 @@ public class LessonService(IMediator mediator) : ILessonService
             NewExamYear: request.NewExamYear,
             NewExamCode: request.NewExamCode
         ), cancellationToken);
+    }
+
+    public async Task<Result<CompleteLearningSessionResponseDTO>> CompleteLearningAsync(CompleteLearningSessionRequestDTO request, CancellationToken cancellationToken)
+    {
+        var command = new SubmitCompleteLearningSessionCommand(
+            SessionId: request.SessionId,
+            UserId: request.UserId,
+            SlugTopic: request.SlugTopic
+        );
+        return await _mediator.Send(command, cancellationToken);
     }
 }

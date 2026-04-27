@@ -4,6 +4,7 @@ namespace Lesson.Domain.Interface;
 
 public interface ITopicRepository
 {
+    Task<TopicAggregate?> GetBySlugAsync(string slug, CancellationToken ct = default);
     Task<TopicAggregate?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IEnumerable<TopicAggregate>> GetByIdsAndCourseIdAsync(Guid courseId, IEnumerable<Guid> ids, CancellationToken ct = default);
     Task ReorderByIdsAndCourseIdAsync(Guid courseId, IReadOnlyList<Guid> orderedTopicIds, CancellationToken ct = default);

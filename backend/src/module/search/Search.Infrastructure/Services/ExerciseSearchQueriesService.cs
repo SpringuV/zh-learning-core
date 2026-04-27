@@ -223,4 +223,41 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
         var query = new ExerciseSearchDetailAdminQueries(exerciseId);
         return await _mediator.Send(query, cancellationToken);
     }
+
+    public async Task<Result<CountinueLearningResponseDTO>> CountinueExercisesSessionForTopicClientAsync(string slug, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var query = new CountinueLearningExercisesSessionForTopicClientQueries(slug, userId);
+        return await _mediator.Send(query, cancellationToken);
+    }
+
+    public async Task<Result<ExerciseSessionPracticeItemWithoutAnswerResponse>> GetExerciseSessionPracticeItemWithoutAnswerAsync(Guid exerciseId, CancellationToken cancellationToken = default)
+    {
+        var query = new ExerciseSessionPracticeItemWithoutAnswerQueries(exerciseId);
+        return await _mediator.Send(query, cancellationToken);
+    }
+
+    public Task BulkIndexExerciseAttemptAsync(ExerciseAttemptBatchScoredRequestDTO request, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task CompletedExerciseSessionAsync(ExerciseSessionCompletedRequestDTO request, CancellationToken cancellationToken = default)
+    {
+        var query = new ExerciseSessionCompletedSearchCommand(
+            SessionId: request.SessionId,
+            UserId: request.UserId,
+            TopicId: request.TopicId,
+            HskLevel: request.HskLevel,
+            Status: request.Status,
+            TotalExercises: request.TotalExercises,
+            TotalScore: request.TotalScore,
+            ScoreListening: request.ScoreListening,
+            ScoreReading: request.ScoreReading,
+            TotalCorrect: request.TotalCorrect,
+            TotalWrong: request.TotalWrong,
+            TimeSpentSeconds: request.TimeSpentSeconds,
+            CompletedAt: request.CompletedAt
+        );
+        await _mediator.Send(query, cancellationToken);
+    }
 }

@@ -298,6 +298,8 @@ public sealed record UserTopicExerciseSessionStartedEvent(
     Guid SessionId,
     Guid UserId,
     Guid TopicId,
+    int HskLevel,
+    ExerciseSessionStatus Status,
     DateTime StartedAt
 ) : BaseDomainEvent, INotification;
 
@@ -308,12 +310,17 @@ public sealed record UserTopicExerciseSessionStartedEvent(
 public sealed record UserTopicExerciseSessionCompletedEvent(
     Guid SessionId,
     Guid UserId,
-    Guid? TopicId,
-    float SessionScore,
-    int TotalAttempts,
+    Guid TopicId,
+    ExerciseSessionStatus Status,
+    int HskLevel,
+    int TotalExercises,
+    float TotalScore,
+    int TotalCorrect,
+    int TotalWrong,
+    int ScoreListening,
+    int ScoreReading,
     int TimeSpentSeconds,
-    DateTime CompletedAt,
-    DateTime UpdatedAt
+    DateTime CompletedAt
 ) : BaseDomainEvent, INotification;
 
 /// <summary>
@@ -323,6 +330,7 @@ public sealed record UserTopicExerciseSessionAbandonedEvent(
     Guid SessionId,
     Guid UserId,
     Guid? TopicId,
+    int HskLevel,
     DateTime AbandonedAt,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
@@ -333,6 +341,7 @@ public sealed record UserTopicExerciseSessionSnapshotInitializedEvent(
     Guid TopicId,
     int TotalExercises,
     int CurrentSequenceNo,
+    int HskLevel,
     IReadOnlyList<UserTopicExerciseSessionItemSnapshot> SessionItems,
     DateTime InitializedAt,
     DateTime UpdatedAt
@@ -363,17 +372,6 @@ public sealed record UserTopicExerciseSessionItemCompletedEvent(
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
 
-public sealed record UserTopicExerciseSessionItemSkippedEvent(
-    Guid SessionId,
-    Guid UserId,
-    Guid? TopicId,
-    Guid SessionItemId,
-    Guid ExerciseId,
-    int SequenceNo,
-    int OrderIndex,
-    DateTime SkippedAt,
-    DateTime UpdatedAt
-) : BaseDomainEvent, INotification;
 #endregion
 #region ExerciseAttempt
 // ============= EXERCISE ATTEMPT EVENTS =============
@@ -386,13 +384,8 @@ public sealed record UserTopicExerciseSessionItemSkippedEvent(
 public sealed record ExerciseAttemptCreatedEvent(
     Guid AttemptId,
     Guid SessionId,
-    Guid UserId,             // From session (denormalized)
-    Guid? TopicId,           // From session (nullable)
     Guid ExerciseId,
-    string Question,         // From exercise
-    string ExerciseType,     // From exercise (denormalized)
-    string SkillType,        // From exercise (denormalized)
-    string Difficulty,       // From exercise (denormalized)
+    SkillType SkillType,
     string Answer,           // User's answer
     float InitialScore,      // 0 at creation, updated when scored
     bool IsCorrect,          // false at creation, updated when scored
@@ -407,13 +400,18 @@ public sealed record ExerciseAttemptCreatedEvent(
 public sealed record ExerciseAttemptScoredEvent(
     Guid AttemptId,
     Guid SessionId,
-    Guid UserId,
     Guid ExerciseId,
-    string SkillType,        // From exercise (denormalized)
     float Score,
     bool IsCorrect,
     DateTime ScoredAt,
     DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
+
+public sealed record ExerciseAttemptBatchScoredEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    IReadOnlyList<ExerciseAttemptBatchScoredItemDTO> Attempts
 ) : BaseDomainEvent, INotification;
 
 /// <summary>
@@ -423,7 +421,6 @@ public sealed record ExerciseAttemptScoredEvent(
 public sealed record ExerciseAttemptAiFeedbackAddedEvent(
     Guid AttemptId,
     Guid SessionId,
-    Guid UserId,
     Guid ExerciseId,
     string Feedback,
     DateTime FeedbackAddedAt,
@@ -437,7 +434,6 @@ public sealed record ExerciseAttemptAiFeedbackAddedEvent(
 public sealed record ExerciseAttemptAnswerChangedEvent(
     Guid AttemptId,
     Guid SessionId,
-    Guid UserId,
     Guid ExerciseId,
     string NewAnswer,
     DateTime ChangedAt

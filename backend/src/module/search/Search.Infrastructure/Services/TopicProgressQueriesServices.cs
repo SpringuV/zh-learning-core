@@ -12,6 +12,7 @@ public class TopicProgressQueriesServices(IMediator mediator) : ITopicProgressQu
                 TopicId: request.TopicId,
                 TotalExercises: request.TotalExercises,
                 CurrentSequenceNo: request.CurrentSequenceNo,
+                HskLevel: request.HskLevel,
                 ExerciseItems: request.SessionItems,
                 InitializedAt: request.InitializedAt,
                 UpdatedAt: request.UpdatedAt),
@@ -22,7 +23,9 @@ public class TopicProgressQueriesServices(IMediator mediator) : ITopicProgressQu
             new ExerciseSessionStartedCommand(
                 SessionId: request.SessionId,
                 UserId: request.UserId,
+                HskLevel: request.HskLevel,
                 TopicId: request.TopicId,
+                Status: request.Status,
                 UpdatedAt: request.StartedAt),
             cancellationToken);
 

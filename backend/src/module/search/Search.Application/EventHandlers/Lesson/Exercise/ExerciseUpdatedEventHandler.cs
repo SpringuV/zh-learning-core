@@ -20,7 +20,6 @@ public class ExerciseUnPublishedEventHandler(
         );
 
         await _exerciseSearchService.UnPublishAsync(request, ct);
-        // Invalidate cache for exercise admin search to reflect the newly published exercise
         await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.ExerciseAdminSearch, ct);
         _logger.LogInformation("Unpublished exercise {ExerciseId} indexed successfully in Elasticsearch", @event.ExerciseId);
     }

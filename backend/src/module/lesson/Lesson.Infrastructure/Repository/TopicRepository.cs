@@ -101,7 +101,7 @@ public class TopicRepository(
 
         var topic = await ExecuteAsync(
             async () => await _dbContext.Topics
-                .AsNoTracking()
+                .AsNoTracking() // Sử dụng AsNoTracking vì chúng ta chỉ đọc dữ liệu mà không cần theo dõi sự thay đổi, giúp tăng hiệu suất truy vấn
                 .FirstOrDefaultAsync(t => t.TopicId == topicId, ct),
             "Database error retrieving topic: {TopicId}",
             "Unexpected error retrieving topic",
@@ -318,7 +318,48 @@ public class TopicRepository(
 
         await InvalidateTopicCacheAsync(topic.TopicId, ct);
     }
-
+    public async Task<TopicAggregate?> GetBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        
+        return await ExecuteAsync(
+            async () => {
+                var cacheKey = $"TopicBySlug:{slug}";
+                try
+                {
+                    var cachedBytes = await _distributedCache.GetAsync(cacheKey, ct);
+                    if (cachedBytes is { Length: > 0 })
+                    {
+                        var cachedTopic = JsonSerializer.Deserialize<TopicAggregate>(cachedBytes);
+                        if (cachedTopic is not null)
+                        {
+                            return cachedTopic;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to read topic by slug cache for {Slug}", slug);
+                }
+                var topic = await _dbContext.Topics.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+                // cache the result
+                try {
+                    if (topic != null)
+                    {
+                        var payload = JsonSerializer.SerializeToUtf8Bytes(topic);
+                        await _distributedCache.SetAsync(cacheKey, payload, TopicCacheOptions, ct);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to set topic by slug cache for {Slug}", slug);
+                }
+                return topic;
+            },
+            "Database error retrieving topic by slug: {Slug}",
+            "Unexpected error retrieving topic by slug",
+            "Không thể truy xuất topic từ database bằng slug",
+            slug);
+    }
     public async Task UpdateRangeAsync(IEnumerable<TopicAggregate> topics, CancellationToken ct = default)
     {
         var topicList = topics.ToList();

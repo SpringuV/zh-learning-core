@@ -10,7 +10,7 @@ public interface ICourseRepository
     Task AddAsync(CourseAggregate course, CancellationToken ct = default);
     Task UpdateAsync(CourseAggregate course, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
-
+    Task<int> GetHskLevelByCourseIdAsync(Guid courseId, CancellationToken ct = default);
     Task UpdateRangeAsync(IEnumerable<CourseAggregate> courses, CancellationToken ct = default);
     Task ReorderByIdsAsync(IReadOnlyList<Guid> orderedCourseIds, CancellationToken ct = default);
 

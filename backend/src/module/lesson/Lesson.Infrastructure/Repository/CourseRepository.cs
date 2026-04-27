@@ -19,7 +19,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error when adding course: {CourseId}",
             "Unexpected error adding course",
-            "Khong the them khoa hoc vao database",
+            "Không thể thêm khóa học vào database",
             course.CourseId);
     }
 
@@ -39,7 +39,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error when updating course: {CourseId}",
             "Unexpected error updating course",
-            "Khong the cap nhat khoa hoc",
+            "Không thể cập nhật khóa học",
             course.CourseId);
     }
 
@@ -57,7 +57,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error when deleting course: {CourseId}",
             "Unexpected error deleting course",
-            "Khong the xoa khoa hoc khoi database",
+            "Không thể xóa khóa học khỏi database",
             courseId);
     }
 
@@ -70,7 +70,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error getting max OrderIndex",
             "Unexpected error getting max OrderIndex",
-            "Khong the lay OrderIndex toi da");
+            "Không thể lấy OrderIndex tối đa");
     }
 
     public async Task<IEnumerable<CourseAggregate>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
@@ -85,7 +85,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error getting courses by IDs",
             "Unexpected error getting courses by IDs",
-            "Khong the lay khoa hoc theo IDs");
+            "Không thể lấy các khóa học theo danh sách ID");
     }
 
     public Task UpdateRangeAsync(IEnumerable<CourseAggregate> courses, CancellationToken ct = default)
@@ -99,7 +99,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
             },
             "Database error when updating courses range",
             "Unexpected error updating courses range",
-            "Khong the cap nhat khoa hoc",
+            "Không thể cập nhật các khóa học",
             string.Join(", ", courses.Select(c => c.CourseId)));
     }
 
@@ -166,39 +166,39 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
                 };
 
                 const string moveToFinalSql = @"
-WITH input AS (
-    SELECT u.""CourseId"", u.""Position""::int AS ""FinalOrder""
-    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""CourseId"", ""Position"")
-),
-selected AS (
-    SELECT c.""CourseId"", (c.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
-    FROM ""Courses"" c
-    JOIN input i ON c.""CourseId"" = i.""CourseId""
-),
-slots AS (
-    SELECT
-        ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
-        s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
-    FROM selected s
-),
-guards AS (
-    SELECT
-        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
-        (SELECT COUNT(DISTINCT ""CourseId"")::int FROM input) AS ""DistinctInputCount"",
-        (SELECT COUNT(*)::int FROM selected) AS ""MatchedCourses"",
-        (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
-)
-UPDATE ""Courses"" AS c
-SET ""OrderIndex"" = s.""TargetOrderIndex"",
-    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
-FROM input i
-CROSS JOIN guards g
-JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
-WHERE c.""CourseId"" = i.""CourseId""
-  AND g.""InputCount"" = g.""DistinctInputCount""
-  AND g.""MatchedCourses"" = g.""InputCount""
-  AND g.""ValidOriginalOrderCount"" = g.""InputCount""
-";
+                    WITH input AS (
+                        SELECT u.""CourseId"", u.""Position""::int AS ""FinalOrder""
+                        FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""CourseId"", ""Position"")
+                    ),
+                    selected AS (
+                        SELECT c.""CourseId"", (c.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
+                        FROM ""Courses"" c
+                        JOIN input i ON c.""CourseId"" = i.""CourseId""
+                    ),
+                    slots AS (
+                        SELECT
+                            ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
+                            s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
+                        FROM selected s
+                    ),
+                    guards AS (
+                        SELECT
+                            (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+                            (SELECT COUNT(DISTINCT ""CourseId"")::int FROM input) AS ""DistinctInputCount"",
+                            (SELECT COUNT(*)::int FROM selected) AS ""MatchedCourses"",
+                            (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
+                    )
+                    UPDATE ""Courses"" AS c
+                    SET ""OrderIndex"" = s.""TargetOrderIndex"",
+                        ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+                    FROM input i
+                    CROSS JOIN guards g
+                    JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
+                    WHERE c.""CourseId"" = i.""CourseId""
+                    AND g.""InputCount"" = g.""DistinctInputCount""
+                    AND g.""MatchedCourses"" = g.""InputCount""
+                    AND g.""ValidOriginalOrderCount"" = g.""InputCount""
+                    ";
 
                 var updatedCount = await _dbContext.Database
                     .ExecuteSqlRawAsync(moveToFinalSql, [idsParameterFinal, tempBaseParameterFinal], ct);
@@ -208,7 +208,22 @@ WHERE c.""CourseId"" = i.""CourseId""
             },
             "Database error when reordering courses",
             "Unexpected error reordering courses",
-            "Khong the sap xep lai thu tu khoa hoc",
+            "Không thể sắp xếp lại các khóa học",
             string.Join(", ", orderedCourseIds));
     }
+
+    public async Task<int> GetHskLevelByCourseIdAsync(Guid courseId, CancellationToken ct = default)
+    {
+        return await ExecuteAsync(
+            async () =>
+            {
+                var course = await GetByIdAsync(courseId, ct) ?? throw new KeyNotFoundException($"Course with ID {courseId} not found.");;
+                return course.HskLevel;
+            },
+            "Database error when getting HSK level for course: {CourseId}",
+            "Unexpected error getting HSK level for course",
+            "Không thể lấy mức HSK cho khóa học",
+            courseId);
+    }
+
 }

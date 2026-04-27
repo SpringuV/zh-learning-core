@@ -43,11 +43,17 @@ public static class LessonSearchApi
     }
     #endregion
     #region Topic Client
-    public static async Task<IResult> SearchTopicsForClient([FromRoute] string slug, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, CancellationToken ct)
+    public static async Task<IResult> SearchTopicsForClient([FromRoute] string slug, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, HttpContext httpContext, CancellationToken ct)
     {
         try
         {
-            var results = await topicSearchQueriesService.GetTopicForDashboardClientAsync(slug, ct);
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var results = await topicSearchQueriesService.GetTopicForDashboardClientAsync(slug, userId, ct);
             return Results.Ok(results);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -177,6 +183,78 @@ public static class LessonSearchApi
         try
         {
             var results = await exerciseSearchQueriesService.GetExerciseDetailSearchItemAdminAsync(exerciseId, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
+    #region CountinueExercisesSessionForTopicClient
+    public static async Task<IResult> CountinueExercisesSessionForTopicClient([FromRoute] string slug, [FromServices] IExerciseSearchQueriesService exerciseSearchQueriesService, HttpContext httpContext, CancellationToken ct)
+    {
+        try
+        {
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var results = await exerciseSearchQueriesService.CountinueExercisesSessionForTopicClientAsync(slug, userId, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
+    #region ExercisePracticeItem
+    // hiển thị các câu hỏi của bài tập khi user luyện tập
+    public static async Task<IResult> GetExerciseSessionPracticeItemWithoutAnswer([FromRoute] Guid exerciseId, [FromServices] IExerciseSearchQueriesService exerciseSearchQueriesService, CancellationToken ct)
+    {
+        try
+        {
+            var results = await exerciseSearchQueriesService.GetExerciseSessionPracticeItemWithoutAnswerAsync(exerciseId, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
+
+    #region GetSessionItemsSnapshot
+    public static async Task<IResult> GetSessionItemsSnapshot([FromRoute] Guid sessionId, [FromRoute] string slug, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, HttpContext httpContext, CancellationToken ct)
+    {
+        try
+        {
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+            var request = new ExerciseSessionItemsSnapshotRequest(
+                SessionId: sessionId,
+                Slug: slug,
+                UserId: userId
+            );
+            var results = await topicSearchQueriesService.GetSessionItemsSnapshotAsync(request, ct);
             return Results.Ok(results);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

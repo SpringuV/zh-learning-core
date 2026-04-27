@@ -162,17 +162,30 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
     }
     #endregion
 
-    #region TopicDashboardClient
+    #region TopicDetailAdmin
     public async Task<TopicSearchDetailResponse> GetTopicDetailSearchItemAdminAsync(Guid topicId, CancellationToken cancellationToken = default)
     {
         var query = new TopicSearchDetailAdminQueries(topicId);
         return await _mediator.Send(query, cancellationToken);
     }
+    #endregion
 
-    public Task<Result<IEnumerable<TopicSearchForDashboardClientResponse>>> GetTopicForDashboardClientAsync(string slug, CancellationToken cancellationToken = default)
+    #region TopicDashboardClient
+    public Task<Result<IEnumerable<TopicSearchForDashboardClientResponse>>> GetTopicForDashboardClientAsync(string slug, Guid userId, CancellationToken cancellationToken = default)
     {
-        var query = new TopicSearchForDashboardClientQueries(slug);
+        var query = new TopicSearchForDashboardClientQueries(slug, userId);
         return _mediator.Send(query, cancellationToken);
+    }
+    #endregion
+    #region GetSessionItemsSnapshotAsync
+    public async Task<Result<ExerciseSessionItemsSnapshotResponse>> GetSessionItemsSnapshotAsync(ExerciseSessionItemsSnapshotRequest request, CancellationToken cancellationToken = default)
+    {
+        var query = new ExerciseSessionItemsSnapshotSearchQueries(
+            SessionId: request.SessionId,
+            UserId: request.UserId,
+            SlugTopic: request.Slug
+        );
+        return await _mediator.Send(query, cancellationToken);
     }
     #endregion
 }

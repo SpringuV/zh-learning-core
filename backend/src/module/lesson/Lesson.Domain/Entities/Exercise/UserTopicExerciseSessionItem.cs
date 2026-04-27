@@ -4,8 +4,7 @@ public enum UserTopicExerciseSessionItemStatus
 {
     Pending = 0,
     Viewed = 1,
-    Completed = 2,
-    Skipped = 3
+    Completed = 2
 }
 
 public sealed record UserTopicExerciseSessionItemSnapshot(
@@ -73,14 +72,15 @@ public class UserTopicExerciseSessionItem
         {
             return;
         }
+        DateTime now = DateTime.UtcNow;
 
-        ViewedAt ??= DateTime.UtcNow;
+        ViewedAt ??= now;
         if (Status == UserTopicExerciseSessionItemStatus.Pending)
         {
             Status = UserTopicExerciseSessionItemStatus.Viewed;
         }
 
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 
     public void MarkCompleted(Guid attemptId)
@@ -91,22 +91,12 @@ public class UserTopicExerciseSessionItem
         {
             throw new InvalidOperationException("Session item đã được gắn với một attempt khác.");
         }
+        DateTime now = DateTime.UtcNow;
 
         AttemptId = attemptId;
-        ViewedAt ??= DateTime.UtcNow;
-        AnsweredAt = DateTime.UtcNow;
+        ViewedAt ??= now;
+        AnsweredAt = now;
         Status = UserTopicExerciseSessionItemStatus.Completed;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
-    public void MarkSkipped()
-    {
-        if (Status is UserTopicExerciseSessionItemStatus.Completed or UserTopicExerciseSessionItemStatus.Skipped)
-        {
-            return;
-        }
-
-        Status = UserTopicExerciseSessionItemStatus.Skipped;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
     }
 }

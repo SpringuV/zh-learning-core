@@ -1,9 +1,14 @@
+using HanziAnhVu.Shared.Contracts;
 using Search.Contracts.DTOs;
 
 namespace Search.Contracts.Interfaces;
 
 public interface IExerciseSearchQueriesService
 {
+    Task BulkIndexExerciseAttemptAsync(ExerciseAttemptBatchScoredRequestDTO request, CancellationToken cancellationToken = default);
+    Task CompletedExerciseSessionAsync(ExerciseSessionCompletedRequestDTO request, CancellationToken cancellationToken = default);
+    Task<Result<ExerciseSessionPracticeItemWithoutAnswerResponse>> GetExerciseSessionPracticeItemWithoutAnswerAsync(Guid exerciseId, CancellationToken cancellationToken = default);
+    Task<Result<CountinueLearningResponseDTO>> CountinueExercisesSessionForTopicClientAsync(string slug, Guid userId, CancellationToken cancellationToken = default);
     Task<ExerciseSearchDetailResponse> GetExerciseDetailSearchItemAdminAsync(Guid exerciseId, CancellationToken cancellationToken = default);
     Task<ExerciseSearchWithTopicMetadataResponse> SearchExerciseAdminWithTopicMetadataAsync(ExerciseSearchQueryRequest request, CancellationToken cancellationToken = default);
     Task UpdateOptionsAsync(ExerciseOptionsUpdatedRequestDTO request, CancellationToken cancellationToken = default);

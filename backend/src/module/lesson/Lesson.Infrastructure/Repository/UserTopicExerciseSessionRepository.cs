@@ -54,4 +54,18 @@ public class UserTopicExerciseSessionRepository(LessonDbContext dbContext, ILogg
             "Không thể xóa session khỏi database",
             sessionId);
     }
+
+    public async Task<UserTopicExerciseSessionAggregate?> GetByTopicIdAndUserIdAsync(Guid topicId, Guid userId, CancellationToken ct = default)
+    {
+        return await ExecuteAsync(
+            async () =>
+            {
+                return await _dbContext.UserExerciseSessions.FirstOrDefaultAsync(s => s.TopicId == topicId && s.UserId == userId, ct);
+            },
+            "Database error when retrieving session by topic and user: {TopicId}, {UserId}",
+            "Unexpected error retrieving session by topic and user",
+            "Không thể truy xuất session theo chủ đề và người dùng",
+            topicId, userId
+        ); 
+    }
 }

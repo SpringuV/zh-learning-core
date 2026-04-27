@@ -1,6 +1,3 @@
-using HanziAnhVu.Shared.Domain;
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Domain.Entities.Exercise;
 
 /// <summary>
@@ -13,8 +10,8 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
 {
     public Guid AttemptId { get; private set; }
     public Guid SessionId { get; private set; } // FK to user_exercise_session (same module)
-    public Guid? SessionItemId { get; private set; } // Soft ref to session snapshot item within the same learning session
     public Guid ExerciseId { get; private set; } // Soft ref to exercise.id (cross-module)
+    public SkillType SkillType { get; private set; } // Denormalized from Exercise for easier querying
     public string Answer { get; private set; } = string.Empty;
     public float Score { get; private set; } = 0f;
     public bool IsCorrect { get; private set; } = false;
@@ -31,29 +28,20 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
     /// </summary>
     public static ExerciseAttemptAggregate Create(
         Guid sessionId,
-        Guid? sessionItemId,
-        Guid userId, // for denormalized event payload (from session)
-        Guid? topicId, // for denormalized event payload (from session, nullable)
         Guid exerciseId,
-        string question, // for denormalized event payload (from exercise)
-        string exerciseType, // for denormalized event payload (from exercise)
-        string skillType, // for denormalized event payload (from exercise)
-        string difficulty, // for denormalized event payload (from exercise)
+        SkillType skillType,
         string answer)
     {
         if (sessionId == Guid.Empty) throw new ArgumentException("SessionId không được để trống");
-        if (sessionItemId.HasValue && sessionItemId.Value == Guid.Empty) throw new ArgumentException("SessionItemId không được để trống");
-        if (userId == Guid.Empty) throw new ArgumentException("UserId không được để trống");
         if (exerciseId == Guid.Empty) throw new ArgumentException("ExerciseId không được để trống");
-        if (string.IsNullOrWhiteSpace(question)) throw new ArgumentException("Question không được để trống");
         if (string.IsNullOrWhiteSpace(answer)) throw new ArgumentException("Answer không được để trống");
         
         var attempt = new ExerciseAttemptAggregate
         {
             AttemptId = Guid.CreateVersion7(),
             SessionId = sessionId,
-            SessionItemId = sessionItemId,
             ExerciseId = exerciseId,
+            SkillType = skillType,
             Answer = answer,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -62,30 +50,24 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         // Emit rich event with full context (denormalized payload)
         // Search handler won't need to query DB for session/exercise context
         attempt.AddDomainEvent(new ExerciseAttemptCreatedEvent(
-            attempt.AttemptId,
-            sessionId,
-            userId,           // From session
-            topicId,          // From session (nullable)
-            exerciseId,
-            question,         // From exercise
-            exerciseType,     // From exercise
-            skillType,        // From exercise
-            difficulty,       // From exercise
-            answer,
-            0f,               // Initial score = 0
-            false,            // IsCorrect = false (updated when scored)
-            attempt.CreatedAt,
-            attempt.UpdatedAt
+            AttemptId: attempt.AttemptId,
+            SessionId: sessionId,
+            ExerciseId: exerciseId,
+            SkillType: skillType,
+            Answer: answer,
+            InitialScore: 0f,               // Initial score = 0
+            IsCorrect: false,            // IsCorrect = false (updated when scored)
+            CreatedAt: attempt.CreatedAt,
+            UpdatedAt: attempt.UpdatedAt
         ));
         
         return attempt;
     }
-    
-    /// <summary>
-    /// Update answer while in draft (before session finalized)
-    /// Can retry with different answer during session
-    /// </summary>
-    public void UpdateAnswer(string newAnswer, Guid userId)
+    public void SetScore(float score)
+    {
+        Score = score;
+    }
+    public void UpdateAnswer(string newAnswer, Guid ExerciseId, Guid SessionId)
     {
         if (IsFinalized)
             throw new InvalidOperationException("Attempts đã được hoàn thành, không thể sửa đáp án");
@@ -102,19 +84,23 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         AddDomainEvent(new ExerciseAttemptAnswerChangedEvent(
             AttemptId,
             SessionId,
-            userId,
             ExerciseId,
             newAnswer,
             UpdatedAt
         ));
     }
     
+    public void SetIsCorrect(bool isCorrect)
+    {
+        IsCorrect = isCorrect;
+        UpdatedAt = DateTime.UtcNow;
+    }
     /// <summary>
     /// Finalize attempt when session ends
     /// After finalize, answer and score are locked
     /// Optional: Grade immediately if auto-scorable, else score will come from background job
     /// </summary>
-    public void Finalize(float? score = null, bool? isCorrect = null, Guid? userId = null, string? skillType = null)
+    public void Finalize(float? score = null, bool? isCorrect = null, bool emitScoreEvent = true)
     {
         if (IsFinalized)
             throw new InvalidOperationException("Attempt đã được hoàn thành rồi");
@@ -123,9 +109,9 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         UpdatedAt = DateTime.UtcNow;
         
         // If score provided, record it immediately (for auto-scorable)
-        if (score.HasValue && isCorrect.HasValue && userId.HasValue && skillType is not null)
+        if (score.HasValue && isCorrect.HasValue)
         {
-            RecordScore(score.Value, isCorrect.Value, userId.Value, skillType);
+            RecordScore(score.Value, isCorrect.Value, emitScoreEvent);
         }
         // Else: Score will come from async grading job
     }
@@ -136,7 +122,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
     /// Can only be called during draft (before finalize) for immediate grading,
     /// or after finalize for async grading results
     /// </summary>
-    public void RecordScore(float score, bool isCorrect, Guid userId, string skillType)
+    public void RecordScore(float score, bool isCorrect, bool emitEvent = true)
     {
         if (score < 0 || score > 100)
             throw new ArgumentException("Điểm phải từ 0-100");
@@ -145,13 +131,16 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         IsCorrect = isCorrect;
         UpdatedAt = DateTime.UtcNow;
         
+        if (!emitEvent)
+        {
+            return;
+        }
+        
         // Emit rich event with denormalized data
         AddDomainEvent(new ExerciseAttemptScoredEvent(
             AttemptId,
             SessionId,
-            userId, // for denormalized context (from session)
             ExerciseId,
-            skillType, // for denormalized context (from exercise)
             score,
             isCorrect,
             DateTime.UtcNow,
@@ -164,7 +153,7 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
     /// Rich: includes denormalized context for Search
     /// Can be added before or after finalization
     /// </summary>
-    public void SetAiFeedback(string feedback, Guid userId)
+    public void SetAiFeedback(string feedback)
     {
         if (string.IsNullOrWhiteSpace(feedback))
             throw new ArgumentException("Feedback không được để trống");
@@ -176,7 +165,6 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
         AddDomainEvent(new ExerciseAttemptAiFeedbackAddedEvent(
             AttemptId,
             SessionId,
-            userId, // for denormalized context (from session)
             ExerciseId,
             feedback,
             DateTime.UtcNow,

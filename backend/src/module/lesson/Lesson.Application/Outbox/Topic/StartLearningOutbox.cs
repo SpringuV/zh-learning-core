@@ -29,7 +29,9 @@ public sealed class TopicExerciseSessionStartedOutbox(ILessonOutboxWriter lesson
             SessionId: notification.SessionId,
             UserId: notification.UserId,
             TopicId: notification.TopicId,
-            StartedAt: notification.StartedAt
+            StartedAt: notification.StartedAt,
+            HskLevel: notification.HskLevel,
+            Status: notification.Status.ToString()
         ),
         cancellationToken);
 }
@@ -42,6 +44,7 @@ public sealed class TopicExerciseSessionSnapshotInitializedOutbox(ILessonOutboxW
         new UserTopicExerciseSessionSnapshotInitializedIntegrationEvent(
             SessionId: notification.SessionId,
             UserId: notification.UserId,
+            HskLevel: notification.HskLevel,
             TopicId: notification.TopicId,
             TotalExercises: notification.TotalExercises,
             CurrentSequenceNo: notification.CurrentSequenceNo,

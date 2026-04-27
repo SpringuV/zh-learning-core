@@ -7,14 +7,17 @@ public sealed record TopicExerciseSessionSnapshotInitializedCommand(
     Guid TopicId,
     int TotalExercises,
     int CurrentSequenceNo,
-    IReadOnlyList<ExerciseSessionItemSnapshot> ExerciseItems,
+    int HskLevel,
+    List<ExerciseSessionItemSnapshot> ExerciseItems,
     DateTime InitializedAt,
     DateTime UpdatedAt) : IRequest<Unit>;
 public sealed record ExerciseSessionStartedCommand(
     Guid SessionId,
     Guid UserId,
     Guid TopicId,
-    DateTime UpdatedAt) : IRequest<Unit>;
+    int HskLevel,
+    DateTime UpdatedAt,
+    StatusTopicForDashboardClient Status) : IRequest<Unit>;
 
 #region StartedLearning
 public sealed class ExerciseSessionStartedCommandHandler(
@@ -38,17 +41,24 @@ public sealed class ExerciseSessionStartedCommandHandler(
             userId: request.UserId,
             topicId: request.TopicId,
             totalExercises: 0,
+            hskLevel: 0,
             currentSequenceNo: 0,
             exerciseItems: [],
             initializedAt: request.UpdatedAt,
-            updatedAt: request.UpdatedAt);
+            updatedAt: request.UpdatedAt,
+            status: request.Status,
+            totalScore: 0,
+            scoreListening: 0,
+            scoreReading: 0,
+            scoreWriting: 0,
+            totalCorrect: 0);
 
         var updateResponse = await _elasticClient.UpdateAsync<TopicExerciseSessionSearch, object>(
             ConstantIndexElastic.TopicExerciseSessionIndex,
             request.SessionId,
             u => u
                 .Index(ConstantIndexElastic.TopicExerciseSessionIndex)
-                .Doc(new { request.UpdatedAt })
+                .Doc(new { request.UpdatedAt, request.Status })
                 .Upsert(upsertDocument) // upsert nếu chưa có document nào cho session này, tránh trường hợp update không tìm thấy document khi event started đến trước event snapshot initialized
                 .RetryOnConflict(3),
             cancellationToken);
@@ -82,11 +92,19 @@ public sealed class TopicExerciseSessionSnapshotInitializedCommandHandler(
             userId: request.UserId,
             topicId: request.TopicId,
             totalExercises: request.TotalExercises,
+            hskLevel: request.HskLevel,
             currentSequenceNo: request.CurrentSequenceNo,
             exerciseItems: request.ExerciseItems,
             initializedAt: request.InitializedAt,
-            updatedAt: request.UpdatedAt);
-
+            updatedAt: request.UpdatedAt,
+            status: StatusTopicForDashboardClient.InProgress, // khi snapshot được initialized thì chắc chắn session đã bắt đầu, nên set status là InProgress);
+            scoreListening: 0,
+            scoreReading: 0,
+            scoreWriting: 0,
+            totalScore: 0,
+            totalCorrect: 0,
+            totalWrong: 0
+        );
         var response = await _elasticClient.IndexAsync(
             document,
             i => i.Index(ConstantIndexElastic.TopicExerciseSessionIndex).Id(document.SessionId),
@@ -122,6 +140,14 @@ internal static class TopicExerciseSessionIndexBootstrap
                     .Keyword(tp => tp.SessionId, k => k.Fields(f => f.Keyword("keyword")))
                     .Keyword(tp => tp.UserId, k => k.Fields(f => f.Keyword("keyword")))
                     .Keyword(tp => tp.TopicId, k => k.Fields(f => f.Keyword("keyword")))
+                    .Keyword(tp => tp.Status, k => k.Fields(f => f.Keyword("keyword")))
+                    .IntegerNumber(tp => tp.HskLevel)
+                    .FloatNumber(tp => tp.TotalScore)
+                    .IntegerNumber(tp => tp.ScoreListening)
+                    .IntegerNumber(tp => tp.ScoreReading)
+                    .IntegerNumber(tp => tp.ScoreWriting)
+                    .IntegerNumber(tp => tp.TotalCorrect)
+                    .IntegerNumber(tp => tp.TotalWrong)
                     .IntegerNumber(tp => tp.TotalExercises)
                     .IntegerNumber(tp => tp.CurrentSequenceNo)
                     .Nested(nameof(TopicExerciseSessionSearch.ExerciseItems), CreateExerciseItemsNestedProperty())

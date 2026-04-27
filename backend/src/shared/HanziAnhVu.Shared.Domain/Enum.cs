@@ -1,4 +1,12 @@
 namespace HanziAnhVu.Shared.Domain;
+public enum ExerciseSessionStatus
+{
+    NotStarted,
+    InProgress,
+    Completed,
+    Abandoned 
+}
+
 public enum ExerciseType
 {
     ListenDialogueChoice, // Input: Audio + Multiple Choice Question

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Lesson.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Lesson.Infrastructure.Migrations
 {
     [DbContext(typeof(LessonDbContext))]
-    partial class LessonDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424060120_Fix")]
+    partial class Fix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -177,8 +180,8 @@ namespace Lesson.Infrastructure.Migrations
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("SkillType")
-                        .HasColumnType("integer");
+                    b.Property<Guid?>("SessionItemId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -188,6 +191,8 @@ namespace Lesson.Infrastructure.Migrations
                     b.HasIndex("ExerciseId");
 
                     b.HasIndex("SessionId");
+
+                    b.HasIndex("SessionItemId");
 
                     b.HasIndex("SessionId", "ExerciseId");
 
@@ -257,18 +262,6 @@ namespace Lesson.Infrastructure.Migrations
                     b.Property<int>("CurrentSequenceNo")
                         .HasColumnType("integer");
 
-                    b.Property<int>("HskLevel")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoreListening")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoreReading")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ScoreWriting")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -281,17 +274,11 @@ namespace Lesson.Infrastructure.Migrations
                     b.Property<Guid>("TopicId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("TotalCorrect")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TotalExercises")
                         .HasColumnType("integer");
 
                     b.Property<float?>("TotalScore")
                         .HasColumnType("real");
-
-                    b.Property<int>("TotalWrong")
-                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");

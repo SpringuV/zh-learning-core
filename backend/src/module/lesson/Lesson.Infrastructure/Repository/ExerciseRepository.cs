@@ -4,11 +4,19 @@ using Npgsql;
 using NpgsqlTypes;
 
 public class ExerciseRepository(
+        IDistributedCache distributedCache,
+        ICacheVersionService cacheVersionService,
         LessonDbContext dbContext, 
         ILogger<ExerciseRepository> logger) 
     : LessonRepositoryBase(logger), IExerciseRepository
 {
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService ?? throw new ArgumentNullException(nameof(cacheVersionService));
+    private readonly IDistributedCache _distributedCache = distributedCache ?? throw new ArgumentNullException(nameof(distributedCache));
     private readonly LessonDbContext _dbContext = dbContext;
+    private static readonly DistributedCacheEntryOptions TopicCacheOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15)
+    };
     private const int ReorderTempBase = 1_000_000_000; // Giá trị lớn để tạm thời di chuyển OrderIndex trong quá trình sắp xếp lại
 
     public async Task AddAsync(ExerciseAggregate exercise, CancellationToken ct = default)
@@ -49,7 +57,23 @@ public class ExerciseRepository(
     public async Task<ExerciseAggregate?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await ExecuteAsync(
-            async () => await _dbContext.Exercises.FindAsync([id], ct),
+            async () =>
+            {
+                var cacheKey = await BuildTopicCacheKeyAsync(id, ct);
+                var cachedData = await _distributedCache.GetStringAsync(cacheKey, ct);
+                if (!string.IsNullOrEmpty(cachedData))
+                {
+                    return JsonSerializer.Deserialize<ExerciseAggregate>(cachedData);
+                }
+                // asNoTracking vì chỉ đọc dữ liệu, không cần theo dõi sự thay đổi, giúp tăng hiệu suất truy vấn
+                var exercise = await _dbContext.Exercises.AsNoTracking().FirstOrDefaultAsync(e => e.ExerciseId == id, ct);
+                if (exercise != null)
+                {
+                    var serializedData = JsonSerializer.Serialize(exercise);
+                    await _distributedCache.SetStringAsync(cacheKey, serializedData, TopicCacheOptions, ct);
+                }
+                return exercise;
+            },
             "Database error when retrieving exercise: {ExerciseId}",
             "Unexpected error retrieving exercise",
             "Không thể truy xuất exercise từ database",
@@ -69,10 +93,12 @@ public class ExerciseRepository(
         );
     }
 
-    public async Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAsync(Guid topicId, CancellationToken ct = default)
+    public async Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAndPublishedAndOrderIndexAsync(Guid topicId, CancellationToken ct = default)
     {
         return await ExecuteAsync(
-            async () => await _dbContext.Exercises.Where(e => e.TopicId == topicId).ToListAsync(ct),
+            async () => await _dbContext.Exercises.Where(e => e.TopicId == topicId).Where(exercise => exercise.IsPublished)
+                .OrderBy(exercise => exercise.OrderIndex)
+                .ThenBy(exercise => exercise.ExerciseId).ToListAsync(ct),
             "Database error retrieving exercises by topic ID: {TopicId}",
             "Unexpected error retrieving exercises by topic ID: {TopicId}",
             "Không thể truy xuất exercises theo topic ID",
@@ -235,4 +261,40 @@ WHERE e.""ExerciseId"" = i.""ExerciseId""
             "Unexpected error updating exercises",
             "Không thể cập nhật các exercise");
     }
+
+    public async Task<IEnumerable<ExerciseWithAnswerDTORepository>> GetExerciseWithAnswersAsync(IEnumerable<Guid> exerciseIds, CancellationToken ct = default)
+    {
+        return await ExecuteAsync(
+            async () => await _dbContext.Exercises
+                .Where(e => exerciseIds.Contains(e.ExerciseId))
+                .Select(e => new ExerciseWithAnswerDTORepository(e.ExerciseId, e.CorrectAnswer, e.SkillType, e.ExerciseType, e.Difficulty, e.Options, e.Question, e.Description, e.AudioUrl, e.ImageUrl, e.Explanation))
+                .ToListAsync(ct),
+            "Database error retrieving exercises with answers by exercise IDs: {ExerciseIds}",
+            "Unexpected error retrieving exercises with answers by exercise IDs: {ExerciseIds}",
+            "Không thể truy xuất exercises với đáp án theo exercise IDs",
+            string.Join(",", exerciseIds)
+        );
+    }
+
+    private async Task<string> BuildTopicCacheKeyAsync(Guid exerciseId, CancellationToken ct)
+    {
+        var scope = BuildTopicCacheScope(exerciseId);
+        var versionToken = await _cacheVersionService.GetVersionTokenAsync(scope, ct);
+        return $"{scope}:v:{versionToken}";
+    }
+
+    private async Task InvalidateTopicCacheAsync(Guid exerciseId, CancellationToken ct)
+    {
+        try
+        {
+            await _cacheVersionService.InvalidateScopeAsync(BuildTopicCacheScope(exerciseId), ct);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to invalidate topic cache for {exerciseId}", exerciseId);
+        }
+    }
+
+    private static string BuildTopicCacheScope(Guid exerciseId)
+        => $"lesson:topic:by-id:{exerciseId:D}";
 }

@@ -150,4 +150,29 @@ public class ExerciseApi
         }
     }
     #endregion
+
+    #region SaveAnswer
+    public static async Task<IResult> SaveAnswer(
+        [FromBody] SaveAnswerRequestDTO request,
+        ILessonService lessonService,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        try
+        {
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+            var requestWithUserId = request with { UserId = userId };
+            var result = await lessonService.SaveAnswerAsync(requestWithUserId, ct);
+            return result.Success ? Results.Ok(result) : Helper.HandleFailureResult(result);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+    }
+    #endregion
 }

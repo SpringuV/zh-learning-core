@@ -24,6 +24,9 @@ public static class Dependencies
         // Register topic-specific search service
         services.AddScoped<ITopicSearchQueriesService, TopicSearchQueriesService>();
 
+        // Register topic progress search service
+        services.AddScoped<ITopicProgressQueriesService, TopicProgressQueriesServices>();
+
         // Register exercise-specific search service
         services.AddScoped<IExerciseSearchQueriesService, ExerciseSearchQueriesService>();
 

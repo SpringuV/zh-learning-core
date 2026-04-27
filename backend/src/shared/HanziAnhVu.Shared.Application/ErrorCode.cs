@@ -13,6 +13,9 @@ public enum ErrorCode: int
     INVALID_ENUM = 4007,
     REQUIRED_FIELD = 4006,
     INVALID_ARGUMENT = 4000,
+    UN_AUTHORIZED = 4003,
+    FOR_BIDDEN = 4004,
+    BAD_REQUEST = 4005,
     
     // Not found errors (404x)
     NOTFOUND = 4041,

@@ -44,7 +44,9 @@ public class TopicExerciseSessionStartedEventHandler(
             SessionId: @event.SessionId,
             UserId: @event.UserId,
             TopicId: @event.TopicId,
-            StartedAt: @event.StartedAt
+            HskLevel: @event.HskLevel,
+            StartedAt: @event.StartedAt,
+            Status: Enum.Parse<StatusTopicForDashboardClient>(@event.Status)
         );
 
         await _topicProgressQueriesService.HandleExerciseSessionStartedAsync(request, ct);
@@ -69,6 +71,7 @@ public class TopicExerciseSessionSnapshotInitializedEventHandler(
             TopicId: @event.TopicId,
             TotalExercises: @event.TotalExercises,
             CurrentSequenceNo: @event.CurrentSequenceNo,
+            HskLevel: @event.HskLevel,
             SessionItems: [.. @event.SessionItems.Select(item => new ExerciseSessionItemSnapshot
             (
                 SessionItemId: item.SessionItemId,
@@ -76,7 +79,7 @@ public class TopicExerciseSessionSnapshotInitializedEventHandler(
                 SequenceNo: item.SequenceNo,
                 OrderIndex: item.OrderIndex,
                 AttemptId: item.AttemptId,
-                Status: item.Status,
+                Status: Enum.Parse<ExerciseSessionItemStatus>(item.Status),
                 ViewedAt: item.ViewedAt,
                 AnsweredAt: item.AnsweredAt
             ))],

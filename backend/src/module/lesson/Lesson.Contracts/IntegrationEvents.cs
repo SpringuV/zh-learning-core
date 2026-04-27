@@ -1,5 +1,7 @@
 using HanziAnhVu.Shared.Domain;
 using HanziAnhVu.Shared.EventBus;
+using Lesson.Domain.Entities.Events;
+using Lesson.Domain.Entities.Exercise;
 
 namespace Lesson.Contracts;
 
@@ -284,6 +286,7 @@ public sealed record UserTopicExerciseSessionSnapshotInitializedIntegrationEvent
     Guid TopicId,
     int TotalExercises,
     int CurrentSequenceNo,
+    int HskLevel,
     List<UserTopicExerciseSessionItemSnapshotIntegrationEvent> SessionItems,
     DateTime InitializedAt,
     DateTime UpdatedAt
@@ -305,15 +308,23 @@ public sealed record UserTopicExerciseSessionStartedIntegrationEvent(
     Guid SessionId,
     Guid UserId,
     Guid TopicId,
-    DateTime StartedAt
+    DateTime StartedAt,
+    int HskLevel,
+    string Status
 ): IntegrationEvent;
 
 public sealed record UserTopicExerciseSessionCompletedIntegrationEvent(
     Guid SessionId,
     Guid UserId,
-    Guid? TopicId,
-    float SessionScore,
-    int TotalAttempts,
+    Guid TopicId,
+    ExerciseSessionStatus Status,
+    int TotalExercises,
+    float TotalScore,
+    int HskLevel,
+    int TotalCorrect,
+    int TotalWrong,
+    int ScoreListening,
+    int ScoreReading,
     int TimeSpentSeconds,
     DateTime CompletedAt
 ): IntegrationEvent;
@@ -322,6 +333,7 @@ public sealed record UserTopicExerciseSessionAbandonedIntegrationEvent(
     Guid SessionId,
     Guid UserId,
     Guid? TopicId,
+    int HskLevel,
     DateTime AbandonedAt
 ): IntegrationEvent;
 #endregion
@@ -361,6 +373,13 @@ public sealed record ExerciseAttemptAiFeedbackAddedIntegrationEvent(
     Guid ExerciseId,
     string Feedback,
     DateTime FeedbackAddedAt
+): IntegrationEvent;
+
+public sealed record ExerciseAttemptBatchScoredIntegrationEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    IReadOnlyList<ExerciseAttemptBatchScoredItemDTO> Attempts
 ): IntegrationEvent;
 
 public sealed record ExerciseAttemptAnswerChangedIntegrationEvent(

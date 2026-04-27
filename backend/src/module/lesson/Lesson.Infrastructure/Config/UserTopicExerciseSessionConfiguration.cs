@@ -19,15 +19,20 @@ public class UserTopicExerciseSessionConfiguration : IEntityTypeConfiguration<Us
         builder.Property(s => s.StartedAt).IsRequired();
         builder.Property(s => s.TimeSpentSeconds).IsRequired();
         
-        // Optional properties
-        builder.Property(s => s.TopicId).IsRequired(false);
+        // Required FK: every exercise session belongs to a topic in the current domain model
+        builder.Property(s => s.TopicId).IsRequired();
+        builder.Property(s => s.TotalCorrect).IsRequired();
         builder.Property(s => s.TotalScore).IsRequired(false);
+        builder.Property(s => s.ScoreListening).IsRequired();
+        builder.Property(s => s.ScoreReading).IsRequired();
+        builder.Property(s => s.ScoreWriting).IsRequired();
+        builder.Property(s => s.TotalWrong).IsRequired();
         builder.Property(s => s.CompletedAt).IsRequired(false);
         builder.Property(s => s.CurrentSequenceNo).IsRequired();
         builder.Property(s => s.TotalExercises).IsRequired();
         
         // Cross-module: UserId is soft reference to users table (no FK constraint)
-        // Same-module: TopicId is optional FK to topic (can exist without topic context)
+        // Same-module: TopicId is a required FK to topic
         
         builder.HasOne<TopicAggregate>()
             .WithMany()

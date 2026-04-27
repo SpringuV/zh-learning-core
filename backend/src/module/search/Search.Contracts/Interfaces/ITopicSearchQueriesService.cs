@@ -5,7 +5,8 @@ namespace Search.Contracts.Interfaces;
 
 public interface ITopicSearchQueriesService
 {
-    Task<Result<IEnumerable<TopicSearchForDashboardClientResponse>>> GetTopicForDashboardClientAsync(string slug, CancellationToken cancellationToken = default);
+    Task<Result<ExerciseSessionItemsSnapshotResponse>> GetSessionItemsSnapshotAsync(ExerciseSessionItemsSnapshotRequest request, CancellationToken cancellationToken = default);
+    Task<Result<IEnumerable<TopicSearchForDashboardClientResponse>>> GetTopicForDashboardClientAsync(string slug, Guid userId, CancellationToken cancellationToken = default);
     Task<TopicSearchDetailResponse> GetTopicDetailSearchItemAdminAsync(Guid topicId, CancellationToken cancellationToken = default);
     Task UpdateExamInfoAsync(TopicExamInfoUpdatedRequestDTO request, CancellationToken cancellationToken = default);
     Task UpdateEstimatedTimeAsync(TopicEstimatedTimeUpdatedRequestDTO request, CancellationToken cancellationToken = default);

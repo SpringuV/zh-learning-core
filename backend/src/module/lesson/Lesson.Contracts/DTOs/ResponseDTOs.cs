@@ -33,23 +33,40 @@ public sealed record StartLearningExerciseDTO(
 	string ExerciseType,
 	string SkillType,
 	string Difficulty,
-	string Context,
-	string AudioUrl,
-	string ImageUrl,
+	string? AudioUrl,
+	string? ImageUrl,
 	IReadOnlyList<StartLearningExerciseOptionDTO> Options
 );
 
 public sealed record StartLearningResponseDTO(
 	Guid SessionId,
-	Guid TopicProgressId,
 	int TotalExercises,
 	int CurrentSequenceNo,
 	IReadOnlyList<StartLearningSessionItemDTO> SessionItems,
 	StartLearningExerciseDTO FirstExercise
 );
-
+public sealed record CompleteLearningSessionResponseDTO(
+    Guid SessionId,
+    string SlugTopic,
+    Guid UserId,
+    float TotalScore,
+    int TotalCorrect,
+    int TotalWrong,
+    int ScoreListening,
+    int ScoreReading,
+    int TimeSpentSeconds,
+    DateTime CompletedAt
+);
 #endregion
 
 #region Exercise DTOs
+public sealed record SaveAnswerResponseDTO(
+    Guid ExerciseId,
+    Guid SessionId,
+    DateTime AnsweredAt,
+    string Status,
+    int CurrentSequenceNo
+);
+
 public sealed record CreateExerciseResponseDTO(Guid ExerciseId);
 #endregion

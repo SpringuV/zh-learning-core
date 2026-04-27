@@ -1,6 +1,6 @@
 namespace Lesson.Application.MediatR.Command.Topic;
 
-public record StartLearningCommand(Guid UserId, Guid TopicId) : IRequest<Result<StartLearningResponseDTO>>;
+public record StartLearningCommand(Guid UserId, string SlugTopic) : IRequest<Result<StartLearningResponseDTO>>;
 
 // validate input, load topic + published exercises, create UserTopicExerciseSessionAggregate + TopicProgressAggregate (if not exist) trong 1 transaction, publish domain events, return success.
 public class ValidatorStartLearning : AbstractValidator<StartLearningCommand>
@@ -8,18 +8,20 @@ public class ValidatorStartLearning : AbstractValidator<StartLearningCommand>
     public ValidatorStartLearning()
     {
         RuleFor(cmd => cmd.UserId).NotEmpty().WithMessage("UserId không được để trống.");
-        RuleFor(cmd => cmd.TopicId).NotEmpty().WithMessage("TopicId không được để trống.");
+        RuleFor(cmd => cmd.SlugTopic).NotEmpty().WithMessage("SlugTopic không được để trống.");
     }
 }
 
 public class StartLearningHandler(ITopicProgressRepository topicProgressRepository,
     IPublisher publisher,
     ILessonUnitOfWork unitOfWork,
+    ICourseRepository courseRepository,
     ITopicRepository topicRepository,
     IExerciseRepository exerciseRepository,
     IUserTopicExerciseSessionRepository userTopicExerciseSessionRepository,
     ILogger<StartLearningHandler> logger) : IRequestHandler<StartLearningCommand, Result<StartLearningResponseDTO>>
 {
+    private readonly ICourseRepository _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
     private readonly IExerciseRepository _exerciseRepository = exerciseRepository ?? throw new ArgumentNullException(nameof(exerciseRepository));
     private readonly ITopicRepository _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
     private readonly ILogger<StartLearningHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -29,25 +31,23 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
     private readonly IPublisher _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
     public async Task<Result<StartLearningResponseDTO>> Handle(StartLearningCommand request, CancellationToken cancellationToken)
     {
+        var topicAggregate = null as TopicAggregate;
         try
         {
-            var topicAggregate = await _topicRepository.GetByIdAsync(request.TopicId, cancellationToken);
+            topicAggregate = await _topicRepository.GetBySlugAsync(request.SlugTopic, cancellationToken);
             if (topicAggregate == null)
             {
-                _logger.LogWarning("Topic with ID {TopicId} not found when starting learning. UserId: {UserId}", request.TopicId, request.UserId);
+                _logger.LogWarning("Topic with slug {SlugTopic} not found when starting learning. UserId: {UserId}", request.SlugTopic, request.UserId);
                 return Result<StartLearningResponseDTO>.FailureResult("Không tìm thấy chủ đề học.", (int)ErrorCode.NOTFOUND);
             }
 
             // load tất cả bài tập đã xuất bản của chủ đề, sắp xếp theo OrderIndex và ExerciseId để đảm bảo thứ tự ổn định.
-            var publishedExercises = (await _exerciseRepository.GetByTopicIdAsync(request.TopicId, cancellationToken))
-                .Where(exercise => exercise.IsPublished)
-                .OrderBy(exercise => exercise.OrderIndex)
-                .ThenBy(exercise => exercise.ExerciseId) // đảm bảo thứ tự ổn định khi OrderIndex trùng nhau
-                .ToList();
-
-            if (publishedExercises.Count == 0)
+            var publishedExercises = await _exerciseRepository.GetByTopicIdAndPublishedAndOrderIndexAsync(topicAggregate.TopicId, cancellationToken);
+            // load hsk from course
+            var hskLevel = await _courseRepository.GetHskLevelByCourseIdAsync(topicAggregate.CourseId, cancellationToken);
+            if (publishedExercises.Count() == 0)
             {
-                _logger.LogWarning("Topic {TopicId} has no published exercises when starting learning. UserId: {UserId}", request.TopicId, request.UserId);
+                _logger.LogWarning("Topic {SlugTopic} has no published exercises when starting learning. UserId: {UserId}", request.SlugTopic, request.UserId);
                 return Result<StartLearningResponseDTO>.FailureResult("Chủ đề chưa có bài tập đã xuất bản.", (int)ErrorCode.NOTFOUND);
             }
 
@@ -56,7 +56,7 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
 
             await _unitOfWork.SaveChangeAsync(async () =>
             {
-                userTopicExerciseSessionAggregate = UserTopicExerciseSessionAggregate.Create(request.UserId, request.TopicId);
+                userTopicExerciseSessionAggregate = UserTopicExerciseSessionAggregate.Create(request.UserId, topicAggregate.TopicId, hskLevel);
                 var sessionItems = publishedExercises.Select((exercise, index) =>
                     UserTopicExerciseSessionItem.Create(
                         userTopicExerciseSessionAggregate.SessionId,
@@ -66,8 +66,8 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
                 userTopicExerciseSessionAggregate.SetSessionItems(sessionItems);
 
                 // Kiểm tra nếu đã có topic progress thì không tạo mới, tránh mất lịch sử cũ. Nếu chưa có thì tạo mới.
-                var existingTopicProgress = await _topicProgressRepository.GetByUserIdAndTopicIdAsync(request.UserId, request.TopicId, cancellationToken);
-                topicProgressAggregate = existingTopicProgress ?? TopicProgressAggregate.Create(request.UserId, request.TopicId);
+                var existingTopicProgress = await _topicProgressRepository.GetByUserIdAndTopicIdAsync(request.UserId, topicAggregate.TopicId, cancellationToken);
+                topicProgressAggregate = existingTopicProgress ?? TopicProgressAggregate.Create(request.UserId, topicAggregate.TopicId);
 
                 await _userTopicExerciseSessionRepository.AddAsync(userTopicExerciseSessionAggregate, cancellationToken);
 
@@ -79,13 +79,13 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
 
                 foreach (var domainEvent in topicProgressAggregate.DomainEvents)
                 {
-                    _logger.LogInformation("Publishing {EventType} for topic progress. UserId: {UserId}, TopicId: {TopicId}", domainEvent.GetType().Name, request.UserId, request.TopicId);
+                    _logger.LogInformation("Publishing {EventType} for topic progress. UserId: {UserId}, TopicId: {TopicId}", domainEvent.GetType().Name, request.UserId, topicAggregate.TopicId);
                     await _publisher.Publish(domainEvent, cancellationToken);
                 }
 
                 foreach (var domainEvent in userTopicExerciseSessionAggregate.DomainEvents)
                 {
-                    _logger.LogInformation("Publishing {EventType} for new exercise session. UserId: {UserId}, TopicId: {TopicId}", domainEvent.GetType().Name, request.UserId, request.TopicId);
+                    _logger.LogInformation("Publishing {EventType} for new exercise session. UserId: {UserId}, TopicId: {TopicId}", domainEvent.GetType().Name, request.UserId, topicAggregate.TopicId);
                     await _publisher.Publish(domainEvent, cancellationToken);
                 }
 
@@ -93,12 +93,12 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
                 userTopicExerciseSessionAggregate.PopDomainEvents();
             }, cancellationToken);
 
-            var response = BuildStartLearningResponse(userTopicExerciseSessionAggregate, topicProgressAggregate, publishedExercises);
+            var response = BuildStartLearningResponse(userTopicExerciseSessionAggregate, topicProgressAggregate, [.. publishedExercises]);
             return Result<StartLearningResponseDTO>.SuccessResult(response, message: "Bắt đầu học chủ đề thành công.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error when starting learning for TopicId {TopicId} and UserId {UserId}. Details: {Message}", request.TopicId, request.UserId, ex.Message);
+            _logger.LogError(ex, "Unexpected error when starting learning for Topic with Slug {SlugTopic} and UserId {UserId}. Details: {Message}", request.SlugTopic, request.UserId, ex.Message);
             return Result<StartLearningResponseDTO>.FailureResult("Đã xảy ra lỗi không mong muốn khi bắt đầu học. Vui lòng thử lại sau.", (int)ErrorCode.INTERNAL_ERROR);
         }
     }
@@ -134,7 +134,6 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
             ExerciseType: firstExercise.ExerciseType.ToString(),
             SkillType: firstExercise.SkillType.ToString(),
             Difficulty: firstExercise.Difficulty.ToString(),
-            Context: firstExercise.Context.ToString(),
             AudioUrl: firstExercise.AudioUrl,
             ImageUrl: firstExercise.ImageUrl,
             Options: [.. firstExercise.Options
@@ -144,7 +143,6 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
 
         return new StartLearningResponseDTO(
             SessionId: sessionAggregate.SessionId,
-            TopicProgressId: topicProgressAggregate.TopicProgressId,
             TotalExercises: sessionAggregate.TotalExercises,
             CurrentSequenceNo: sessionAggregate.CurrentSequenceNo,
             SessionItems: sessionItems,

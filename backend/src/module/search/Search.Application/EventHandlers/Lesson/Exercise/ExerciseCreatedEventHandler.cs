@@ -34,7 +34,9 @@ public class ExerciseCreatedEventHandler(
             Options: [.. @event.Options.Select(o => new ExerciseOptionIndexDTOs(o.Id, o.Text))]
         );
 
+        // index
         await _exerciseSearchService.IndexAsync(request, ct);
+        // update exercise in topicExerciseSessionSearch
         await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.ExerciseAdminSearch, ct);
         _logger.LogInformation("Exercise {ExerciseId} indexed successfully in Elasticsearch", @event.ExerciseId);
     }

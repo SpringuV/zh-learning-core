@@ -19,7 +19,6 @@ public sealed record CourseReorderRequestDTO(
     List<Guid> OrderedCourseIds
 );
 
-
 #endregion
 
 #region Topic DTOs
@@ -33,7 +32,7 @@ public sealed record TopicCreateRequestDTO(
     string? ExamCode = null
 );
 public sealed record StartLearningRequestDTO (
-    Guid TopicId,
+    string SlugTopic,
     Guid UserId
 );
 
@@ -49,9 +48,21 @@ public sealed record TopicReorderRequestDTO(
     Guid CourseId,
     List<Guid> OrderedTopicIds
 );
+
+public sealed record CompleteLearningSessionRequestDTO(
+    Guid SessionId,
+    string SlugTopic,
+    Guid UserId
+);
 #endregion
 
 #region Exercise DTOs
+public sealed record SaveAnswerRequestDTO(
+    Guid ExerciseId,
+    Guid SessionId,
+    Guid UserId,
+    string Answer
+);
 public sealed record ExerciseCreateRequestDTO(
     Guid TopicId,
     string Question,

@@ -6,6 +6,98 @@ public sealed record PaginationResponse(
     int Page,
     int PageSize,
     long Total);
+#region ExerciseSession
+
+public record ExerciseSessionPracticeItemWithoutAnswerResponse(
+    Guid ExerciseId,
+    string Question,
+    string ExerciseType,
+    string SkillType,
+    string Difficulty,
+    string Description,
+    int OrderIndex,
+    IReadOnlyList<ExerciseOption> Options,
+    string? AudioUrl,
+    string? ImageUrl,
+    string Slug
+);
+
+public record CountinueLearningExerciseDTO: ExerciseSessionPracticeItemWithoutAnswerResponse
+{
+    public CountinueLearningExerciseDTO(
+        Guid ExerciseId,
+        string Question,
+        string ExerciseType,
+        string SkillType,
+        string Difficulty,
+        string Description,
+        int OrderIndex,
+        IReadOnlyList<ExerciseOption> Options,
+        string? AudioUrl,
+        string? ImageUrl,
+        string Slug
+    ) : base(ExerciseId, 
+            Question, 
+            ExerciseType, 
+            SkillType, 
+            Difficulty, 
+            Description, 
+            OrderIndex, 
+            Options, 
+            AudioUrl, ImageUrl,
+            Slug)
+    {
+        
+    }
+}
+// chỉ đánh dấu là đã nộp bài, không trả về kết quả đúng sai ở đây vì có thể sẽ có nhiều loại bài tập khác nhau với các cách thức trả lời khác nhau (text, optionId, file upload...)
+public record SubmitAnswerResponseDTO(
+    Guid ExerciseId,
+    int SequenceNo,
+    string Status,
+    DateTime AnsweredAt
+);
+public record BaseExerciseLearningSessionItemsDTO(Guid SessionItemId,
+	Guid ExerciseId,
+	int SequenceNo,
+	int OrderIndex,
+	Guid? AttemptId,
+	string Status,
+	DateTime? ViewedAt,
+	DateTime? AnsweredAt);
+
+public record CountinueLearningSessionItemDTO: BaseExerciseLearningSessionItemsDTO
+{
+    public CountinueLearningSessionItemDTO(
+        Guid SessionItemId,
+        Guid ExerciseId,
+        int SequenceNo,
+        int OrderIndex,
+        Guid? AttemptId,
+        string Status,
+        DateTime? ViewedAt,
+        DateTime? AnsweredAt) : base(SessionItemId, ExerciseId, SequenceNo, OrderIndex, AttemptId, Status, ViewedAt, AnsweredAt)
+    {
+    }
+}
+
+
+public record CountinueLearningResponseDTO(
+	Guid SessionId,
+	int TotalExercises,
+	int CurrentSequenceNo,
+	IReadOnlyList<CountinueLearningSessionItemDTO> SessionItems,
+	CountinueLearningExerciseDTO FirstExercise
+);
+
+public record ExerciseSessionItemsSnapshotResponse(
+    Guid SessionId,
+    int TotalExercises,
+	int CurrentSequenceNo,
+    IReadOnlyList<BaseExerciseLearningSessionItemsDTO> SessionItems
+);
+
+#endregion
 
 #region Assignment Search DTOs
 public sealed record AssignmentIndexResponse(
@@ -115,6 +207,14 @@ public sealed record TopicIndexResponse(
     Guid TopicId,
     DateTime CreatedAt);
 
+public enum StatusTopicForDashboardClient
+{
+    NotStarted,
+    Abandoned,
+    InProgress,
+    Completed
+}
+
 public sealed record TopicSearchForDashboardClientResponse(
     Guid Id,
     string Title,
@@ -125,6 +225,7 @@ public sealed record TopicSearchForDashboardClientResponse(
     string? ExamCode,
     long EstimatedTimeMinutes,
     string Description,
+    StatusTopicForDashboardClient Status,
     long TotalExercises);
 
 public sealed record TopicSearchDetailResponse(

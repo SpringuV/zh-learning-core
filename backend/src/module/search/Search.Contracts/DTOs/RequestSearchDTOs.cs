@@ -104,6 +104,28 @@ public sealed record ExerciseSearchQueryRequest(
     int Page = 1,
     ExerciseSortBy SortBy = ExerciseSortBy.CreatedAt,
     bool OrderByDescending = true);
+
+public sealed record ExerciseAttemptBatchScoredRequestDTO(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    IReadOnlyList<ExerciseAttemptBatchScoredItemDTO> Attempts
+);
+
+public sealed record ExerciseSessionCompletedRequestDTO(
+    Guid SessionId,
+    Guid UserId,
+    Guid TopicId,
+    ExerciseSessionStatus Status,
+    int TotalExercises,
+    int HskLevel,
+    float TotalScore,
+    int ScoreListening,
+    int ScoreReading,
+    int TotalCorrect,
+    int TotalWrong,
+    int TimeSpentSeconds,
+    DateTime CompletedAt);
 #endregion
 
 
@@ -367,11 +389,28 @@ public sealed record TopicProgressCreatedQueriesRequest(
     float TotalScore
 );
 
+public enum ExerciseSessionItemStatus
+{
+    Pending,
+    Viewed,
+    Completed,
+    Skipped
+}
+
 public sealed record ExerciseSessionStartedQueriesRequest(
     Guid SessionId,
     Guid UserId,
     Guid TopicId,
-    DateTime StartedAt
+    int HskLevel,
+    DateTime StartedAt,
+    StatusTopicForDashboardClient Status
+);
+
+public sealed record ExerciseSessionItemsSnapshotRequest(
+    Guid SessionId,
+    // fallback to topicId and userId if sessionId is not found in cache, to at least update the progress based on topicId and userId, although it won't have the details of each exercise session item
+    string Slug,
+    Guid UserId
 );
 
 public sealed record ExerciseSessionItemSnapshot(
@@ -380,7 +419,7 @@ public sealed record ExerciseSessionItemSnapshot(
     int SequenceNo,
     int OrderIndex,
     Guid? AttemptId,
-    string Status,
+    ExerciseSessionItemStatus Status,
     DateTime? ViewedAt,
     DateTime? AnsweredAt
 );
@@ -389,9 +428,10 @@ public sealed record ExerciseSessionSnapshotInitializedQueriesRequest(
     Guid SessionId,
     Guid UserId,
     Guid TopicId,
+    int HskLevel,
     int TotalExercises,
     int CurrentSequenceNo,
-    IReadOnlyList<ExerciseSessionItemSnapshot> SessionItems,
+    List<ExerciseSessionItemSnapshot> SessionItems,
     DateTime InitializedAt,
     DateTime UpdatedAt
 );

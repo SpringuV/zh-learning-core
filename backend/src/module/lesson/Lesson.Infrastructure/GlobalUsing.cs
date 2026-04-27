@@ -28,3 +28,4 @@ global using HanziAnhVu.Shared.EventBus;
 global using Lesson.Application.MediatR.Command.Exercise.Create;
 global using Lesson.Application.MediatR.Command.Exercise.Update;
 global using Lesson.Application.MediatR.Command.Topic.Update;
+global using Microsoft.Extensions.Caching.Distributed;
