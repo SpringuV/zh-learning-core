@@ -202,7 +202,7 @@ export function CourseManagementTable({
             onDragEnd={handleDragEnd}
         >
             <table className="w-full min-w-full text-left text-sm">
-                <thead className="border-b border-slate-200/50 bg-slate-50/50">
+                <thead className="border-b sticky top-0  border-slate-200/50 bg-white backdrop-blur-sm z-10">
                     <tr>
                         <th className="w-16 px-6 py-4 text-center font-semibold text-slate-600">
                             STT

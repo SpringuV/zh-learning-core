@@ -646,7 +646,7 @@ export default function CourseCmsPage() {
             <div className={`${pageContainerClass} min-w-0 pb-4 pt-3 lg:pb-5`}>
                 {activeTab === "courses" && (
                     <div>
-                        <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white shadow-sm">
+                        <div className="overflow-x-auto max-h-[50vh] rounded-xl border border-slate-200/50 bg-white shadow-sm">
                             <CourseManagementTable
                                 courses={displayCourses}
                                 isReorderMode={isReorderMode}

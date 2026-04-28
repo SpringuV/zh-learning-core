@@ -804,7 +804,7 @@ export default function ExerciseManagementByTopic() {
                             )}
                         </div>
 
-                        <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white shadow-sm">
+                        <div className="overflow-x-auto max-h-[50vh] rounded-xl border border-slate-200/50 bg-white shadow-sm">
                             <ExerciseManagementTable
                                 exercises={displayExercises}
                                 startIndex={startIndex}
