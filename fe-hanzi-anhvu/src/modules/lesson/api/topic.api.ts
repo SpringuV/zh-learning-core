@@ -1,6 +1,7 @@
 import {
     CountinueLearningSessionResponse,
     CourseTopicsOverviewResponse,
+    ResultCompleteSessionOverviewResponse,
     StartLearningTopicResponse,
     TopicClientDashboardItemResponse,
     TopicCreateRequest,
@@ -34,6 +35,8 @@ const endPoints = {
     topicsForClient: (slug: string) => `search/v1/topics/dashboard/${slug}`,
     countinueLearningSessionForTopicClient: (slug: string) =>
         `search/v1/topics/${slug}/continue-learning-session`,
+    resultCompleteSession: (sessionId: string) =>
+        `search/v1/results-complete/${sessionId}`,
 };
 // #endregion
 
@@ -106,6 +109,11 @@ export const topicApi = {
         return await http.get<BaseResponse<CountinueLearningSessionResponse>>(
             endPoints.countinueLearningSessionForTopicClient(slug),
         );
+    },
+    async getResultCompleteSession(sessionId: string) {
+        return await http.get<
+            BaseResponse<ResultCompleteSessionOverviewResponse>
+        >(endPoints.resultCompleteSession(sessionId));
     },
 };
 // #endregion

@@ -1,17 +1,21 @@
 "use client";
 
-import { startLearningTopicQueryKey } from "@/modules/lesson/hooks/use.topic.tanstack";
 import {
+    startLearningTopicQueryKey,
+    resultCompleteSessionQueryKey,
+} from "@/modules/lesson/hooks/use.topic.tanstack";
+import {
+    CompleteLearningSessionResponse,
     CountinueLearningSessionResponse,
     LearningExerciseSessionItemDTOResponse,
     StartLearningTopicResponse,
 } from "@/modules/lesson/types/topic.type";
-import NavigationActions from "@/modules/lesson/components/exercise/components/NavigationActions";
-import QuestionList from "@/modules/lesson/components/exercise/components/QuestionList";
-import SessionHeader from "@/modules/lesson/components/exercise/components/SessionHeader";
+import NavigationActions from "@/modules/lesson/components/exercise/components.client.exercise/navigation.actions";
+import QuestionList from "@/modules/lesson/components/exercise/components.client.exercise/question.list";
+import SessionHeader from "@/modules/lesson/components/exercise/components.client.exercise/session.header";
 import { BaseResponse } from "@/shared/types/store.type";
 import { useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExerciseSessionPracticeItemWithoutAnswerResponse } from "@/modules/lesson/types/exercise.type";
@@ -19,10 +23,10 @@ import {
     useExerciseSessionPracticeWithoutAnswer,
     useGetSessionItemsSnapshot,
     useSaveAnswer,
+    useSubmitSession,
 } from "@/modules/lesson/hooks/use.exercise.tanstack";
-import { Button } from "@/shared/components/ui/button";
-
-NavigationActions.displayName = "NavigationActions";
+import ExerciseContent from "@/modules/lesson/components/exercise/components.client.exercise/exercise.content";
+import { toast } from "sonner";
 
 const normalizeRouteParam = (param: string | string[] | undefined): string => {
     if (Array.isArray(param)) {
@@ -30,50 +34,23 @@ const normalizeRouteParam = (param: string | string[] | undefined): string => {
     }
     return param || "";
 };
-const optionLabels = "abcdefghijklmnopqrstuvwxyz".toUpperCase();
-
-const ExerciseOptionButton = ({
-    option,
-    label,
-    selected,
-    disabled,
-    onSelect,
-}: {
-    option: { id: string; text: string };
-    label: string;
-    selected: boolean;
-    disabled: boolean;
-    onSelect: (optionId: string) => void;
-}) => {
-    return (
-        <button
-            type="button"
-            onClick={() => onSelect(option.id)}
-            disabled={disabled}
-            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
-                selected
-                    ? "bg-emerald-50 border-emerald-500"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-            }`}
-        >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold text-slate-700">
-                {label}
-            </span>
-            <span className="text-sm text-slate-700">{option.text}</span>
-        </button>
-    );
-};
 
 const ExerciseClientComponent = () => {
     console.log("Rendering ExerciseClientComponent");
     const params = useParams();
+    const router = useRouter();
     const { data: session, status } = useSession();
     const topicSlug = normalizeRouteParam(params["slug-topic"]);
     const sessionIdFromRoute = normalizeRouteParam(params["session-id"]);
+    const courseSlug = useMemo(
+        () => String(params["slug"] ?? ""),
+        [params["slug"]],
+    );
     const getSessionItemsSnapshotQuery = useGetSessionItemsSnapshot(
         sessionIdFromRoute,
         topicSlug,
     );
+    const submitSessionCompleteMutation = useSubmitSession();
     const queryClient = useQueryClient();
     const saveAnswerMutation = useSaveAnswer();
     // đây là load lần đầu khi bắt đầu phiên học, sẽ trả về bài tập đầu tiên của session, sau đó sẽ ưu tiên lấy chi tiết bài tập từ cache của startLearningTopicResponse để tránh phải gọi API nhiều lần khi chuyển giữa các câu trong session
@@ -107,9 +84,13 @@ const ExerciseClientComponent = () => {
 
     const [currentSequenceNumber, setCurrentSequenceNumber] = useState(0);
     const [totalExercises, setTotalExercises] = useState(0);
+    const [isInitialized, setIsInitialized] = useState(false);
+
     // #region Effects: session bootstrap
-    // khi mới chuyển trang vào, lấy từ cache của start hoặc continue learning response để có dữ liệu hiển thị ngay, sau đó sẽ gọi API lấy chi tiết bài tập mới nhất, nếu có sự thay đổi về bài tập (ví dụ do lỗi trước đó hoặc do cập nhật nội dung bài tập) thì sẽ cập nhật lại chi tiết bài tập, còn nếu không có sự thay đổi nào thì sẽ giữ nguyên để tránh nhấp nháy khi chuyển giữa các câu trong session
+    // Load dữ liệu ban đầu từ cache hoặc chờ snapshot query tự động trigger
     useEffect(() => {
+        if (isInitialized) return; // Chỉ chạy 1 lần
+
         console.log("Effect to load session data from cache or snapshot");
         if (
             cachedStartOrContinueLearning?.success &&
@@ -119,42 +100,33 @@ const ExerciseClientComponent = () => {
                 cachedStartOrContinueLearning.data?.firstExercise;
             const sessionItemsFromCache =
                 cachedStartOrContinueLearning.data?.sessionItems ?? [];
-            // set dữ liệu từ cache để hiển thị ngay mà không cần chờ API, sau đó sẽ gọi API lấy chi tiết bài tập mới nhất để cập nhật nếu có sự thay đổi
+
             setCurrentSequenceNumber(
                 cachedStartOrContinueLearning.data.currentSequenceNo ?? 0,
             );
             setTotalExercises(
                 cachedStartOrContinueLearning.data.totalExercises ?? 0,
             );
-            if (firstExerciseFromCache && !currentExercise) {
+            if (firstExerciseFromCache) {
                 setCurrentExercise(firstExerciseFromCache);
                 setSelectedExerciseId(firstExerciseFromCache.exerciseId);
             }
-            if (sessionItemsFromCache && !currentSessionItems) {
+            if (sessionItemsFromCache) {
                 setCurrentSessionItems(sessionItemsFromCache);
             }
-        } else {
-            // nếu không có dữ liệu nào trong cache, có thể do người dùng vừa tải lại trang,
-            // thì sẽ lấy query param có slug và exerciseId để gọi API lấy chi tiết bài tập, đồng thời tạo dữ liệu giả tạm thời để hiển thị, tránh trường hợp không có dữ liệu nào để hiển thị
-            if (topicSlug && sessionIdFromRoute) {
-                getSessionItemsSnapshotQuery.refetch();
-            }
+            setIsInitialized(true);
         }
-    }, [
-        cachedStartOrContinueLearning,
-        currentExercise,
-        currentSessionItems,
-        topicSlug,
-        sessionIdFromRoute,
-    ]);
+    }, []);
+    // Nếu không có cache, snapshot query sẽ tự động trigger khi sessionIdFromRoute + topicSlug có giá trị
+    // vì hook đã có enabled: Boolean(sessionId) && Boolean(slugTopic)
 
-    // Effect này sẽ ưu tiên cập nhật dữ liệu từ snapshot API sau khi đã load dữ liệu ban đầu từ cache, vì dữ liệu từ snapshot sẽ mới nhất và chính xác nhất, còn dữ liệu từ cache có thể đã cũ hoặc không còn hợp lệ nếu có sự thay đổi về bài tập trong session, nên sau khi có dữ liệu mới từ snapshot sẽ cập nhật lại chi tiết bài tập đang hiển thị nếu bài tập đó là bài tập đang được chọn, còn nếu không phải thì sẽ giữ nguyên để tránh nhấp nháy khi chuyển giữa các câu trong session
+    // Cập nhật dữ liệu từ snapshot khi có data
     useEffect(() => {
         if (
             cachedStartOrContinueLearning?.success &&
             cachedStartOrContinueLearning.data
         ) {
-            return;
+            return; // Nếu đã có cache, bỏ qua snapshot
         }
 
         const snapshotData = getSessionItemsSnapshotQuery.data?.data;
@@ -166,31 +138,16 @@ const ExerciseClientComponent = () => {
         setTotalExercises(snapshotData.totalExercises ?? 0);
 
         const sessionItemsFromSnapshot = snapshotData.sessionItems ?? [];
-        if (sessionItemsFromSnapshot.length > 0 && !currentSessionItems) {
+        if (sessionItemsFromSnapshot.length > 0) {
             setCurrentSessionItems(sessionItemsFromSnapshot);
-            if (!currentExercise) {
-                setSelectedExerciseId(sessionItemsFromSnapshot[0].exerciseId);
-            }
+            setSelectedExerciseId(sessionItemsFromSnapshot[0].exerciseId);
+            setIsInitialized(true);
         }
     }, [
         cachedStartOrContinueLearning?.success,
-        cachedStartOrContinueLearning?.data,
-        currentExercise,
-        currentSessionItems,
-        getSessionItemsSnapshotQuery.data,
+        getSessionItemsSnapshotQuery.data?.data,
     ]);
     // #endregion
-
-    const handleSubmit = useCallback(() => {
-        if (!currentExercise || !currentExercise.exerciseId) {
-            return;
-        }
-    }, [currentExercise]);
-    useEffect(() => {
-        if (!currentSessionItems || currentSessionItems.length === 0) {
-            return;
-        }
-    }, [currentExercise]);
 
     const exerciseSessionPracticeQuery =
         useExerciseSessionPracticeWithoutAnswer(selectedExerciseId);
@@ -268,18 +225,137 @@ const ExerciseClientComponent = () => {
     );
 
     const handleNavigateTo = useCallback(
-        (index: number, exerciseId: string) => {
+        // điều hướng các câu sẽ tự động lưu kết quả câu hiện tại trước khi chuyển sang câu tiếp theo,
+        // để tránh trường hợp người dùng bỏ sót câu trả lời mà vẫn có thể chuyển sang bài tập tiếp theo,
+        // tuy nhiên nếu chưa có sessionId hợp lệ (có thể do lỗi khi bắt đầu phiên học hoặc do người dùng
+        // vừa tải lại trang mà chưa nhấn bắt đầu học lại) thì sẽ không lưu câu trả lời mà chỉ chuyển sang
+        // bài tập tiếp theo, tránh trường hợp người dùng bị kẹt ở bài tập hiện tại mà không thể chuyển sang
+        //  bài tập tiếp theo được
+        async (index: number, exerciseId: string) => {
             if (index < 0 || index >= totalExercisesValue) {
                 return;
             }
-
-            setCurrentIndex(index);
-            setSelectedExerciseId(exerciseId);
+            if (
+                currentAnswer === undefined ||
+                !resolvedSessionId ||
+                currentAnswer === ""
+            ) {
+                // nếu chưa có câu trả lời nào được chọn hoặc nhập, hoặc chưa có sessionId hợp lệ, thì sẽ không lưu và chỉ chuyển sang bài tập tiếp theo, tránh trường hợp người dùng bỏ sót câu trả lời mà vẫn có thể chuyển sang bài tập tiếp theo
+                setCurrentIndex(index);
+                setSelectedExerciseId(exerciseId);
+                return;
+            }
+            await saveAnswerMutation.mutateAsync(
+                {
+                    sessionId: resolvedSessionId,
+                    exerciseId: currentExercise!.exerciseId,
+                    answer: currentAnswer,
+                },
+                {
+                    onSuccess: () => {
+                        setSubmittedAnswers((prev) => ({
+                            ...prev,
+                            [currentExercise!.exerciseId]: true, // đánh dấu bài tập hiện tại đã được nộp trước khi chuyển sang bài tập tiếp theo
+                        }));
+                        setCurrentIndex(index);
+                        setSelectedExerciseId(exerciseId);
+                    },
+                    onError: () => {
+                        // nếu lưu bài tập thất bại, thì vẫn cho phép điều hướng sang bài tập tiếp theo, tránh trường hợp người dùng bị kẹt ở bài tập hiện tại mà không thể chuyển sang bài tập tiếp theo được
+                        setCurrentIndex(index);
+                        setSelectedExerciseId(exerciseId);
+                    },
+                },
+            );
         },
         [totalExercisesValue],
     );
 
-    const handleNext = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
+        if (!currentExercise || !currentExercise.exerciseId) {
+            return;
+        }
+        // nộp câu trả lời của bài tập hiện tại trước khi submit toàn bộ session, để tránh trường hợp người dùng bỏ sót câu trả lời của bài tập cuối cùng mà vẫn có thể submit session được
+        if (
+            !resolvedSessionId ||
+            currentAnswer === undefined ||
+            currentAnswer === ""
+        ) {
+            alert(
+                "Bạn cần hoàn thành câu trả lời của bài tập hiện tại trước khi nộp bài.",
+            );
+            return;
+        } else {
+            // step 1: lưu câu trả lời bài tập hiện tại và cuối cùng trong session
+            const response = await saveAnswerMutation.mutateAsync(
+                {
+                    sessionId: resolvedSessionId,
+                    exerciseId: currentExercise.exerciseId,
+                    answer: currentAnswer,
+                },
+                {
+                    onSuccess: () => {
+                        setSubmittedAnswers((prev) => ({
+                            ...prev,
+                            [currentExercise.exerciseId]: true,
+                        }));
+                        // sau khi nộp câu trả lời của bài tập cuối cùng, sẽ gọi API để submit toàn bộ session, có thể là API hoàn thành phiên học hoặc API nộp bài tập tùy vào yêu cầu nghiệp vụ, ở đây tạm thời sẽ gọi API hoàn thành phiên học để đánh dấu phiên học đã hoàn thành, còn việc chấm điểm và hiển thị kết quả sẽ được
+                        // xử lý ở trang kết quả sau khi hoàn thành phiên học
+                    },
+                },
+            );
+            console.log(
+                "Save answer response before submitting session:",
+                response,
+            );
+            if (!response) {
+                // nếu không có response nào từ API lưu câu trả lời của bài tập cuối cùng, thì sẽ hiển thị cảnh báo lỗi và không gọi API để submit toàn bộ session, tránh trường hợp người dùng bị kẹt ở bài tập cuối cùng mà không thể submit được, tuy nhiên sẽ hiển thị cảnh báo để người dùng biết rằng có lỗi xảy ra khi lưu câu trả lời của bài tập cuối cùng và sẽ không thể submit session được
+                alert(
+                    "Có lỗi xảy ra khi lưu câu trả lời của bài tập cuối cùng. Không thể nộp bài.",
+                );
+                return;
+            }
+            // step 2: gọi API để submit toàn bộ session, có thể là API hoàn thành phiên học hoặc API nộp bài tập tùy vào yêu cầu nghiệp vụ, ở đây tạm thời sẽ gọi API hoàn thành phiên học để đánh dấu phiên học đã hoàn thành, còn việc chấm điểm và hiển thị kết quả sẽ được xử lý ở trang kết quả sau khi hoàn thành phiên học
+            await submitSessionCompleteMutation.mutateAsync(
+                {
+                    sessionId: resolvedSessionId,
+                },
+                {
+                    onSuccess: (
+                        data: BaseResponse<CompleteLearningSessionResponse>,
+                    ) => {
+                        // sau khi hoàn thành phiên học thành công, sẽ điều hướng sang trang kết quả của phiên học để hiển thị kết quả chi tiết
+                        toast.success(
+                            "Hoàn thành phiên học thành công! Đang chuyển đến trang kết quả...",
+                        );
+                        queryClient.setQueryData(
+                            resultCompleteSessionQueryKey(resolvedSessionId),
+                            data,
+                        );
+                        router.push(
+                            `/u/${courseSlug}/${topicSlug}/${resolvedSessionId}/result`,
+                        );
+                    },
+                    onError: () => {
+                        // nếu hoàn thành phiên học thất bại, thì sẽ hiển thị cảnh báo lỗi và không điều hướng đi đâu cả để người dùng có thể thử lại, vì nếu đã hoàn thành phiên học thành công thì mới nên điều hướng sang trang kết quả, còn nếu hoàn thành phiên học thất bại mà vẫn điều hướng sang trang kết
+                        // quả thì sẽ gây nhầm lẫn cho người dùng vì họ sẽ nghĩ rằng phiên học đã được hoàn thành thành công trong khi thực tế là đã có lỗi xảy ra và phiên học vẫn chưa được hoàn thành, nên ở đây sẽ chỉ hiển thị cảnh báo lỗi để người dùng biết rằng có lỗi xảy ra khi hoàn thành phiên học và họ có thể thử lại, thay vì điều hướng sang trang kết quả mà
+                        toast.error(
+                            "Có lỗi xảy ra khi hoàn thành phiên học. Vui lòng thử lại.",
+                        );
+                    },
+                },
+            );
+        }
+    }, [
+        currentAnswer,
+        currentExercise,
+        courseSlug,
+        resolvedSessionId,
+        submitSessionCompleteMutation,
+        topicSlug,
+    ]);
+
+    const handleNext = useCallback(async () => {
         if (!currentExercise?.exerciseId) {
             return;
         }
@@ -288,13 +364,17 @@ const ExerciseClientComponent = () => {
         if (!nextItem) {
             return;
         }
-
-        if (!resolvedSessionId || !currentAnswer) {
+        if (
+            currentAnswer === undefined ||
+            !resolvedSessionId || // nếu chưa có sessionId hợp lệ, có thể do lỗi khi bắt đầu phiên học hoặc do người dùng vừa tải lại trang mà chưa nhấn bắt đầu học lại, thì sẽ không lưu câu trả lời mà chỉ chuyển sang bài tập tiếp theo, tránh trường hợp người dùng bị kẹt ở bài tập hiện tại mà không thể chuyển sang bài tập tiếp theo được
+            currentAnswer === ""
+        ) {
+            // nếu chưa có câu trả lời nào được chọn hoặc nhập, thì sẽ không lưu và chỉ chuyển sang bài tập tiếp theo, tránh trường hợp người dùng bỏ sót câu trả lời mà vẫn có thể chuyển sang bài tập tiếp theo
             handleNavigateTo(currentIndex + 1, nextItem.exerciseId);
             return;
         }
 
-        saveAnswerMutation.mutate(
+        await saveAnswerMutation.mutateAsync(
             {
                 sessionId: resolvedSessionId,
                 exerciseId: currentExercise.exerciseId,
@@ -310,6 +390,10 @@ const ExerciseClientComponent = () => {
                 },
             },
         );
+        if (!saveAnswerMutation.isSuccess) {
+            // nếu không đang trong trạng thái lưu bài tập, thì cho phép chuyển sang bài tập tiếp theo, tránh trường hợp click nhanh nhiều
+            handleNavigateTo(currentIndex + 1, nextItem.exerciseId);
+        }
     }, [
         currentAnswer,
         currentExercise?.exerciseId,
@@ -372,168 +456,48 @@ const ExerciseClientComponent = () => {
     }
 
     return (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <header className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Phiên học
-                        </p>
-                        <h1 className="mt-1 text-base font-semibold text-slate-900">
-                            Chủ đề: {topicSlug}
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-600">
-                            Câu {currentIndex + 1}/{totalExercisesValue} - Đã
-                            nộp {answeredCount}/{totalExercisesValue}
-                        </p>
-                    </div>
-                    <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                        Tiến độ {progressPercent}%
-                    </span>
-                </div>
-
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                    <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${progressPercent}%` }}
-                    />
-                </div>
-            </header>
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <SessionHeader
+                answeredCount={answeredCount}
+                currentIndex={currentIndex}
+                progressPercent={progressPercent}
+                topicSlug={topicSlug}
+                totalExercisesValue={totalExercisesValue}
+            />
 
             <div className="grid grid-cols-3 place-content-center">
-                <section className="space-y-3">
-                    {currentSessionItems!.map((item, index) => {
-                        const submitted = Boolean(
-                            submittedAnswers[item.exerciseId],
-                        );
-                        const active = index === currentIndex;
-
-                        return (
-                            <button
-                                key={item.sessionItemId}
-                                type="button"
-                                onClick={() =>
-                                    handleNavigateTo(index, item.exerciseId)
-                                }
-                                className={`rounded-xl border px-3 py-2 text-left transition ${
-                                    active
-                                        ? ` bg-emerald-50 ${submitted ? "border-emerald-500" : "border-blue-300"}`
-                                        : submitted
-                                          ? "border-sky-300 bg-sky-50"
-                                          : "border-slate-200 bg-white hover:border-slate-300"
-                                }`}
-                            >
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Câu {index + 1}
-                                </p>
-                            </button>
-                        );
-                    })}
-                </section>
+                <QuestionList
+                    currentIndex={currentIndex}
+                    items={currentSessionItems!}
+                    submittedAnswers={submittedAnswers}
+                    onNavigate={handleNavigateTo}
+                />
 
                 <section className="space-y-4 col-span-2 rounded-xl border border-slate-200 p-4">
-                    <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-                            <span className="rounded bg-slate-100 px-2 py-1">
-                                {currentExercise.exerciseType}
-                            </span>
-                            <span className="rounded bg-slate-100 px-2 py-1">
-                                {currentExercise.skillType}
-                            </span>
-                            <span className="rounded bg-slate-100 px-2 py-1">
-                                {String(currentExercise.difficulty)}
-                            </span>
-                        </div>
-
-                        <h2 className="text-lg font-semibold leading-7 text-slate-900">
-                            Câu hỏi: {currentExercise.question}
-                        </h2>
-                        <p className="text-sm leading-6 text-slate-600">
-                            Mô tả: {currentExercise.description}
-                        </p>
-                    </div>
-
-                    {currentExercise.imageUrl ? (
-                        <img
-                            src={currentExercise.imageUrl}
-                            alt="Exercise visual"
-                            className="max-h-72 w-full rounded-lg object-contain"
-                        />
-                    ) : null}
-
-                    {currentExercise.audioUrl ? (
-                        <audio controls className="w-full">
-                            <source src={currentExercise.audioUrl} />
-                        </audio>
-                    ) : null}
-
-                    {currentExercise.options &&
-                    currentExercise.options.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-2">
-                            {currentExercise.options.map((option, index) => {
-                                const selected = currentAnswer === option.id;
-                                const label =
-                                    optionLabels[index] ?? String(index + 1);
-
-                                return (
-                                    <ExerciseOptionButton
-                                        key={option.id}
-                                        option={option}
-                                        label={label}
-                                        selected={selected}
-                                        disabled={isCurrentSubmitted}
-                                        onSelect={handleSelectOption}
-                                    />
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <textarea
-                            value={currentAnswer}
-                            onChange={(e) => handleInputAnswer(e.target.value)}
-                            disabled={isCurrentSubmitted}
-                            placeholder="Nhập câu trả lời của bạn..."
-                            className="min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-500 transition focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100"
-                        />
-                    )}
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={currentIndex === 0}
-                                onClick={() =>
-                                    handleNavigateTo(
-                                        currentIndex - 1,
-                                        currentSessionItems![currentIndex - 1]
-                                            .exerciseId,
-                                    )
-                                }
-                            >
-                                Câu trước
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={
-                                    isLastQuestion ||
-                                    saveAnswerMutation.isPending
-                                }
-                                onClick={() => {
-                                    if (isFinalQuestion) {
-                                        handleSubmit();
-                                        return;
-                                    }
-                                    handleNext();
-                                }}
-                            >
-                                {isLastQuestion
-                                    ? "Nộp bài và hoàn thành"
-                                    : "Câu tiếp"}
-                            </Button>
-                        </div>
-                    </div>
+                    <ExerciseContent
+                        currentAnswer={currentAnswer}
+                        currentExercise={currentExercise}
+                        isCurrentSubmitted={isCurrentSubmitted}
+                        onInputAnswer={handleInputAnswer}
+                        onSelectOption={handleSelectOption}
+                    />
+                    <NavigationActions
+                        currentIndex={currentIndex}
+                        isFinalQuestion={isFinalQuestion}
+                        isPending={saveAnswerMutation.isPending}
+                        isLastQuestion={isLastQuestion}
+                        onNext={handleNext}
+                        onPrev={() =>
+                            handleNavigateTo(
+                                currentIndex - 1,
+                                currentSessionItems![currentIndex - 1]
+                                    .exerciseId,
+                            )
+                        }
+                        onSubmit={() => {
+                            handleSubmit();
+                        }}
+                    />
                 </section>
             </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { Button } from "@/shared/components/ui/button";
+import { MoveLeft, MoveRight } from "lucide-react";
 
 interface NavigationActionsProps {
     currentIndex: number;
@@ -32,12 +33,13 @@ const NavigationActions = memo(
                         disabled={currentIndex === 0}
                         onClick={onPrev}
                     >
-                        Câu trước
+                        <MoveLeft />
+                        Trước
                     </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        disabled={isLastQuestion || isPending}
+                        disabled={isPending}
                         onClick={() => {
                             if (isFinalQuestion) {
                                 onSubmit();
@@ -46,9 +48,12 @@ const NavigationActions = memo(
                             onNext();
                         }}
                     >
-                        {isLastQuestion
-                            ? "Nộp bài và hoàn thành"
-                            : "Câu tiếp theo"}
+                        {isLastQuestion && <>Nộp bài</>}
+                        {!isLastQuestion && (
+                            <>
+                                <MoveRight /> Tiếp
+                            </>
+                        )}
                     </Button>
                 </div>
             </div>

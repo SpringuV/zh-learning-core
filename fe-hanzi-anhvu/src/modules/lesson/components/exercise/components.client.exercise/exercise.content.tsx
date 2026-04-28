@@ -22,7 +22,7 @@ const ExerciseContent = memo(
         onInputAnswer,
     }: ExerciseContentProps) => {
         return (
-            <section className="space-y-4 rounded-xl border border-slate-200 p-4">
+            <>
                 <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
                         <span className="rounded bg-slate-100 px-2 py-1">
@@ -95,7 +95,7 @@ const ExerciseContent = memo(
                         className="min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-500 transition focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                 )}
-            </section>
+            </>
         );
     },
 );

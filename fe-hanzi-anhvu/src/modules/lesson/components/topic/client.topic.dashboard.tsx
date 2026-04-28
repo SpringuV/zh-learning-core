@@ -148,6 +148,35 @@ const TopicDashboardClientComponent = () => {
                     }
                 }
                 break;
+            case "Completed":
+                try {
+                    const result = await startLearningMutation.mutateAsync(
+                        String(topic.slug),
+                    );
+                    console.log("Restart learning result:", result);
+                    if (!result.success || !result.data) {
+                        alert(result.message || "Không thể bắt đầu học lại.");
+                        return;
+                    }
+                    // Cập nhật cache với dữ liệu mới nhất từ API sau khi bắt đầu hoặc tiếp tục học
+                    if (result?.success) {
+                        queryClient.setQueryData(
+                            startLearningTopicQueryKey(topic.slug),
+                            result,
+                        );
+                        router.push(
+                            `/u/${String(slug)}/${topic.slug}/${result.data?.sessionId}`,
+                        );
+                    }
+                } catch (error) {
+                    if (error instanceof AxiosError) {
+                        console.error("Restart learning error:", error);
+                        alert(
+                            `Đã xảy ra lỗi khi bắt đầu học lại. Vui lòng thử lại sau. Chi tiết lỗi: ${error.response?.data?.message}`,
+                        );
+                    }
+                }
+                break;
         }
     };
 

@@ -38,6 +38,20 @@ const invalidateExerciseQueries = (
         }),
     ]);
 };
+// #endregion
+// #region session complete
+export const useSubmitSession = () => {
+    return useMutation({
+        mutationFn: async (payload: { sessionId: string }) => {
+            const response = await exerciseApi.completeSession(payload);
+            return response.data;
+        },
+        onError: (error) => {
+            console.error("Error submitting exercise session:", error);
+        },
+    });
+};
+// #endregion
 //#region Save answer
 export const useSaveAnswer = () => {
     return useMutation({

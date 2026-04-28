@@ -110,6 +110,21 @@ export interface ExerciseSessionItemsSnapshotItemsResponse extends Omit<
     LearningTopicResponse,
     "firstExercise"
 > {}
+
+export interface ResultCompleteSessionOverviewResponse {
+    sessionId: string;
+    userId: string;
+    totalExercises: number;
+    totalScore: number;
+    totalCorrect: number;
+    totalWrong: number;
+    scoreListening: number;
+    scoreReading: number;
+    timeSpentSeconds: number;
+    completedAt: string;
+}
+export interface CompleteLearningSessionResponse extends ResultCompleteSessionOverviewResponse {}
+
 // #endregion
 export interface TopicListItemAdmin {
     id: string;

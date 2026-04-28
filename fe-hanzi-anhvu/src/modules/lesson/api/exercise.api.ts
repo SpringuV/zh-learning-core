@@ -107,7 +107,7 @@ export const exerciseApi = {
     }) {
         return await http.post(endPoints.saveAnswer, payload);
     },
-    async completeSession(payload: { sessionId: string; slugTopic: string }) {
+    async completeSession(payload: { sessionId: string }) {
         return await http.post(endPoints.sessionComplete, payload);
     },
 };

@@ -1,5 +1,6 @@
 import { topicApi } from "@/modules/lesson/api/topic.api";
 import {
+    CompleteLearningSessionResponse,
     CountinueLearningSessionResponse,
     StartLearningTopicResponse,
     TopicCreateRequest,
@@ -25,6 +26,10 @@ import {
 export const startLearningTopicQueryKey = (slugTopic: string) =>
     ["start-learning-topic", slugTopic] as const;
 
+export const resultCompleteSessionQueryKey = (sessionId: string) =>
+    // theo kiểu key-value, trong đó key là "result-complete-session" và value là sessionId, giúp dễ dàng quản lý và truy cập dữ liệu trong cache của React Query
+    ["result-complete-session", sessionId] as const;
+
 // #region Invalidate topic queries
 const invalidateTopicQueries = (
     queryClient: ReturnType<typeof useQueryClient>,
@@ -38,6 +43,19 @@ const invalidateTopicQueries = (
             queryKey: ["topic-detail"],
         }),
     ]);
+};
+// #endregion
+// #region ResultCompleteSession
+export const useResultCompleteSession = (sessionId: string) => {
+    return useQuery({
+        queryKey: ["result-complete-session", sessionId],
+        queryFn: async (): Promise<
+            BaseResponse<CompleteLearningSessionResponse>
+        > => {
+            const response = await topicApi.getResultCompleteSession(sessionId);
+            return response.data;
+        },
+    });
 };
 // #endregion
 
