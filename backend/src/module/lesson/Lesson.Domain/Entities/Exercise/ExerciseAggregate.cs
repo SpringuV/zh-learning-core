@@ -22,6 +22,44 @@ public class ExerciseAggregate: BaseAggregateRoot
     public IReadOnlyList<ExerciseOption> Options => _options.AsReadOnly();
     
     public ExerciseAggregate() {}
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private ExerciseAggregate(
+        Guid exerciseId,
+        string description,
+        Guid topicId,
+        int orderIndex,
+        DateTime createdAt,
+        string slug,
+        DateTime updatedAt,
+        bool isPublished,
+        ExerciseType exerciseType,
+        SkillType skillType,
+        string question,
+        string correctAnswer,
+        ExerciseDifficulty difficulty,
+        ExerciseContext context,
+        string audioUrl,
+        string imageUrl,
+        string explanation)
+    {
+        ExerciseId = exerciseId;
+        Description = description;
+        TopicId = topicId;
+        OrderIndex = orderIndex;
+        CreatedAt = createdAt;
+        Slug = slug;
+        UpdatedAt = updatedAt;
+        IsPublished = isPublished;
+        ExerciseType = exerciseType;
+        SkillType = skillType;
+        Question = question;
+        CorrectAnswer = correctAnswer;
+        Difficulty = difficulty;
+        Context = context;
+        AudioUrl = audioUrl;
+        ImageUrl = imageUrl;
+        Explanation = explanation;
+    }
     private ExerciseAggregate(List<ExerciseOption>? options)
     {
         _options = options ?? [];

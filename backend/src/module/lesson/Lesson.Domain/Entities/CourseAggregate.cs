@@ -14,7 +14,34 @@ public class CourseAggregate : BaseAggregateRoot
     public long TotalStudentsEnrolled { get; private set; } = 0;
     public long TotalTopics { get; private set; } = 0;
 
-    public CourseAggregate(){}
+    private CourseAggregate(){}
+
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private CourseAggregate(
+        Guid courseId,
+        string title,
+        string slug,
+        string description,
+        int hskLevel,
+        bool isPublished,
+        DateTime createdAt,
+        DateTime updatedAt,
+        int orderIndex,
+        long totalStudentsEnrolled,
+        long totalTopics)
+    {
+        CourseId = courseId;
+        Title = title;
+        Slug = slug;
+        Description = description;
+        HskLevel = hskLevel;
+        IsPublished = isPublished;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+        OrderIndex = orderIndex;
+        TotalStudentsEnrolled = totalStudentsEnrolled;
+        TotalTopics = totalTopics;
+    }
 
     public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex)
     {

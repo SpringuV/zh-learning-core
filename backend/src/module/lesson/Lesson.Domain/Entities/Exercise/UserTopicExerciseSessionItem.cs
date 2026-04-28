@@ -41,6 +41,32 @@ public class UserTopicExerciseSessionItem
     public DateTime UpdatedAt { get; private set; }
 
     protected UserTopicExerciseSessionItem() { }
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private UserTopicExerciseSessionItem(
+        Guid sessionItemId,
+        Guid sessionId,
+        Guid exerciseId,
+        int sequenceNo,
+        int orderIndex,
+        Guid? attemptId,
+        UserTopicExerciseSessionItemStatus status,
+        DateTime? viewedAt,
+        DateTime? answeredAt,
+        DateTime createdAt,
+        DateTime updatedAt)
+    {
+        SessionItemId = sessionItemId;
+        SessionId = sessionId;
+        ExerciseId = exerciseId;
+        SequenceNo = sequenceNo;
+        OrderIndex = orderIndex;
+        AttemptId = attemptId;
+        Status = status;
+        ViewedAt = viewedAt;
+        AnsweredAt = answeredAt;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+    }
 
     public static UserTopicExerciseSessionItem Create(
         Guid sessionId,

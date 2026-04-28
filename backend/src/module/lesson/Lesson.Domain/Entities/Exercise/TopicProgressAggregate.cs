@@ -21,6 +21,34 @@ public class TopicProgressAggregate : BaseAggregateRoot
     public DateTime UpdatedAt { get; private set; }
     
     public TopicProgressAggregate() { }
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private TopicProgressAggregate(
+        Guid topicProgressId,
+        Guid userId,
+        Guid topicId,
+        int totalAttempts,
+        int totalAnswered,
+        int totalCorrect,
+        int totalWrong,
+        float totalScore,
+        float? accuracyRate,
+        DateTime? lastPracticedAt,
+        DateTime createdAt,
+        DateTime updatedAt)
+    {
+        TopicProgressId = topicProgressId;
+        UserId = userId;
+        TopicId = topicId;
+        TotalAttempts = totalAttempts;
+        TotalAnswered = totalAnswered;
+        TotalCorrect = totalCorrect;
+        TotalWrong = totalWrong;
+        TotalScore = totalScore;
+        AccuracyRate = accuracyRate;
+        LastPracticedAt = lastPracticedAt;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+    }
     
     /// <summary>
     /// Factory: Tạo progress tracking mới cho user + topic

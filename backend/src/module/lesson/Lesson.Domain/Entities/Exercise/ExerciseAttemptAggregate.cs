@@ -21,6 +21,32 @@ public class ExerciseAttemptAggregate : BaseAggregateRoot
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
 
     protected ExerciseAttemptAggregate() { }
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private ExerciseAttemptAggregate(
+        Guid attemptId,
+        Guid sessionId,
+        Guid exerciseId,
+        SkillType skillType,
+        string answer,
+        float score,
+        bool isCorrect,
+        string aiFeedback,
+        bool isFinalized,
+        DateTime createdAt,
+        DateTime updatedAt)
+    {
+        AttemptId = attemptId;
+        SessionId = sessionId;
+        ExerciseId = exerciseId;
+        SkillType = skillType;
+        Answer = answer;
+        Score = score;
+        IsCorrect = isCorrect;
+        AiFeedback = aiFeedback;
+        IsFinalized = isFinalized;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+    }
     
     /// <summary>
     /// Factory method: Create exercise attempt in a session

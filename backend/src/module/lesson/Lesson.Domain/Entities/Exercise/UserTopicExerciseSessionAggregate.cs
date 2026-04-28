@@ -29,6 +29,24 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
     public IReadOnlyList<UserTopicExerciseSessionItem> SessionItems => _sessionItems.AsReadOnly();
     
     protected UserTopicExerciseSessionAggregate() { }
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private UserTopicExerciseSessionAggregate(
+        Guid sessionId,
+        Guid userId,
+        Guid topicId,
+        int hskLevel,
+        ExerciseSessionStatus status,
+        DateTime startedAt,
+        int currentSequenceNo)
+    {
+        SessionId = sessionId;
+        UserId = userId;
+        TopicId = topicId;
+        HskLevel = hskLevel;
+        Status = status;
+        StartedAt = startedAt;
+        CurrentSequenceNo = currentSequenceNo;
+    }
     
     /// <summary>
     /// Factory method: Create new session (standalone or with topic context)
@@ -79,6 +97,10 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
     public void SetTotalWrong(int totalWrong)
     {
         TotalWrong = totalWrong;
+    }
+    public void SetTotalExercises(int totalExercises)
+    {
+        TotalExercises = totalExercises;
     }
 
     public void SetTimeSpent(int totalSeconds)

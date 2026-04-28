@@ -22,6 +22,43 @@ public class TopicAggregate: BaseAggregateRoot
     public DateTime UpdatedAt { get; private set; }
     public bool IsPublished { get; private set; }
 
+    private TopicAggregate()
+    {
+    }
+
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private TopicAggregate(
+        Guid topicId,
+        string title,
+        string description,
+        string slug,
+        Guid courseId,
+        TopicType topicType,
+        long totalExercises,
+        int estimatedTimeMinutes,
+        int? examYear,
+        string examCode,
+        int orderIndex,
+        DateTime createdAt,
+        DateTime updatedAt,
+        bool isPublished)
+    {
+        TopicId = topicId;
+        Title = title;
+        Description = description;
+        Slug = slug;
+        CourseId = courseId;
+        TopicType = topicType;
+        TotalExercises = totalExercises;
+        EstimatedTimeMinutes = estimatedTimeMinutes;
+        ExamYear = examYear;
+        ExamCode = examCode;
+        OrderIndex = orderIndex;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+        IsPublished = isPublished;
+    }
+
     public static TopicAggregate CreateTopic(
         string title,
         string description,

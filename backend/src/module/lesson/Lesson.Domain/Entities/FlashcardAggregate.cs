@@ -34,6 +34,55 @@ public class FlashcardAggregate : BaseAggregateRoot
     public string? TraditionalForm { get; private set; } = null; // Hán tự truyền thống (nếu có)
     public JsonDocument? StrokeOrderJson { get; private set; } = null; // SVG path data cho Hanzi Writer
 
+    private FlashcardAggregate()
+    {
+    }
+
+    [JsonConstructor] // Đánh dấu constructor này để System.Text.Json sử dụng khi deserialize từ JSON, đảm bảo các thuộc tính chỉ có getter vẫn được gán giá trị đúng cách khi đọc từ cache hoặc database.
+    private FlashcardAggregate(
+        Guid flashcardId,
+        Guid courseId,
+        Guid topicId,
+        string frontTextChinese,
+        string pinyin,
+        string meaningVi,
+        string? meaningEn,
+        PhraseType phraseType,
+        string audioUrl,
+        int? hskLevel,
+        bool isHskCore,
+        DateTime createdAt,
+        DateTime updatedAt,
+        string? exampleSentenceChinese = null,
+        string? exampleSentencePinyin = null,
+        string? exampleSentenceMeaningVi = null,
+        string? radical = null,
+        int? strokeCount = null,
+        string? traditionalForm = null,
+        JsonDocument? strokeOrderJson = null)
+    {
+        FlashcardId = flashcardId;
+        CourseId = courseId;
+        TopicId = topicId;
+        FrontTextChinese = frontTextChinese;
+        Pinyin = pinyin;
+        MeaningVi = meaningVi;
+        MeaningEn = meaningEn;
+        PhraseType = phraseType;
+        AudioUrl = audioUrl;
+        HskLevel = hskLevel;
+        IsHskCore = isHskCore;
+        CreatedAt = createdAt;
+        UpdatedAt = updatedAt;
+        ExampleSentenceChinese = exampleSentenceChinese;
+        ExampleSentencePinyin = exampleSentencePinyin;
+        ExampleSentenceMeaningVi = exampleSentenceMeaningVi;
+        Radical = radical;
+        StrokeCount = strokeCount;
+        TraditionalForm = traditionalForm;
+        StrokeOrderJson = strokeOrderJson;
+    }
+
     // Factory method to create a new flashcard
     public static FlashcardAggregate Create(
         Guid courseId, 
