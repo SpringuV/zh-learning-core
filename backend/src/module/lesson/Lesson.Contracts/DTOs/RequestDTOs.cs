@@ -50,8 +50,7 @@ public sealed record TopicReorderRequestDTO(
 );
 
 public sealed record CompleteLearningSessionRequestDTO(
-    Guid SessionId,
-    string SlugTopic
+    Guid SessionId
 );
 #endregion
 

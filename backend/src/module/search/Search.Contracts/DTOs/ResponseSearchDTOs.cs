@@ -203,6 +203,19 @@ public sealed record CourseSearchItemAdminResponse(
 
 #region  Topic Search DTOs
 
+public sealed record ResultCompleteSessionResponse(
+    Guid SessionId,
+    Guid UserId,
+    int TotalExercises,
+    float TotalScore,
+    int ScoreListening,
+    int ScoreReading,
+    int TotalCorrect,
+    int TotalWrong,
+    int TimeSpentSeconds,
+    StatusTopicForDashboardClient Status
+);
+
 public sealed record TopicIndexResponse(
     Guid TopicId,
     DateTime CreatedAt);

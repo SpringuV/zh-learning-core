@@ -36,6 +36,11 @@ public sealed record CourseTotalTopicsUpdatedSearchCommand(
     long TotalTopics,
     DateTime UpdatedAt
 ) : IRequest<Unit>;
+public sealed record CourseTotalTopicsPublishedUpdatedSearchCommand(
+    Guid CourseId,
+    long TotalTopicsPublished,
+    DateTime UpdatedAt
+) : IRequest<Unit>;
 #endregion
 
 #region TotalTopicsUpdate Handlers
@@ -201,6 +206,33 @@ public class CourseHskLevelUpdatedSearchCommandHandler(ElasticsearchClient elast
         if (!response.IsValidResponse)
         {
             throw new InvalidOperationException($"Failed to update course HSK level with id {request.CourseId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
+        }
+
+        return Unit.Value;
+    }
+}
+#endregion
+#region TotalTopicsPublishedUpdate
+public class CourseTotalTopicsPublishedUpdatedSearchCommandHandler(ElasticsearchClient elasticClient) : IRequestHandler<CourseTotalTopicsPublishedUpdatedSearchCommand, Unit>
+{
+    private readonly ElasticsearchClient _elasticClient = elasticClient;
+
+    public async Task<Unit> Handle(CourseTotalTopicsPublishedUpdatedSearchCommand request, CancellationToken cancellationToken)
+    {
+        var response = await _elasticClient.UpdateAsync<CourseSearch, object>(
+            ConstantIndexElastic.CourseIndex,
+            request.CourseId,
+            u => u.Doc(new
+            {
+                request.TotalTopicsPublished,
+                request.UpdatedAt
+            }).RetryOnConflict(3),
+            cancellationToken
+        );
+
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException($"Failed to update total topics published for course with id {request.CourseId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
         }
 
         return Unit.Value;

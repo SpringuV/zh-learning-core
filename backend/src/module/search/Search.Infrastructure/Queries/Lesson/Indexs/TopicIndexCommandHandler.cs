@@ -6,6 +6,7 @@ public sealed record TopicIndexCommand(
     string Title,
     string Description,
     string Slug,
+    int TotalExercisesPublished,
     string TopicType,
     long EstimatedTimeMinutes,
     int ExamYear,
@@ -50,6 +51,7 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
                 OrderIndex = request.OrderIndex,
                 IsPublished = request.IsPublished,
                 TotalExercises = request.TotalExercises,
+                TotalExercisesPublished = request.TotalExercisesPublished,
                 CreatedAt = request.CreatedAt,
                 UpdatedAt = request.UpdatedAt
             };
@@ -97,6 +99,8 @@ public class TopicIndexCommandHandler(ElasticsearchClient client, ILogger<TopicI
                         .Text(tp => tp.Slug, t => t.Fields(f => f.Keyword("keyword")))
                         .Keyword(tp => tp.TopicType) // Lưu topic type dưới dạng keyword để dễ dàng filter và tránh lỗi khi parse enum
                         .IntegerNumber(tp => tp.EstimatedTimeMinutes)
+                        .IntegerNumber(tp => tp.TotalExercisesPublished)
+                        .IntegerNumber(tp => tp.TotalExercises)
                         .IntegerNumber(tp => tp.ExamYear)
                         .Text(tp => tp.ExamCode, t => t.Fields(f => f.Keyword("keyword")))
                         .IntegerNumber(tp => tp.OrderIndex)

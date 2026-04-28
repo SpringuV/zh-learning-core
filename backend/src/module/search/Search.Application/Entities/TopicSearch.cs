@@ -16,6 +16,7 @@ public class TopicSearch
     public long EstimatedTimeMinutes { get; set; }
     public int ExamYear { get; set; }
     public string ExamCode { get; set; } = null!;
+    public int TotalExercisesPublished { get; set; }
     public int OrderIndex { get; set; }
     public bool IsPublished { get; set; }
     public long TotalExercises { get; set; }
@@ -33,6 +34,7 @@ public class TopicSearch
         int estimatedTimeMinutes,
         int examYear,
         string examCode,
+        int totalExercisesPublished,
         int orderIndex,
         bool isPublished,
         long totalExercises,
@@ -47,6 +49,7 @@ public class TopicSearch
         TopicType = topicType;
         EstimatedTimeMinutes = estimatedTimeMinutes;
         ExamYear = examYear;
+        TotalExercisesPublished = totalExercisesPublished;
         ExamCode = examCode;
         OrderIndex = orderIndex;
         TotalExercises = totalExercises;

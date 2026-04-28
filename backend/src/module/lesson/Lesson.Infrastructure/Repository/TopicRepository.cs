@@ -10,6 +10,7 @@ public class TopicRepository(
     ICacheVersionService cacheVersionService,
     ILogger<TopicRepository> logger) : LessonRepositoryBase(logger), ITopicRepository
 {
+    private readonly ILogger<TopicRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly LessonDbContext _dbContext = dbContext;
     private readonly IDistributedCache _distributedCache = distributedCache;
     private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
@@ -43,6 +44,7 @@ public class TopicRepository(
                 {
                     _dbContext.Topics.Remove(topic);
                     // await _dbContext.SaveChangesAsync(ct); - để UnitOfWork xử lý
+                    await InvalidateTopicSlugCacheAsync(topic.Slug, ct);
                 }
             },
             "Database error when deleting topic: {TopicId}",
@@ -317,37 +319,33 @@ public class TopicRepository(
             topic.TopicId);
 
         await InvalidateTopicCacheAsync(topic.TopicId, ct);
+        await InvalidateTopicSlugCacheAsync(topic.Slug, ct);
     }
     public async Task<TopicAggregate?> GetBySlugAsync(string slug, CancellationToken ct = default)
     {
         
         return await ExecuteAsync(
             async () => {
+                
                 var cacheKey = $"TopicBySlug:{slug}";
-                try
+                var cachedJson = await _distributedCache.GetStringAsync(cacheKey, ct);
+                if (!string.IsNullOrWhiteSpace(cachedJson))
                 {
-                    var cachedBytes = await _distributedCache.GetAsync(cacheKey, ct);
-                    if (cachedBytes is { Length: > 0 })
-                    {
-                        var cachedTopic = JsonSerializer.Deserialize<TopicAggregate>(cachedBytes);
-                        if (cachedTopic is not null)
-                        {
-                            return cachedTopic;
-                        }
-                    }
+                    _logger.LogInformation("Cache hit for slug: {Slug}", slug);
+                    return JsonSerializer.Deserialize<TopicAggregate>(cachedJson, JsonSerializerOptions.Default);
                 }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to read topic by slug cache for {Slug}", slug);
-                }
+                
                 var topic = await _dbContext.Topics.FirstOrDefaultAsync(t => t.Slug == slug, ct);
+                if (topic is null)
+                {
+                    _logger.LogWarning("Topic not found for slug: {Slug}", slug);
+                    return null;
+                }
                 // cache the result
                 try {
-                    if (topic != null)
-                    {
-                        var payload = JsonSerializer.SerializeToUtf8Bytes(topic);
-                        await _distributedCache.SetAsync(cacheKey, payload, TopicCacheOptions, ct);
-                    }
+                    _logger.LogInformation("Cache miss for slug: {Slug}. Caching topic with ID: {TopicId}", slug, topic.TopicId);
+                    var payload = JsonSerializer.Serialize(topic);
+                    await _distributedCache.SetStringAsync(cacheKey, payload, TopicCacheOptions, ct);
                 }
                 catch (Exception ex)
                 {
@@ -377,6 +375,11 @@ public class TopicRepository(
         foreach (var topicId in topicList.Select(topic => topic.TopicId).Distinct())
         {
             await InvalidateTopicCacheAsync(topicId, ct);
+        }
+
+        foreach (var slug in topicList.Select(topic => topic.Slug).Distinct())
+        {
+            await InvalidateTopicSlugCacheAsync(slug, ct);
         }
     }
 
@@ -409,6 +412,29 @@ public class TopicRepository(
         }
     }
 
+    private async Task InvalidateTopicSlugCacheAsync(string slug, CancellationToken ct)
+    {
+        try
+        {
+            var cacheKey = $"TopicBySlug:{slug}";
+            await _distributedCache.RemoveAsync(cacheKey, ct);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to invalidate topic by slug cache for {Slug}", slug);
+        }
+    }
+
     private static string BuildTopicCacheScope(Guid topicId)
         => $"lesson:topic:by-id:{topicId:D}";
+
+    public Task<bool> HasPublishedTopicByCourseIdAsync(Guid courseId, CancellationToken ct = default)
+    {
+        return ExecuteAsync(
+            async () => await _dbContext.Topics.AnyAsync(t => t.CourseId == courseId && t.IsPublished, ct),
+            "Database error checking for published topics in course: {CourseId}",
+            "Unexpected error checking for published topics in course",
+            "Không thể kiểm tra chủ đề đã xuất bản trong khóa học",
+            courseId);
+    }
 }

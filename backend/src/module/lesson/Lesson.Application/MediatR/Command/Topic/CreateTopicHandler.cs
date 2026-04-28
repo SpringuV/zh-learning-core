@@ -63,17 +63,14 @@ public class CreateTopicHandler(
             // Sau khi tạo topic thành công, tăng TotalTopics của course
             course.IncrementTotalTopics();
             await _courseRepository.UpdateAsync(course, cancellationToken);
-            _logger.LogInformation("[CreateTopicHandler] Aggregate added to repository with TopicId: {TopicId}", topicAggregate.TopicId);
             foreach (var domainEvent in topicAggregate.DomainEvents)
             {
-                _logger.LogInformation("[CreateTopicHandler] Publishing {EventType} for {AggregateId}", domainEvent.GetType().Name, topicAggregate.TopicId);
                 await _publisher.Publish(domainEvent, cancellationToken);
             }
             topicAggregate.PopDomainEvents();
 
             foreach (var domainEvent in course.DomainEvents)
             {
-                _logger.LogInformation("[CreateTopicHandler] Publishing {EventType} for {AggregateId}", domainEvent.GetType().Name, course.CourseId);
                 await _publisher.Publish(domainEvent, cancellationToken);
             }
             course.PopDomainEvents();

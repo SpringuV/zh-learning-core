@@ -5,6 +5,11 @@
 namespace Lesson.Domain.Entities.Events;
 
 #region Topic events
+public record TopicTotalExercisesPublishedUpdatedEvent(
+    Guid TopicId,
+    int TotalExercisesPublished,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
 // --------------- Topic events --------------
 public record TopicCreatedEvent(
     Guid TopicId,
@@ -20,7 +25,8 @@ public record TopicCreatedEvent(
     int OrderIndex,
     long TotalExercises,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    int TotalExercisesPublished
 ): BaseDomainEvent, INotification;
 
 public record TopicTotalExercisesUpdatedEvent(
@@ -99,6 +105,12 @@ public record CourseDeletedEvent(
     Guid CourseId
 ): BaseDomainEvent, INotification;
 
+public record CourseTotalTopicsPublishedUpdatedEvent(
+    Guid CourseId,
+    int TotalTopicsPublished,
+    DateTime UpdatedAt
+): BaseDomainEvent, INotification;
+
 public record CourseCreatedEvent(
     Guid CourseId,
     string Title,
@@ -108,6 +120,7 @@ public record CourseCreatedEvent(
     string Slug,
     long TotalStudentsEnrolled,
     long TotalTopics,
+    int TotalTopicsPublished,
     bool IsPublished,
     DateTime CreatedAt,
     DateTime UpdatedAt

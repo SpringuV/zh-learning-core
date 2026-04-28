@@ -27,6 +27,7 @@ public static class SearchApiExtensions
         group.MapGet("/exercises/{exerciseId:guid}/practice-item", LessonSearchApi.GetExerciseSessionPracticeItemWithoutAnswer).RequireAuthorization();
         group.MapGet("/topics/{slug}/continue-learning-session", LessonSearchApi.CountinueExercisesSessionForTopicClient).RequireAuthorization();
         group.MapGet("/exercise-session-items-snapshot/{sessionId:guid}/{slug}", LessonSearchApi.GetSessionItemsSnapshot).RequireAuthorization();
+        group.MapGet("/results-complete/{sessionId:guid}", LessonSearchApi.GetResultCompleteSession).RequireAuthorization();
         return group;
     }
     public static RouteGroupBuilder MapSearchUserApi(this RouteGroupBuilder group)

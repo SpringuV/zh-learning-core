@@ -35,7 +35,7 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
         try
         {
             topicAggregate = await _topicRepository.GetBySlugAsync(request.SlugTopic, cancellationToken);
-            if (topicAggregate == null)
+            if (topicAggregate is null)
             {
                 _logger.LogWarning("Topic with slug {SlugTopic} not found when starting learning. UserId: {UserId}", request.SlugTopic, request.UserId);
                 return Result<StartLearningResponseDTO>.FailureResult("Không tìm thấy chủ đề học.", (int)ErrorCode.NOTFOUND);
@@ -43,6 +43,12 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
 
             // load tất cả bài tập đã xuất bản của chủ đề, sắp xếp theo OrderIndex và ExerciseId để đảm bảo thứ tự ổn định.
             var publishedExercises = await _exerciseRepository.GetByTopicIdAndPublishedAndOrderIndexAsync(topicAggregate.TopicId, cancellationToken);
+            if (topicAggregate.CourseId == Guid.Empty)
+            {
+                _logger.LogWarning("Topic {SlugTopic} has empty CourseId when starting learning. UserId: {UserId}", request.SlugTopic, request.UserId);
+                return Result<StartLearningResponseDTO>.FailureResult("Chủ đề chưa gắn với khóa học hợp lệ.", (int)ErrorCode.NOTFOUND);
+            }
+
             // load hsk from course
             var hskLevel = await _courseRepository.GetHskLevelByCourseIdAsync(topicAggregate.CourseId, cancellationToken);
             if (publishedExercises.Count() == 0)
@@ -64,18 +70,14 @@ public class StartLearningHandler(ITopicProgressRepository topicProgressReposito
                         index + 1,
                         exercise.OrderIndex)).ToList();
                 userTopicExerciseSessionAggregate.SetSessionItems(sessionItems);
+                userTopicExerciseSessionAggregate.SetTotalExercises(sessionItems.Count);
 
                 // Kiểm tra nếu đã có topic progress thì không tạo mới, tránh mất lịch sử cũ. Nếu chưa có thì tạo mới.
-                var existingTopicProgress = await _topicProgressRepository.GetByUserIdAndTopicIdAsync(request.UserId, topicAggregate.TopicId, cancellationToken);
-                topicProgressAggregate = existingTopicProgress ?? TopicProgressAggregate.Create(request.UserId, topicAggregate.TopicId);
+                topicProgressAggregate = TopicProgressAggregate.Create(request.UserId, topicAggregate.TopicId);
 
                 await _userTopicExerciseSessionRepository.AddAsync(userTopicExerciseSessionAggregate, cancellationToken);
-
-                // Nếu chưa có progress thì mới thêm mới, nếu đã có rồi thì chỉ update (vì có thể có domain event mới từ việc tạo session).
-                if (existingTopicProgress is null)
-                {
-                    await _topicProgressRepository.AddAsync(topicProgressAggregate, cancellationToken);
-                }
+                await _topicProgressRepository.AddAsync(topicProgressAggregate, cancellationToken);
+                
 
                 foreach (var domainEvent in topicProgressAggregate.DomainEvents)
                 {

@@ -63,6 +63,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             Description: request.Description,
             OrderIndex: request.OrderIndex,
             TopicType: request.TopicType,
+            TotalExercisesPublished: request.TotalExercisesPublished,
             EstimatedTimeMinutes: request.EstimatedTimeMinutes,
             ExamYear: request.ExamYear,
             ExamCode: request.ExamCode,
@@ -186,6 +187,25 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
             SlugTopic: request.Slug
         );
         return await _mediator.Send(query, cancellationToken);
+    }
+
+    public Task<Result<ResultCompleteSessionResponse>> GetResultCompleteSessionAsync(ResultCompleteSessionRequest request, CancellationToken cancellationToken = default)
+    {
+        var query = new ResultCompleteSessionSearchQueries(
+            SessionId: request.SessionId,
+            UserId: request.UserId
+        );
+        return _mediator.Send(query, cancellationToken);
+    }
+
+    public Task UpdateTotalExercisePublishedAsync(TopicTotalExercisePublishedUpdatedRequestDTO request, CancellationToken cancellationToken = default)
+    {
+        var command = new TopicTotalExercisePublishedUpdatedSearchQueries(
+            TopicId: request.TopicId,
+            TotalExercisesPublished: request.TotalExercisesPublished,
+            UpdatedAt: request.UpdatedAt
+        );
+        return _mediator.Send(command, cancellationToken);
     }
     #endregion
 }

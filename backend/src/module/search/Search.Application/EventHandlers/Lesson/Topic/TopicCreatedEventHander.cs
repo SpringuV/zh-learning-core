@@ -27,6 +27,7 @@ public class TopicCreatedEventHandler(
             IsPublished: @event.IsPublished,
             TotalExercises: @event.TotalExercises,
             CreatedAt: @event.CreatedAt,
+            TotalExercisesPublished: @event.TotalExercisesPublished,
             UpdatedAt: @event.UpdatedAt
         );
 

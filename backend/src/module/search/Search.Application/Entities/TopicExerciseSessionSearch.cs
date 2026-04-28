@@ -8,7 +8,7 @@ public class TopicExerciseSessionSearch
     public Guid TopicId { get; set; }
     public int TotalExercises { get; set; }
     public int HskLevel { get; set; }
-    public int TotalScore { get; set; }
+    public float TotalScore { get; set; }
     public int ScoreListening { get; set; }
     public int ScoreReading { get; set; }
     public int ScoreWriting { get; set; }
@@ -34,7 +34,7 @@ public class TopicExerciseSessionSearch
         DateTime updatedAt, 
         StatusTopicForDashboardClient status,
         int timeSpentSeconds = 0,
-        int totalScore = 0,
+        float totalScore = 0f,
         int scoreListening = 0,
         int scoreReading = 0,
         int scoreWriting = 0,
@@ -69,7 +69,7 @@ public class TopicExerciseSessionSearch
         List<ExerciseSessionItemSnapshot> exerciseItems, 
         DateTime initializedAt, 
         DateTime updatedAt,
-        int totalScore = 0,
+        float totalScore = 0f,
         int timeSpentSeconds = 0,
         int scoreListening = 0,
         int scoreReading = 0,

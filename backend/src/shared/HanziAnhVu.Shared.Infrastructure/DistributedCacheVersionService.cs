@@ -34,7 +34,7 @@ public class DistributedCacheVersionService(
         {
             return "0";
         }
-
+        // token được lưu dưới dạng byte[] trong cache, convert về string để sử dụng làm version token trong cache key.
         return Encoding.UTF8.GetString(raw);
     }
 

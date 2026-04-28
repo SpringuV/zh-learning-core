@@ -4,6 +4,7 @@ using System.Text.Json;
 using Lesson.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Lesson.Infrastructure.Migrations
 {
     [DbContext(typeof(LessonDbContext))]
-    partial class LessonDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428202332_Fix3")]
+    partial class Fix3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -483,9 +486,6 @@ namespace Lesson.Infrastructure.Migrations
 
                     b.Property<long>("TotalExercises")
                         .HasColumnType("bigint");
-
-                    b.Property<int>("TotalExercisesPublished")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

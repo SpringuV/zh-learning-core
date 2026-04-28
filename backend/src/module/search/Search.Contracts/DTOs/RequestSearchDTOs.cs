@@ -247,6 +247,10 @@ public sealed record TopicExamInfoUpdatedRequestDTO(
     DateTime UpdatedAt);
 public sealed record TopicDeletedRequestDTO(
     Guid TopicId);
+public sealed record TopicTotalExercisePublishedUpdatedRequestDTO(
+    Guid TopicId,
+    int TotalExercisesPublished,
+    DateTime UpdatedAt);
 public sealed record TopicEstimatedTimeUpdatedRequestDTO(
     Guid CourseId,
     Guid TopicId,
@@ -286,6 +290,7 @@ public sealed record TopicSearchIndexQueriesRequest(
     string ExamCode,
     bool IsPublished,
     long TotalExercises,
+    int TotalExercisesPublished,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 #endregion
@@ -320,12 +325,18 @@ public sealed record CourseHskLevelUpdatedSearchRequestDTO(
     Guid CourseId,
     int HskLevel,
     DateTime UpdatedAt);
+public sealed record CourseTotalTopicsPublishedUpdatedSearchRequestDTO(
+    Guid CourseId,
+    long TotalTopicsPublished,
+    DateTime UpdatedAt);
+
 public sealed record CourseSearchIndexQueriesRequest(
     Guid CourseId,
     string Title,
     string Description,
     int HskLevel,
     int OrderIndex,
+    int TotalTopicsPublished,
     string Slug,
     long TotalStudentsEnrolled,
     long TotalTopics,
@@ -406,6 +417,8 @@ public sealed record ExerciseSessionStartedQueriesRequest(
     DateTime StartedAt,
     StatusTopicForDashboardClient Status
 );
+
+public sealed record ResultCompleteSessionRequest(Guid SessionId, Guid UserId);
 
 public sealed record ExerciseSessionItemsSnapshotRequest(
     Guid SessionId,

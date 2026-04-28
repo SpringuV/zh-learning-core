@@ -214,3 +214,17 @@ public sealed class ExerciseExplanationUpdatedOutbox(ILessonOutboxWriter outboxW
             cancellationToken);
 }
 #endregion
+#region IncrementTotalExercisesPublished
+public sealed class ExerciseIncrementTotalExercisesPublishedOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<TopicTotalExercisesPublishedUpdatedEvent>
+{
+    public Task Handle(TopicTotalExercisesPublishedUpdatedEvent notification, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new ExerciseIncrementTotalExercisesPublishedIntegrationEvent(
+                TopicId: notification.TopicId,
+                TotalExercisesPublished: notification.TotalExercisesPublished,
+                UpdatedAt: notification.UpdatedAt
+            ),
+            cancellationToken);
+}
+#endregion

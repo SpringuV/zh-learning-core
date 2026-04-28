@@ -18,8 +18,15 @@ public sealed record CourseCreatedIntegrationEvent(
     string Slug,
     long TotalStudentsEnrolled,
     long TotalTopics,
+    int TotalTopicsPublished,
     bool IsPublished,
     DateTime CreatedAt,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record CourseTotalTopicsPublishedUpdatedIntegrationEvent(
+    Guid CourseId,
+    int TotalTopicsPublished,
     DateTime UpdatedAt
 ): IntegrationEvent;
 
@@ -82,6 +89,12 @@ public sealed record CourseTotalTopicsUpdatedIntegrationEvent(
 public sealed record TopicDeletedIntegrationEvent(
     Guid TopicId
 ): IntegrationEvent;
+
+public sealed record TopicTotalExercisesPublishedUpdatedIntegrationEvent(
+    Guid TopicId,
+    int TotalExercisesPublished,
+    DateTime UpdatedAt
+): IntegrationEvent;
 public sealed record TopicCreatedIntegrationEvent(
     Guid TopicId,
     Guid CourseId,
@@ -96,7 +109,8 @@ public sealed record TopicCreatedIntegrationEvent(
     bool IsPublished,
     long TotalExercises,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    int TotalExercisesPublished
 ): IntegrationEvent;
 
 public sealed record TopicTitleUpdatedIntegrationEvent(
@@ -259,6 +273,12 @@ public sealed record ExerciseImageUrlUpdatedIntegrationEvent(
 public sealed record ExerciseExplanationUpdatedIntegrationEvent(
     Guid ExerciseId,
     string NewExplanation,
+    DateTime UpdatedAt
+): IntegrationEvent;
+
+public sealed record ExerciseIncrementTotalExercisesPublishedIntegrationEvent(
+    Guid TopicId,
+    int TotalExercisesPublished,
     DateTime UpdatedAt
 ): IntegrationEvent;
 

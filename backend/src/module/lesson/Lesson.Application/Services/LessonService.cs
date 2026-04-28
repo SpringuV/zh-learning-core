@@ -195,8 +195,7 @@ public class LessonService(IMediator mediator) : ILessonService
     {
         var command = new SubmitCompleteLearningSessionCommand(
             SessionId: request.SessionId,
-            UserId: userId,
-            SlugTopic: request.SlugTopic
+            UserId: userId
         );
         return await _mediator.Send(command, cancellationToken);
     }

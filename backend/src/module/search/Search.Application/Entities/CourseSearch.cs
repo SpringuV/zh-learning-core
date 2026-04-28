@@ -9,6 +9,7 @@ public class CourseSearch
     public int HskLevel { get; set; }
     public string Slug { get; set; } = null!;
     public long TotalTopics { get; set; }
+    public int TotalTopicsPublished { get; set; }
     public long TotalStudentsEnrolled { get; set; }
     public bool IsPublished { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -22,6 +23,7 @@ public class CourseSearch
         int orderIndex,
         int hskLevel,
         string slug,
+        int totalTopicsPublished,
         long totalTopics,
         long totalStudentsEnrolled,
         bool isPublished,
@@ -34,6 +36,7 @@ public class CourseSearch
         OrderIndex = orderIndex;
         HskLevel = hskLevel;
         Slug = slug;
+        TotalTopicsPublished = totalTopicsPublished;
         TotalTopics = totalTopics;
         TotalStudentsEnrolled = totalStudentsEnrolled;
         IsPublished = isPublished;

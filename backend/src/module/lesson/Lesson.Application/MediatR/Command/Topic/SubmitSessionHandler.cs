@@ -2,7 +2,6 @@ namespace Lesson.Application.MediatR.Command.Topic;
 
 public sealed record SubmitCompleteLearningSessionCommand(
     Guid SessionId,
-    string SlugTopic,
     Guid UserId
 ) : IRequest<Result<CompleteLearningSessionResponseDTO>>;
 
@@ -10,7 +9,6 @@ public sealed record SubmitCompleteLearningSessionCommand(
 public sealed class SubmitCompleteLearningSessionCommandHandler(
     IExerciseRepository exerciseRepository,
     IExerciseAttemptRepository exerciseAttemptRepository, 
-    ITopicRepository topicRepository, 
     IUserTopicExerciseSessionRepository userTopicExerciseSessionRepository, 
     ILessonUnitOfWork unitOfWork, 
     ILogger<SubmitCompleteLearningSessionCommandHandler> logger, IPublisher publisher) 
@@ -18,7 +16,6 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
 {
     private readonly IExerciseRepository exerciseRepository = exerciseRepository ?? throw new ArgumentNullException(nameof(exerciseRepository));
     private readonly IExerciseAttemptRepository _exerciseAttemptRepository = exerciseAttemptRepository ?? throw new ArgumentNullException(nameof(exerciseAttemptRepository));
-    private readonly ITopicRepository _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
     private readonly IUserTopicExerciseSessionRepository _userTopicExerciseSessionRepository = userTopicExerciseSessionRepository ?? throw new ArgumentNullException(nameof(userTopicExerciseSessionRepository));
     private readonly ILessonUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     private readonly ILogger<SubmitCompleteLearningSessionCommandHandler> _logger = logger;
@@ -32,17 +29,7 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
             var topicAggregate = null as TopicAggregate;
             if (request.SessionId == Guid.Empty)
             {
-                // fallback tìm bằng slug topic và user id, vì có thể client sẽ không có session id mà chỉ có slug topic và user id, nên sẽ tìm session theo 2 thông tin này để đảm bảo tính linh hoạt cho client
-                topicAggregate = await _topicRepository.GetBySlugAsync(request.SlugTopic, cancellationToken);
-                if (topicAggregate is null)                
-                {
-                    return ThrowResultTopicNotFound();
-                }
-                sessionAggregate = await _userTopicExerciseSessionRepository.GetByTopicIdAndUserIdAsync(topicAggregate.TopicId, request.UserId, cancellationToken);
-                if (sessionAggregate is null)                
-                {
-                    return ThrowResultSessionNotFound();
-                }
+                throw new ArgumentException("SessionId cannot be empty in SubmitCompleteLearningSessionCommand", nameof(request.SessionId));
             }
             else
             {
@@ -55,6 +42,22 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
                 {
                     return ThrowResultUnauthorized();
                 }
+            }
+
+            if (sessionAggregate.Status == ExerciseSessionStatus.Completed)
+            {
+                return Result<CompleteLearningSessionResponseDTO>.SuccessResult(new CompleteLearningSessionResponseDTO(
+                    sessionAggregate.SessionId,
+                    request.UserId,
+                    sessionAggregate.TotalExercises,
+                    sessionAggregate.TotalScore ?? 0f,
+                    sessionAggregate.TotalCorrect,
+                    sessionAggregate.TotalWrong,
+                    sessionAggregate.ScoreListening,
+                    sessionAggregate.ScoreReading,
+                    sessionAggregate.TimeSpentSeconds,
+                    sessionAggregate.CompletedAt ?? DateTime.UtcNow
+                ), "Bạn đã hoàn thành chủ đề này trước đó. Điểm số và thời gian học sẽ không được cập nhật lại.");
             }
             // load các attempt và tính toán điểm số, trạng thái session bằng sessionId
             var exerciseAttemptsAggregate = await _exerciseAttemptRepository.GetAllBySessionIdAsync(sessionAggregate.SessionId, cancellationToken);
@@ -90,7 +93,7 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
                     {
                         return;
                     }
-                    var isCorrect = exerciseRepo.CorrectAnswer == attempt.Answer;
+                    var isCorrect = exerciseRepo.CorrectAnswer.Equals(attempt.Answer, StringComparison.OrdinalIgnoreCase);
                     gradedCount++;
                     if (isCorrect)
                     {
@@ -138,7 +141,6 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
                 sessionAggregate.SetTotalCorrect(totalCorrect);
                 sessionAggregate.SetTotalWrong(totalWrong);
                 sessionAggregate.SetTotalScore(gradedCount == 0 ? 0f : ((float)totalCorrect / totalExercises) * 100f);
-
                 sessionAggregate.FinishSession();
                 sessionAggregate.AddBatchScoreEvent(attemptScoreItems, gradedCount, totalExercises - gradedCount);
 
@@ -153,8 +155,8 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
 
             return Result<CompleteLearningSessionResponseDTO>.SuccessResult(new CompleteLearningSessionResponseDTO(
                 sessionAggregate.SessionId,
-                request.SlugTopic,
                 request.UserId,
+                sessionAggregate.TotalExercises,
                 sessionAggregate.TotalScore ?? 0f,
                 sessionAggregate.TotalCorrect,
                 sessionAggregate.TotalWrong,
@@ -166,7 +168,7 @@ public sealed class SubmitCompleteLearningSessionCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while submitting learning session {SessionId} for topic {SlugTopic} by user {UserId}", request.SessionId, request.SlugTopic, request.UserId);
+            _logger.LogError(ex, "Error while submitting learning session {SessionId} by user {UserId}", request.SessionId, request.UserId);
             return Result<CompleteLearningSessionResponseDTO>.FailureResult("An error occurred while submitting the learning session. Please try again later.", (int)ErrorCode.INTERNAL_ERROR);
         }
     }

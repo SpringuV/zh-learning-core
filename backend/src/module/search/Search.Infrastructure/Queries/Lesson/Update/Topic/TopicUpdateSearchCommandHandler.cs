@@ -27,6 +27,12 @@ public sealed record TopicPatchSearchCommand(
     Guid TopicId,
     object PatchDocument
 ) : IRequest<Unit>;
+
+public sealed record TopicTotalExercisePublishedUpdatedSearchQueries(
+    Guid TopicId,
+    int TotalExercisesPublished,
+    DateTime UpdatedAt
+): IRequest<Unit>;
 #endregion
 
 #region UnPublish Handlers
@@ -165,6 +171,34 @@ public class TopicPatchSearchCommandHandler(ElasticsearchClient elasticClient) :
         if (!response.IsValidResponse)
         {
             throw new InvalidOperationException($"Failed to patch topic with id {request.TopicId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
+        }
+
+        return Unit.Value;
+    }
+}
+#endregion
+
+#region TotalExercisePublished
+public class TopicTotalExercisePublishedUpdatedSearchQueriesHandler(ElasticsearchClient elasticClient) : IRequestHandler<TopicTotalExercisePublishedUpdatedSearchQueries, Unit>
+{
+    private readonly ElasticsearchClient _elasticClient = elasticClient;
+
+    public async Task<Unit> Handle(TopicTotalExercisePublishedUpdatedSearchQueries request, CancellationToken cancellationToken)
+    {
+        var response = await _elasticClient.UpdateAsync<TopicSearch, object>(
+            ConstantIndexElastic.TopicIndex,
+            request.TopicId,
+            u => u.Doc(new
+            {
+                request.TotalExercisesPublished,
+                request.UpdatedAt
+            }).RetryOnConflict(3),
+            cancellationToken
+        );
+
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException($"Failed to update total exercises published for topic with id {request.TopicId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
         }
 
         return Unit.Value;

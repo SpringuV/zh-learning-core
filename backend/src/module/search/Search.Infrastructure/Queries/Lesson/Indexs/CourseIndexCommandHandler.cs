@@ -6,6 +6,7 @@ public record CourseIndexCommand(
     string Description,
     int OrderIndex,
     int HskLevel,
+    int TotalTopicsPublished,
     string Slug,
     long TotalTopics,
     long TotalStudentsEnrolled,
@@ -31,6 +32,7 @@ public class CourseIndexCommandHandler(ElasticsearchClient client, ILogger<Cours
                 OrderIndex = request.OrderIndex,
                 HskLevel = request.HskLevel,
                 Slug = request.Slug,
+                TotalTopicsPublished = request.TotalTopicsPublished,
                 TotalTopics = request.TotalTopics,
                 TotalStudentsEnrolled = request.TotalStudentsEnrolled,
                 IsPublished = request.IsPublished,
@@ -74,6 +76,7 @@ public class CourseIndexCommandHandler(ElasticsearchClient client, ILogger<Cours
                     .Text(c => c.Description, t => t.Fields(f => f.Keyword("keyword")))
                     .IntegerNumber(c => c.OrderIndex)
                     .IntegerNumber(c => c.HskLevel)
+                    .IntegerNumber(c => c.TotalTopicsPublished)
                     .Text(c => c.Slug, t => t.Fields(f => f.Keyword("keyword")))
                     .LongNumber(c => c.TotalTopics)
                     .LongNumber(c => c.TotalStudentsEnrolled)

@@ -35,9 +35,7 @@ public class TopicProgressConfiguration : IEntityTypeConfiguration<TopicProgress
             .WithMany()
             .HasForeignKey(tp => tp.TopicId)
             .OnDelete(DeleteBehavior.Cascade);
-        
-        // Unique constraint: one progress record per user per topic
-        builder.HasIndex(tp => new { tp.UserId, tp.TopicId }).IsUnique();
+        builder.HasIndex(tp => new { tp.UserId, tp.TopicId });
         
         // Other indexes
         builder.HasIndex(tp => tp.UserId);

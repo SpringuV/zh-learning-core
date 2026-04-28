@@ -18,6 +18,7 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
             OrderIndex: request.OrderIndex,
             HskLevel: request.HskLevel,
             Slug: request.Slug,
+            TotalTopicsPublished: request.TotalTopicsPublished,
             TotalTopics: request.TotalTopics,
             TotalStudentsEnrolled: request.TotalStudentsEnrolled,
             IsPublished: request.IsPublished,
@@ -130,6 +131,17 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
     {
         var query = new CourseSearchForDashboardClientQueries();
         return _mediator.Send(query, cancellationToken);
+    }
+    #endregion
+    #region UpdateTotalTopicsPublished
+    public Task UpdateTotalTopicsPublishedAsync(CourseTotalTopicsPublishedUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default)
+    {
+        var command = new CourseTotalTopicsPublishedUpdatedSearchCommand(
+            CourseId: request.CourseId,
+            TotalTopicsPublished: request.TotalTopicsPublished,
+            UpdatedAt: request.UpdatedAt
+        );
+        return _mediator.Send(command, cancellationToken);
     }
     #endregion
 

@@ -129,34 +129,34 @@ public class ExerciseRepository(
                 };
 
                 const string moveToTempSql = @"
-WITH input AS (
-    SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
-    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
-),
-selected AS (
-    SELECT e.""ExerciseId"", e.""OrderIndex""
-    FROM ""Exercises"" e
-    JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
-    WHERE e.""TopicId"" = @topicId
-),
-guards AS (
-    SELECT
-        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
-        (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
-        (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
-        (SELECT COALESCE(MAX(e.""OrderIndex""), 0)::int FROM ""Exercises"" e WHERE e.""TopicId"" = @topicId) AS ""MaxOrderIndexInTopic""
-)
-UPDATE ""Exercises"" AS e
-SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
-    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
-FROM selected s
-CROSS JOIN guards g
-WHERE e.""ExerciseId"" = s.""ExerciseId""
-  AND e.""TopicId"" = @topicId
-  AND g.""InputCount"" = g.""DistinctInputCount""
-  AND g.""MatchedExercisesInTopic"" = g.""InputCount""
-  AND g.""MaxOrderIndexInTopic"" < @tempBase
-";
+                    WITH input AS (
+                        SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
+                        FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
+                    ),
+                    selected AS (
+                        SELECT e.""ExerciseId"", e.""OrderIndex""
+                        FROM ""Exercises"" e
+                        JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
+                        WHERE e.""TopicId"" = @topicId
+                    ),
+                    guards AS (
+                        SELECT
+                            (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+                            (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
+                            (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
+                            (SELECT COALESCE(MAX(e.""OrderIndex""), 0)::int FROM ""Exercises"" e WHERE e.""TopicId"" = @topicId) AS ""MaxOrderIndexInTopic""
+                    )
+                    UPDATE ""Exercises"" AS e
+                    SET ""OrderIndex"" = @tempBase + s.""OrderIndex"",
+                        ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+                    FROM selected s
+                    CROSS JOIN guards g
+                    WHERE e.""ExerciseId"" = s.""ExerciseId""
+                    AND e.""TopicId"" = @topicId
+                    AND g.""InputCount"" = g.""DistinctInputCount""
+                    AND g.""MatchedExercisesInTopic"" = g.""InputCount""
+                    AND g.""MaxOrderIndexInTopic"" < @tempBase
+                    ";
 
                 var movedToTempCount = await _dbContext.Database
                     .ExecuteSqlRawAsync(moveToTempSql, [topicIdParameter, idsParameter, tempBaseParameter], ct);
@@ -175,41 +175,41 @@ WHERE e.""ExerciseId"" = s.""ExerciseId""
                 };
 
                 const string moveToFinalSql = @"
-WITH input AS (
-    SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
-    FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
-),
-selected AS (
-    SELECT e.""ExerciseId"", (e.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
-    FROM ""Exercises"" e
-    JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
-    WHERE e.""TopicId"" = @topicId
-),
-slots AS (
-    SELECT
-        ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
-        s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
-    FROM selected s
-),
-guards AS (
-    SELECT
-        (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
-        (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
-        (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
-        (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
-)
-UPDATE ""Exercises"" AS e
-SET ""OrderIndex"" = s.""TargetOrderIndex"",
-    ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
-FROM input i
-CROSS JOIN guards g
-JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
-WHERE e.""ExerciseId"" = i.""ExerciseId""
-  AND e.""TopicId"" = @topicId
-  AND g.""InputCount"" = g.""DistinctInputCount""
-  AND g.""MatchedExercisesInTopic"" = g.""InputCount""
-  AND g.""ValidOriginalOrderCount"" = g.""InputCount""
-";
+                    WITH input AS (
+                        SELECT u.""ExerciseId"", u.""Position""::int AS ""FinalOrder""
+                        FROM unnest(@ids::uuid[]) WITH ORDINALITY AS u(""ExerciseId"", ""Position"")
+                    ),
+                    selected AS (
+                        SELECT e.""ExerciseId"", (e.""OrderIndex"" - @tempBase)::int AS ""OriginalOrderIndex""
+                        FROM ""Exercises"" e
+                        JOIN input i ON e.""ExerciseId"" = i.""ExerciseId""
+                        WHERE e.""TopicId"" = @topicId
+                    ),
+                    slots AS (
+                        SELECT
+                            ROW_NUMBER() OVER (ORDER BY s.""OriginalOrderIndex"")::int AS ""SlotPosition"",
+                            s.""OriginalOrderIndex"" AS ""TargetOrderIndex""
+                        FROM selected s
+                    ),
+                    guards AS (
+                        SELECT
+                            (SELECT COUNT(*)::int FROM input) AS ""InputCount"",
+                            (SELECT COUNT(DISTINCT ""ExerciseId"")::int FROM input) AS ""DistinctInputCount"",
+                            (SELECT COUNT(*)::int FROM selected) AS ""MatchedExercisesInTopic"",
+                            (SELECT COUNT(*)::int FROM selected s WHERE s.""OriginalOrderIndex"" > 0) AS ""ValidOriginalOrderCount""
+                    )
+                    UPDATE ""Exercises"" AS e
+                    SET ""OrderIndex"" = s.""TargetOrderIndex"",
+                        ""UpdatedAt"" = NOW() AT TIME ZONE 'UTC'
+                    FROM input i
+                    CROSS JOIN guards g
+                    JOIN slots s ON s.""SlotPosition"" = i.""FinalOrder""
+                    WHERE e.""ExerciseId"" = i.""ExerciseId""
+                    AND e.""TopicId"" = @topicId
+                    AND g.""InputCount"" = g.""DistinctInputCount""
+                    AND g.""MatchedExercisesInTopic"" = g.""InputCount""
+                    AND g.""ValidOriginalOrderCount"" = g.""InputCount""
+                    ";
 
                 var updatedCount = await _dbContext.Database
                     .ExecuteSqlRawAsync(moveToFinalSql, [topicIdParameter, idsParameterFinal, tempBaseParameterFinal], ct);
@@ -297,4 +297,14 @@ WHERE e.""ExerciseId"" = i.""ExerciseId""
 
     private static string BuildTopicCacheScope(Guid exerciseId)
         => $"lesson:topic:by-id:{exerciseId:D}";
+
+    public Task<bool> HasPublishedExerciseAsync(Guid topicId, CancellationToken ct = default)
+    {
+        return ExecuteAsync(
+            async () => await _dbContext.Exercises.AnyAsync(e => e.TopicId == topicId && e.IsPublished, ct),
+            "Database error checking for published exercises in topic: {TopicId}",
+            "Unexpected error checking for published exercises in topic",
+            "Không thể kiểm tra bài tập đã xuất bản trong chủ đề",
+            topicId);
+    }
 }

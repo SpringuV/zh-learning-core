@@ -238,7 +238,13 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
 
     public Task BulkIndexExerciseAttemptAsync(ExerciseAttemptBatchScoredRequestDTO request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var query = new ExerciseAttemptBatchScoredSearchCommand(
+            SessionId: request.SessionId,
+            UserId: request.UserId,
+            TopicId: request.TopicId,
+            Attempts: request.Attempts
+        );
+        return _mediator.Send(query, cancellationToken);
     }
 
     public async Task CompletedExerciseSessionAsync(ExerciseSessionCompletedRequestDTO request, CancellationToken cancellationToken = default)

@@ -20,6 +20,7 @@ public class CourseCreatedEventHandler(
             OrderIndex: @event.OrderIndex,
             HskLevel: @event.HskLevel,
             Slug: @event.Slug,
+            TotalTopicsPublished: @event.TotalTopicsPublished,
             TotalTopics: @event.TotalTopics,
             TotalStudentsEnrolled: @event.TotalStudentsEnrolled,
             IsPublished: @event.IsPublished,

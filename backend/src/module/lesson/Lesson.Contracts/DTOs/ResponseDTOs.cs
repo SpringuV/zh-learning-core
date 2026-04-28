@@ -47,8 +47,8 @@ public sealed record StartLearningResponseDTO(
 );
 public sealed record CompleteLearningSessionResponseDTO(
     Guid SessionId,
-    string SlugTopic,
     Guid UserId,
+    int TotalExercises,
     float TotalScore,
     int TotalCorrect,
     int TotalWrong,

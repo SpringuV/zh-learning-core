@@ -247,3 +247,32 @@ public class TopicDeletedEventHandler(
     }
 }
 #endregion
+
+#region TotalExercisePublished
+public class TopicTotalExercisePublishedUpdatedEventHandler(
+        ITopicSearchQueriesService topicSearchService, 
+        ICacheVersionService cacheVersionService,
+        ILogger<TopicTotalExercisePublishedUpdatedEventHandler> logger) 
+    : IIntegrationEventHandler<ExerciseIncrementTotalExercisesPublishedIntegrationEvent>
+{
+    private readonly ITopicSearchQueriesService _topicSearchService = topicSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
+    private readonly ILogger<TopicTotalExercisePublishedUpdatedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(ExerciseIncrementTotalExercisesPublishedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Updating total published exercises for topic {TopicId} in Elasticsearch", @event.TopicId);
+        var request = new TopicTotalExercisePublishedUpdatedRequestDTO(
+            TopicId: @event.TopicId,
+            TotalExercisesPublished: @event.TotalExercisesPublished,
+            UpdatedAt: @event.UpdatedAt
+        );
+
+        await _topicSearchService.UpdateTotalExercisePublishedAsync(request, ct);
+        // Invalidate cache for topic admin search to reflect the updated topic total published exercises
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.TopicAdminSearch, ct);
+        _logger.LogInformation("Total published exercises for topic {TopicId} updated successfully in Elasticsearch", @event.TopicId);
+    }
+}
+
+#endregion

@@ -19,7 +19,8 @@ public sealed class TopicCreatedOutbox(ILessonOutboxWriter lessonOutboxWriter)
                 notification.IsPublished,
                 notification.TotalExercises,
                 notification.CreatedAt,
-                notification.UpdatedAt
+                notification.UpdatedAt,
+                notification.TotalExercisesPublished
             ),
             cancellationToken);
 }

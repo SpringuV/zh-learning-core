@@ -1,6 +1,3 @@
-using HanziAnhVu.Shared.Contracts;
-using HanziAnhVu.Shared.Contracts.Enums;
-
 namespace Search.Infrastructure.Queries.Lesson.Client;
 
 public sealed record CourseSearchForDashboardClientQueries() 
@@ -46,7 +43,7 @@ public class CourseSearchForDashboardClientQueriesHandler(ElasticsearchClient cl
                 HskLevel: doc.HskLevel,
                 Slug: doc.Slug,
                 OrderIndex: doc.OrderIndex,
-                TotalTopics: doc.TotalTopics,
+                TotalTopics: doc.TotalTopicsPublished,
                 TotalStudentsEnrolled: doc.TotalStudentsEnrolled
             )).ToList();
             return Result<IEnumerable<CourseSearchForDashboardClientResponse>>.SuccessResult(result);

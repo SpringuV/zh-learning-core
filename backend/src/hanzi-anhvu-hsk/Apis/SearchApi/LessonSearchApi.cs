@@ -267,4 +267,31 @@ public static class LessonSearchApi
         }
     }
     #endregion
+    #region ResultCompleteSession
+    public static async Task<IResult> GetResultCompleteSession([FromRoute] Guid sessionId, [FromServices] ITopicSearchQueriesService topicSearchQueriesService, HttpContext httpContext, CancellationToken ct)
+    {
+        try
+        {
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+            var request = new ResultCompleteSessionRequest(
+                SessionId: sessionId,
+                UserId: userId
+            );
+            var results = await topicSearchQueriesService.GetResultCompleteSessionAsync(request, ct);
+            return Results.Ok(results);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return Results.StatusCode(499);
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(ex.Message);
+        }
+    }
+    #endregion
 }

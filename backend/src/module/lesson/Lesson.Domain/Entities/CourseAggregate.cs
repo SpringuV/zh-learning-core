@@ -12,6 +12,7 @@ public class CourseAggregate : BaseAggregateRoot
     public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
     public int OrderIndex { get; private set; } = 1;
     public long TotalStudentsEnrolled { get; private set; } = 0;
+    public int TotalTopicsPublished { get; private set; } = 0;
     public long TotalTopics { get; private set; } = 0;
 
     private CourseAggregate(){}
@@ -28,7 +29,8 @@ public class CourseAggregate : BaseAggregateRoot
         DateTime updatedAt,
         int orderIndex,
         long totalStudentsEnrolled,
-        long totalTopics)
+        long totalTopics,
+        int totalTopicsPublished)
     {
         CourseId = courseId;
         Title = title;
@@ -41,6 +43,7 @@ public class CourseAggregate : BaseAggregateRoot
         OrderIndex = orderIndex;
         TotalStudentsEnrolled = totalStudentsEnrolled;
         TotalTopics = totalTopics;
+        TotalTopicsPublished = totalTopicsPublished;
     }
 
     public static CourseAggregate CreateCourse(string title, string description, int hskLevel, int orderIndex)
@@ -70,6 +73,7 @@ public class CourseAggregate : BaseAggregateRoot
             course.Slug,
             0, // TotalStudentsEnrolled
             0, // TotalTopics
+            0, // TotalTopicsPublished
             false, // IsPublished
             course.CreatedAt,
             course.UpdatedAt));
@@ -84,6 +88,20 @@ public class CourseAggregate : BaseAggregateRoot
         AddDomainEvent(new CourseDeletedEvent(CourseId));
     }
 
+    public void IncreaseTotalTopicsPublished()
+    {
+        TotalTopicsPublished += 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseTotalTopicsPublishedUpdatedEvent(CourseId, TotalTopicsPublished, UpdatedAt));
+    }
+    public void DecreaseTotalTopicsPublished()
+    {
+        if (TotalTopicsPublished <= 0)
+            throw new InvalidOperationException("TotalTopicsPublished không thể nhỏ hơn 0.");
+        TotalTopicsPublished -= 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new CourseTotalTopicsPublishedUpdatedEvent(CourseId, TotalTopicsPublished, UpdatedAt));
+    }
     /// <summary>
     /// Update course title & regenerate slug
     /// </summary>

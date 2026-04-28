@@ -211,3 +211,30 @@ public sealed class CourseDeletedEventHandler(
     }
 }
 #endregion
+
+#region TotalTopicsPublishedUpdated
+public class CourseTotalTopicsPublishedUpdatedEventHandler(
+        ICourseSearchQueriesService courseSearchService, 
+        ICacheVersionService cacheVersionService,
+        ILogger<CourseTotalTopicsPublishedUpdatedEventHandler> logger) 
+    : IIntegrationEventHandler<CourseTotalTopicsPublishedUpdatedIntegrationEvent>
+{
+    private readonly ICourseSearchQueriesService _courseSearchService = courseSearchService;
+    private readonly ICacheVersionService _cacheVersionService = cacheVersionService;
+    private readonly ILogger<CourseTotalTopicsPublishedUpdatedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(CourseTotalTopicsPublishedUpdatedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Updating total published topics for course {CourseId} in Elasticsearch", @event.CourseId);
+        var request = new CourseTotalTopicsPublishedUpdatedSearchRequestDTO(
+            CourseId: @event.CourseId,
+            TotalTopicsPublished: @event.TotalTopicsPublished,
+            UpdatedAt: @event.UpdatedAt
+        );
+
+        await _courseSearchService.UpdateTotalTopicsPublishedAsync(request, ct);
+        await _cacheVersionService.InvalidateScopeAsync(SearchCacheScopes.CourseAdminSearch, ct);
+        _logger.LogInformation("Total published topics for course {CourseId} updated successfully in Elasticsearch", @event.CourseId);
+    }
+}
+#endregion

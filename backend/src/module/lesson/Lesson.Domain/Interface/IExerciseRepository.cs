@@ -16,6 +16,7 @@ public record ExerciseWithAnswerDTORepository(
 
 public interface IExerciseRepository
 {
+    Task<bool> HasPublishedExerciseAsync(Guid topicId, CancellationToken ct = default);
     Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAndPublishedAndOrderIndexAsync(Guid topicId, CancellationToken ct = default);
     Task<IEnumerable<ExerciseAggregate>> GetByTopicIdAndIdsAsync(Guid topicId, IEnumerable<Guid> ids, CancellationToken ct = default);
     Task ReorderByIdsAndTopicIdAsync(Guid topicId, IReadOnlyList<Guid> orderedExerciseIds, CancellationToken ct = default);

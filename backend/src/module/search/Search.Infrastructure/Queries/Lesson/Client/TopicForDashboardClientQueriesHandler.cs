@@ -169,7 +169,7 @@ public class TopicForDashboardClientQueriesHandler(ElasticsearchClient client, I
                 EstimatedTimeMinutes: doc.EstimatedTimeMinutes,
                 Description: doc.Description,
                 Status: ResolveStatus(doc.TopicId, topicSessionByTopicId), // xác định status của topic trên dashboard dựa vào session (nếu có)
-                TotalExercises: doc.TotalExercises
+                TotalExercises: doc.TotalExercisesPublished
             )).ToList();
 
             return Result<IEnumerable<TopicSearchForDashboardClientResponse>>.SuccessResult(result);

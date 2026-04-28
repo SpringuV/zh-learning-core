@@ -14,6 +14,7 @@ public class TopicAggregate: BaseAggregateRoot
     public Guid CourseId { get; private set; }
     public TopicType TopicType { get; private set; }
     public long TotalExercises { get; private set; }
+    public int TotalExercisesPublished { get; private set; }
     public int EstimatedTimeMinutes { get; private set; } // in minutes
     public int? ExamYear { get; private set; } // only for exam topics (nullable)
     public string ExamCode { get; private set; } = string.Empty; // only for exam topics For exam topics: code (e.g., "HSK1-2020-01")
@@ -35,6 +36,7 @@ public class TopicAggregate: BaseAggregateRoot
         Guid courseId,
         TopicType topicType,
         long totalExercises,
+        int totalExercisesPublished,
         int estimatedTimeMinutes,
         int? examYear,
         string examCode,
@@ -49,6 +51,7 @@ public class TopicAggregate: BaseAggregateRoot
         Slug = slug;
         CourseId = courseId;
         TopicType = topicType;
+        TotalExercisesPublished = totalExercisesPublished;
         TotalExercises = totalExercises;
         EstimatedTimeMinutes = estimatedTimeMinutes;
         ExamYear = examYear;
@@ -93,6 +96,7 @@ public class TopicAggregate: BaseAggregateRoot
             ExamCode = examCode,
             OrderIndex = orderIndex,
             TotalExercises = 0,
+            TotalExercisesPublished = 0,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             IsPublished = false
@@ -112,11 +116,27 @@ public class TopicAggregate: BaseAggregateRoot
             topic.OrderIndex,
             topic.TotalExercises,
             topic.CreatedAt,
-            topic.UpdatedAt
+            topic.UpdatedAt,
+            topic.TotalExercisesPublished
         ));
         return topic;
     }
 
+    public void IncrementTotalExercisesPublished()
+    {
+        TotalExercisesPublished += 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicTotalExercisesPublishedUpdatedEvent(TopicId, TotalExercisesPublished, UpdatedAt));
+    }
+    public void DecrementTotalExercisesPublished()
+    {
+        if (TotalExercisesPublished <= 0)
+            throw new InvalidOperationException("TotalExercisesPublished không thể nhỏ hơn 0.");
+
+        TotalExercisesPublished -= 1;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new TopicTotalExercisesPublishedUpdatedEvent(TopicId, TotalExercisesPublished, UpdatedAt));
+    }
     public void Delete()
     {
         // check

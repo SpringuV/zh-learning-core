@@ -1,5 +1,3 @@
-using Lesson.Domain.Entities.Events;
-
 namespace Lesson.Application.Outbox.Course;
 
 public sealed class CourseCreatedOutbox(ILessonOutboxWriter outboxWriter)
@@ -16,6 +14,7 @@ public sealed class CourseCreatedOutbox(ILessonOutboxWriter outboxWriter)
                 notification.Slug,
                 notification.TotalStudentsEnrolled,
                 notification.TotalTopics,
+                notification.TotalTopicsPublished,
                 notification.IsPublished,
                 notification.CreatedAt,
                 notification.UpdatedAt

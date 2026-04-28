@@ -15,5 +15,6 @@ public interface ITopicRepository
     Task AddAsync(TopicAggregate topic, CancellationToken ct = default);
     Task UpdateAsync(TopicAggregate topic, CancellationToken ct = default);
     Task DeleteAsync(Guid id, CancellationToken ct = default);
+    Task<bool> HasPublishedTopicByCourseIdAsync(Guid courseId, CancellationToken ct = default);
 
 }

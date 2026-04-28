@@ -112,3 +112,18 @@ public sealed class DeletedCourseOutbox(ILessonOutboxWriter outboxWriter)
             cancellationToken);
 }
 #endregion
+
+#region TotalTopicsPublished
+public sealed class CourseTotalTopicsPublishedUpdatedOutbox(ILessonOutboxWriter outboxWriter)
+    : INotificationHandler<CourseTotalTopicsPublishedUpdatedEvent>
+{
+    public Task Handle(CourseTotalTopicsPublishedUpdatedEvent notification, CancellationToken cancellationToken)
+        => outboxWriter.EnqueueAsync(
+            new CourseTotalTopicsPublishedUpdatedIntegrationEvent(
+                notification.CourseId,
+                notification.TotalTopicsPublished,
+                notification.UpdatedAt
+            ),
+            cancellationToken);
+}
+#endregion

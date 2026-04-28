@@ -2,8 +2,9 @@ namespace Lesson.Application.MediatR.Command.Topic;
 
 public record UnPublishTopicCommand(Guid TopicId) : IRequest<Result>;
 
-public class UnPublishTopicHandler(ITopicRepository topicRepository, ILessonUnitOfWork unitOfWork, IPublisher publisher, ILogger<UnPublishTopicHandler> logger) : IRequestHandler<UnPublishTopicCommand, Result>
+public class UnPublishTopicHandler(ICourseRepository courseRepository, ITopicRepository topicRepository, ILessonUnitOfWork unitOfWork, IPublisher publisher, ILogger<UnPublishTopicHandler> logger) : IRequestHandler<UnPublishTopicCommand, Result>
 {
+    private readonly ICourseRepository _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
     private readonly ILogger<UnPublishTopicHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ITopicRepository _topicRepository = topicRepository ?? throw new ArgumentNullException(nameof(topicRepository));
     private readonly ILessonUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -14,7 +15,7 @@ public class UnPublishTopicHandler(ITopicRepository topicRepository, ILessonUnit
         try
         {
             TopicAggregate? topicAggregate = null;
-            
+            CourseAggregate? courseAggregate = null;
             if (request.TopicId == Guid.Empty)
                 return Result.FailureResult("Id không được để trống.", (int)ErrorCode.INVALID_ID);
 
@@ -23,6 +24,13 @@ public class UnPublishTopicHandler(ITopicRepository topicRepository, ILessonUnit
                 topicAggregate = await _topicRepository.GetByIdAsync(request.TopicId, cancellationToken);
                 if (topicAggregate is not null)
                 {
+                    courseAggregate = await _courseRepository.GetByIdAsync(topicAggregate.CourseId, cancellationToken);
+                    if (courseAggregate is null)                    {
+                        _logger.LogWarning("Course with ID {CourseId} not found when unpublishing topic. TopicId: {TopicId}", topicAggregate.CourseId, request.TopicId);
+                        throw new KeyNotFoundException($"Không tìm thấy khóa học với ID: {topicAggregate.CourseId} cho chủ đề với ID: {request.TopicId}");
+                    }
+                    courseAggregate.DecreaseTotalTopicsPublished();
+                    await _courseRepository.UpdateAsync(courseAggregate, cancellationToken);
                     topicAggregate.UnPublish();
                     await _topicRepository.UpdateAsync(topicAggregate, cancellationToken);
 
@@ -33,6 +41,12 @@ public class UnPublishTopicHandler(ITopicRepository topicRepository, ILessonUnit
                         await _publisher.Publish(domainEvent, cancellationToken);
                     }
                     topicAggregate.PopDomainEvents();
+                    foreach (var domainEvent in courseAggregate.DomainEvents)
+                    {
+                        _logger.LogInformation("Publishing domain event {EventType} for course {CourseId}", domainEvent.GetType().Name, courseAggregate.CourseId);
+                        await _publisher.Publish(domainEvent, cancellationToken);
+                    }
+                    courseAggregate.PopDomainEvents();
                 }
                 else
                     throw new KeyNotFoundException($"Không tìm thấy chủ đề với ID: {request.TopicId}");

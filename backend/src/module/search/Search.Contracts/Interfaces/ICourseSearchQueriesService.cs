@@ -5,6 +5,7 @@ namespace Search.Contracts.Interfaces;
 
 public interface ICourseSearchQueriesService
 {
+    Task UpdateTotalTopicsPublishedAsync(CourseTotalTopicsPublishedUpdatedSearchRequestDTO request, CancellationToken cancellationToken = default);
     Task<Result<IEnumerable<CourseSearchForDashboardClientResponse>>> GetCourseForDashboardClientAsync(CancellationToken cancellationToken = default);
     Task<CourseIndexResponse> IndexAsync(CourseSearchIndexQueriesRequest request, CancellationToken cancellationToken = default);
     // Task<CourseSearchPatchDocumentResponse?> PatchAsync(Guid id, CourseSearchPatchDocumentRequest patch, CancellationToken cancellationToken = default);
