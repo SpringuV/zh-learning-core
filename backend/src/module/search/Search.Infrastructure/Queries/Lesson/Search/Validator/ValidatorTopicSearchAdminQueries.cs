@@ -18,18 +18,12 @@ public sealed class TopicSearchAdminQueriesValidator : AbstractValidator<TopicSe
 
         RuleFor(x => x.TopicType)
             .Must(BeValidTopicType)
-            .When(x => !string.IsNullOrWhiteSpace(x.TopicType))
+            .When(x => x.TopicType.HasValue)
             .WithMessage($"TopicType is invalid. Supported values: {string.Join(", ", Enum.GetNames<TopicType>())}.");
     }
 
-    private static bool BeValidTopicType(string? topicType)
+    private static bool BeValidTopicType(TopicType? topicType)
     {
-        if (string.IsNullOrWhiteSpace(topicType))
-        {
-            return true;
-        }
-
-        return Enum.TryParse<TopicType>(topicType, true, out var parsed)
-            && Enum.IsDefined(parsed);
+        return !topicType.HasValue || Enum.IsDefined(topicType.Value);
     }
 }

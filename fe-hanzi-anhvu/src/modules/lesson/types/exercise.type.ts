@@ -8,8 +8,8 @@ export interface ExerciseListQueryParams {
     isPublished?: boolean;
     skillType?: SkillType;
     exerciseType?: ExerciseType;
-    difficulty?: string;
-    context?: string;
+    difficulty?: ExerciseDifficulty;
+    context?: ExerciseContext;
     // default
     take?: number;
     page?: number;

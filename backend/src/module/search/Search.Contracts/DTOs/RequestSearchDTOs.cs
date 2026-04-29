@@ -94,10 +94,10 @@ public sealed record ExerciseSearchQueryRequest(
     Guid TopicId,
     string? Question = null,
     bool? IsPublished = null,
-    string? SkillType = null,
-    string? ExerciseType = null,
-    string? Difficulty = null,
-    string? Context = null,
+    SkillType? SkillType = null,
+    ExerciseType? ExerciseType = null,
+    ExerciseDifficulty? Difficulty = null,
+    ExerciseContext? Context = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
@@ -138,7 +138,7 @@ public sealed record AssignmentSearchIndexQueriesRequest(
     string Title,
     string Description,
     string AssignmentType,  // AllClass, Individual
-    string SkillFocus,      // Reading, Writing, Listening, Speaking
+    SkillType SkillFocus,      // Reading, Writing, Listening, Speaking
     DateTime DueDate,
     bool IsPublished,
     int ExerciseCount,
@@ -162,7 +162,7 @@ public record UserSearchIndexQueriesRequest(
 public sealed record AssignmentSearchQueryRequest(
     Guid? ClassroomId = null,
     Guid? TeacherId = null,
-    string? SkillFocus = null,  // Reading, Writing, Listening, Speaking
+    SkillType? SkillFocus = null,  // Reading, Writing, Listening, Speaking
     bool? IsPublished = null,
     DateTime? DueDateFrom = null,
     DateTime? DueDateTo = null,
@@ -192,7 +192,7 @@ public enum AssignmentSortBy
 public sealed record AssignmentSearchPatchDocumentRequest(
     string? Title = null,
     string? Description = null,
-    string? SkillFocus = null,
+    SkillType? SkillFocus = null,
     DateTime? DueDate = null,
     bool? IsPublished = null,
     int? ExerciseCount = null,
@@ -355,6 +355,8 @@ public enum CourseSortBy
 }
 public sealed record CourseSearchQueryAdminRequest(
     string? Title = null,
+    bool? IsPublished = null,
+    int? HskLevel = null,
     int Take = 30,
     int Page = 1,
     CourseSortBy SortBy = CourseSortBy.CreatedAt,

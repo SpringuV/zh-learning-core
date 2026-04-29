@@ -1,13 +1,15 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
 public sealed record TopicExercisesOverviewAdminQueries(
     Guid TopicId,
     string? Question = null,
     bool? IsPublished = null,
-    string? SkillType = null,
-    string? ExerciseType = null,
-    string? Difficulty = null,
-    string? Context = null,
+    SkillType? SkillType = null,
+    ExerciseType? ExerciseType = null,
+    ExerciseDifficulty? Difficulty = null,
+    ExerciseContext? Context = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,

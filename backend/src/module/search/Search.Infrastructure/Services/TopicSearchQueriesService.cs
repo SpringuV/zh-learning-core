@@ -90,7 +90,7 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         var queries = new TopicSearchAdminQueries(
             CourseId: request.CourseId,
             Title: request.Title,
-            TopicType: request.TopicType,
+            TopicType: ParseTopicType(request.TopicType),
             IsPublished: request.IsPublished,
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
@@ -101,6 +101,18 @@ public class TopicSearchQueriesService(IMediator mediator) : ITopicSearchQueries
         );
         return await _mediator.Send(queries, cancellationToken);
 
+    }
+
+    private static TopicType? ParseTopicType(string? topicType)
+    {
+        if (string.IsNullOrWhiteSpace(topicType))
+        {
+            return null;
+        }
+
+        return Enum.TryParse<TopicType>(topicType, true, out var parsed)
+            ? parsed
+            : null;
     }
     #endregion
     #region SearchMetadata

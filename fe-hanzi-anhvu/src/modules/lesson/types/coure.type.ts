@@ -28,6 +28,8 @@ export type CourseSortBy =
 
 export interface CourseListQueryParams {
     title?: string;
+    isPublished?: boolean;
+    hskLevel?: number;
     take?: number;
     page?: number;
     startCreatedAt?: Date | string;

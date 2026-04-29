@@ -14,7 +14,6 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
 import { Input } from "@/shared/components/ui/input";
-import { Switch } from "@/shared/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -39,14 +38,20 @@ import {
     TopicType,
 } from "@/modules/lesson/types/topic.type";
 
-type TopicTypeFilter = TopicType | "all";
-type PublishFilter = "all" | "published" | "draft";
-
 const initialTopicQueryParams: TopicQueryParams = {
     title: "",
     orderByDescending: false,
     sortBy: "CreatedAt",
     take: 50,
+};
+
+type TopicFilterDraftState = Omit<TopicQueryParams, "title" | "page" | "take">;
+
+const initialTopicFilterDraftState: TopicFilterDraftState = {
+    topicType: undefined,
+    isPublished: undefined,
+    sortBy: "CreatedAt",
+    orderByDescending: false,
 };
 
 const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
@@ -83,9 +88,28 @@ export default function TopicManagementByCourse() {
     const [queryParams, setQueryParams] = useState<TopicQueryParams>(
         initialTopicQueryParams,
     );
-    const [topicTypeFilter, setTopicTypeFilter] =
-        useState<TopicTypeFilter>("all");
-    const [publishFilter, setPublishFilter] = useState<PublishFilter>("all");
+    const [topicDraftFilters, setTopicDraftFilters] =
+        useState<TopicFilterDraftState>(initialTopicFilterDraftState);
+    const isTopicFilterDraftDirty = useMemo(
+        () =>
+            topicDraftFilters.topicType !== queryParams.topicType ||
+            topicDraftFilters.isPublished !== queryParams.isPublished ||
+            topicDraftFilters.sortBy !== queryParams.sortBy ||
+            topicDraftFilters.orderByDescending !==
+                queryParams.orderByDescending,
+        [topicDraftFilters, queryParams],
+    );
+    const applyTopicFilters = useCallback(() => {
+        setCurrentPage(1);
+        setQueryParams((current) => ({
+            ...current,
+            topicType: topicDraftFilters.topicType,
+            isPublished: topicDraftFilters.isPublished,
+            sortBy: topicDraftFilters.sortBy,
+            orderByDescending: topicDraftFilters.orderByDescending,
+        }));
+    }, [topicDraftFilters]);
+    const [titleInput, setTitleInput] = useState("");
     const [pendingTopicId, setPendingTopicId] = useState<string | null>(null);
     const [isReorderMode, setIsReorderMode] = useState(false);
     const [orderedTopics, setOrderedTopics] = useState<TopicListItemAdmin[]>(
@@ -113,28 +137,26 @@ export default function TopicManagementByCourse() {
         nextPublished: false,
     });
 
-    const deferredTitle = useDeferredValue(queryParams.title ?? "");
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setQueryParams((current) => ({
+                ...current,
+                title: titleInput.trim(),
+            }));
+        }, 500);
 
+        return () => clearTimeout(handler);
+    }, [titleInput]);
     const effectiveQueryParams = useMemo<TopicQueryParams>(
         () => ({
             ...queryParams,
-            title: deferredTitle.trim() || undefined,
-            topicType: topicTypeFilter === "all" ? undefined : topicTypeFilter,
-            isPublished:
-                publishFilter === "all"
-                    ? undefined
-                    : publishFilter === "published",
+            title: titleInput.trim() || undefined,
+            topicType: queryParams.topicType,
+            isPublished: queryParams.isPublished,
             take: itemsPerPage,
             page: currentPage,
         }),
-        [
-            queryParams,
-            deferredTitle,
-            topicTypeFilter,
-            publishFilter,
-            itemsPerPage,
-            currentPage,
-        ],
+        [queryParams, itemsPerPage, currentPage],
     );
 
     const overviewQuery = useGetCourseTopicsOverview(
@@ -208,23 +230,21 @@ export default function TopicManagementByCourse() {
         queryParams.title,
         queryParams.sortBy,
         queryParams.orderByDescending,
-        topicTypeFilter,
-        publishFilter,
+        queryParams.topicType,
+        queryParams.isPublished,
         itemsPerPage,
     ]);
 
     const resetFilters = () => {
+        setTitleInput("");
         setQueryParams(initialTopicQueryParams);
-        setTopicTypeFilter("all");
-        setPublishFilter("all");
+        setTopicDraftFilters(initialTopicFilterDraftState);
         setCurrentPage(1);
     };
 
     const startReorderMode = () => {
         setActiveTab("topics");
         setCurrentPage(1);
-        setTopicTypeFilter("all");
-        setPublishFilter("all");
         setQueryParams((current) => ({
             ...current,
             title: "",
@@ -501,12 +521,9 @@ export default function TopicManagementByCourse() {
                         <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
-                                value={queryParams.title ?? ""}
+                                value={titleInput}
                                 onChange={(event) =>
-                                    setQueryParams((current) => ({
-                                        ...current,
-                                        title: event.target.value,
-                                    }))
+                                    setTitleInput(event.target.value)
                                 }
                                 placeholder="Tìm theo tên topic..."
                                 className="h-9 min-w-64 flex-1 bg-white text-sm"
@@ -514,9 +531,15 @@ export default function TopicManagementByCourse() {
                             />
 
                             <Select
-                                value={topicTypeFilter}
-                                onValueChange={(value: TopicTypeFilter) =>
-                                    setTopicTypeFilter(value)
+                                value={topicDraftFilters.topicType ?? "all"}
+                                onValueChange={(value) =>
+                                    setTopicDraftFilters((current) => ({
+                                        ...current,
+                                        topicType:
+                                            value === "all"
+                                                ? undefined
+                                                : (value as TopicType),
+                                    }))
                                 }
                                 disabled={isReorderMode}
                             >
@@ -535,9 +558,24 @@ export default function TopicManagementByCourse() {
                             </Select>
 
                             <Select
-                                value={publishFilter}
-                                onValueChange={(value: PublishFilter) =>
-                                    setPublishFilter(value)
+                                value={
+                                    topicDraftFilters.isPublished === true
+                                        ? "published"
+                                        : topicDraftFilters.isPublished ===
+                                            false
+                                          ? "draft"
+                                          : "all"
+                                }
+                                onValueChange={(value: string) =>
+                                    setTopicDraftFilters((current) => ({
+                                        ...current,
+                                        isPublished:
+                                            value === "all"
+                                                ? undefined
+                                                : value === "published"
+                                                  ? true
+                                                  : false,
+                                    }))
                                 }
                                 disabled={isReorderMode}
                             >
@@ -558,9 +596,9 @@ export default function TopicManagementByCourse() {
                             </Select>
 
                             <Select
-                                value={queryParams.sortBy ?? "CreatedAt"}
+                                value={topicDraftFilters.sortBy ?? "CreatedAt"}
                                 onValueChange={(value: TopicSortBy) =>
-                                    setQueryParams((current) => ({
+                                    setTopicDraftFilters((current) => ({
                                         ...current,
                                         sortBy: value,
                                     }))
@@ -591,12 +629,12 @@ export default function TopicManagementByCourse() {
 
                             <Select
                                 value={
-                                    queryParams.orderByDescending
+                                    topicDraftFilters.orderByDescending
                                         ? "desc"
                                         : "asc"
                                 }
                                 onValueChange={(value) =>
-                                    setQueryParams((current) => ({
+                                    setTopicDraftFilters((current) => ({
                                         ...current,
                                         orderByDescending: value === "desc",
                                     }))
@@ -625,6 +663,18 @@ export default function TopicManagementByCourse() {
                                 disabled={isReorderMode}
                             >
                                 Xóa lọc
+                            </Button>
+
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="h-9 shrink-0"
+                                onClick={applyTopicFilters}
+                                disabled={
+                                    !isTopicFilterDraftDirty || isReorderMode
+                                }
+                            >
+                                Áp dụng bộ lọc
                             </Button>
 
                             {!isReorderMode && (

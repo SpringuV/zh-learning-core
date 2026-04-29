@@ -13,7 +13,7 @@ public sealed record TopicSearchAdminQueries(
     Guid CourseId,
     string? Title = null,
     bool? IsPublished = null,
-    string? TopicType = null,
+    TopicType? TopicType = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
@@ -69,10 +69,10 @@ public class TopicSearchAdminQueriesHandler(
                 s.Query(q => q.Bool(b =>
                 {
                     // load courseId filter vào query để chỉ search trong topic của course đó
-                    b.Filter(f => f.Term(t => t.Field(t => t.CourseId.Suffix("keyword")).Value(request.CourseId.ToString("D"))));
+                    b.Must(f => f.Term(t => t.Field(t => t.CourseId.Suffix("keyword")).Value(request.CourseId.ToString("D"))));
                     if(!string.IsNullOrWhiteSpace(request.Title))
                     {
-                        b.Filter(f => f.Match(m => m.Field(t => t.Title.Suffix("keyword")).Query(request.Title)));
+                        b.Must(f => f.Match(m => m.Field(t => t.Title).Query(request.Title)));
                     }
                     if (request.IsPublished.HasValue)
                     {
@@ -80,9 +80,9 @@ public class TopicSearchAdminQueriesHandler(
                         // tránh dùng match query vì có thể bị ảnh hưởng bởi analyzer và không filter chính xác được giá trị boolean
                         b.Filter(f => f.Term(t => t.Field(t => t.IsPublished).Value(request.IsPublished.Value)));
                     }
-                    if(request.TopicType != null)
+                    if(request.TopicType.HasValue)
                     {
-                        b.Filter(f => f.Term(t => t.Field(t => t.TopicType.Suffix("keyword")).Value(request.TopicType)));
+                        b.Filter(f => f.Term(t => t.Field(t => t.TopicType.Suffix("keyword")).Value(request.TopicType.Value.ToString())));
                     }   
                     if (request.StartCreatedAt.HasValue || request.EndCreatedAt.HasValue)
                     {

@@ -33,6 +33,7 @@ import {
 } from "@/modules/lesson/hooks/use.exercise.tanstack";
 
 import {
+    ExerciseDifficulty,
     ExerciseListItem,
     ExerciseListQueryParams,
     ExerciseSortBy,
@@ -40,29 +41,46 @@ import {
     SkillType,
 } from "@/modules/lesson/types/exercise.type";
 
-type ExerciseTypeFilter = ExerciseType | "all";
-type SkillFilter = SkillType | "all";
-type PublishFilter = "all" | "published" | "draft";
 type ExerciseFilterState = {
-    question: string;
+    question?: string;
+    isPublished: "published" | "unpublished" | "all";
     sortBy: ExerciseSortBy;
     orderByDescending: boolean;
     page: number;
     take: number;
-    skill: SkillFilter;
-    exerciseType: ExerciseTypeFilter;
-    publishStatus: PublishFilter;
+    startCreatedAt?: string;
+    endCreatedAt?: string;
+    skillType: SkillType | "all";
+    difficulty: ExerciseDifficulty | "all";
+    exerciseType: ExerciseType | "all";
 };
 
 const initialFilterState: ExerciseFilterState = {
+    isPublished: "all",
     question: "",
     orderByDescending: true,
     sortBy: "CreatedAt",
     page: 1,
     take: 50,
-    skill: "all",
+    skillType: "all",
     exerciseType: "all",
-    publishStatus: "all",
+    difficulty: "all",
+};
+
+type ExerciseFilterDraftState = Omit<
+    ExerciseFilterState,
+    "question" | "page" | "take"
+>;
+
+const initialExerciseFilterDraftState: ExerciseFilterDraftState = {
+    isPublished: "all",
+    orderByDescending: true,
+    sortBy: "CreatedAt",
+    skillType: "all",
+    exerciseType: "all",
+    difficulty: "all",
+    startCreatedAt: undefined,
+    endCreatedAt: undefined,
 };
 
 const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
@@ -126,6 +144,36 @@ export default function ExerciseManagementByTopic() {
     );
     const [filterState, setFilterState] =
         useState<ExerciseFilterState>(initialFilterState);
+    const [filterDraftState, setFilterDraftState] =
+        useState<ExerciseFilterDraftState>(initialExerciseFilterDraftState);
+    const isExerciseFilterDraftDirty = useMemo(
+        () =>
+            filterDraftState.isPublished !== filterState.isPublished ||
+            filterDraftState.sortBy !== filterState.sortBy ||
+            filterDraftState.orderByDescending !==
+                filterState.orderByDescending ||
+            filterDraftState.skillType !== filterState.skillType ||
+            filterDraftState.exerciseType !== filterState.exerciseType ||
+            filterDraftState.difficulty !== filterState.difficulty ||
+            filterDraftState.startCreatedAt !== filterState.startCreatedAt ||
+            filterDraftState.endCreatedAt !== filterState.endCreatedAt,
+        [filterDraftState, filterState],
+    );
+    const applyExerciseFilters = useCallback(() => {
+        setFilterState((current) => ({
+            ...current,
+            page: 1,
+            isPublished: filterDraftState.isPublished,
+            sortBy: filterDraftState.sortBy,
+            orderByDescending: filterDraftState.orderByDescending,
+            skillType: filterDraftState.skillType,
+            exerciseType: filterDraftState.exerciseType,
+            difficulty: filterDraftState.difficulty,
+            startCreatedAt: filterDraftState.startCreatedAt,
+            endCreatedAt: filterDraftState.endCreatedAt,
+        }));
+    }, [filterDraftState]);
+    const [questionInput, setQuestionInput] = useState("");
     const [isReorderMode, setIsReorderMode] = useState(false);
     const [orderedExercises, setOrderedExercises] = useState<
         ExerciseListItem[]
@@ -156,25 +204,38 @@ export default function ExerciseManagementByTopic() {
     });
     // #endregion
 
-    const deferredQuestion = useDeferredValue(filterState.question);
+    const deferredQuestion = useDeferredValue(filterState.question ?? "");
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setFilterState((current) => ({
+                ...current,
+                question: questionInput.trim(),
+            }));
+        }, 500);
 
+        return () => clearTimeout(handler);
+    }, [questionInput]);
     // Kết hợp các tham số truy vấn lại với nhau, ưu tiên giá trị đã được defer
     //  để tối ưu hiệu suất khi người dùng nhập liệu
     const effectiveQueryParams = useMemo<ExerciseListQueryParams>(
         () => ({
-            question: deferredQuestion.trim() || undefined,
+            question: deferredQuestion.trim() ?? undefined,
             orderByDescending: filterState.orderByDescending,
             sortBy: filterState.sortBy,
             skillType:
-                filterState.skill === "all" ? undefined : filterState.skill,
+                filterState.skillType === "all"
+                    ? undefined
+                    : filterState.skillType,
             exerciseType:
                 filterState.exerciseType === "all"
                     ? undefined
                     : filterState.exerciseType,
             isPublished:
-                filterState.publishStatus === "all"
+                filterState.isPublished === "all"
                     ? undefined
-                    : filterState.publishStatus === "published",
+                    : filterState.isPublished === "published"
+                      ? true
+                      : false,
             take: filterState.take,
             page: filterState.page,
         }),
@@ -182,9 +243,9 @@ export default function ExerciseManagementByTopic() {
             deferredQuestion,
             filterState.orderByDescending,
             filterState.sortBy,
-            filterState.skill,
+            filterState.skillType,
             filterState.exerciseType,
-            filterState.publishStatus,
+            filterState.isPublished,
             filterState.take,
             filterState.page,
         ],
@@ -262,15 +323,17 @@ export default function ExerciseManagementByTopic() {
         filterState.question,
         filterState.sortBy,
         filterState.orderByDescending,
-        filterState.skill,
+        filterState.skillType,
         filterState.exerciseType,
-        filterState.publishStatus,
+        filterState.isPublished,
         filterState.take,
     ]);
     // #endregion
 
     const resetFilters = () => {
+        setQuestionInput("");
         setFilterState(initialFilterState);
+        setFilterDraftState(initialExerciseFilterDraftState);
     };
 
     const startReorderMode = () => {
@@ -278,9 +341,9 @@ export default function ExerciseManagementByTopic() {
         setFilterState((current) => ({
             ...current,
             page: 1,
-            skill: "all",
+            skillType: "all",
             exerciseType: "all",
-            publishStatus: "all",
+            isPublished: "all",
             question: "",
             sortBy: "OrderIndex",
             orderByDescending: false,
@@ -592,12 +655,9 @@ export default function ExerciseManagementByTopic() {
                         <div className="flex flex-wrap gap-3 rounded-xl border border-slate-200/50 bg-white p-4 shadow-sm">
                             <Input
                                 type="text"
-                                value={filterState.question}
+                                value={questionInput}
                                 onChange={(event) =>
-                                    setFilterState((current) => ({
-                                        ...current,
-                                        question: event.target.value,
-                                    }))
+                                    setQuestionInput(event.target.value)
                                 }
                                 placeholder="Tìm theo câu hỏi..."
                                 className="h-9 min-w-64 flex-1 bg-white text-sm"
@@ -605,11 +665,11 @@ export default function ExerciseManagementByTopic() {
                             />
 
                             <Select
-                                value={filterState.skill}
-                                onValueChange={(value: SkillFilter) =>
-                                    setFilterState((current) => ({
+                                value={filterDraftState.skillType}
+                                onValueChange={(value: SkillType) =>
+                                    setFilterDraftState((current) => ({
                                         ...current,
-                                        skill: value,
+                                        skillType: value,
                                     }))
                                 }
                                 disabled={isReorderMode}
@@ -633,9 +693,9 @@ export default function ExerciseManagementByTopic() {
                             </Select>
 
                             <Select
-                                value={filterState.exerciseType}
-                                onValueChange={(value: ExerciseTypeFilter) =>
-                                    setFilterState((current) => ({
+                                value={filterDraftState.exerciseType}
+                                onValueChange={(value: ExerciseType) =>
+                                    setFilterDraftState((current) => ({
                                         ...current,
                                         exerciseType: value,
                                     }))
@@ -663,11 +723,13 @@ export default function ExerciseManagementByTopic() {
                             </Select>
 
                             <Select
-                                value={filterState.publishStatus}
-                                onValueChange={(value: PublishFilter) =>
-                                    setFilterState((current) => ({
+                                value={filterDraftState.isPublished}
+                                onValueChange={(
+                                    value: "published" | "unpublished" | "all",
+                                ) =>
+                                    setFilterDraftState((current) => ({
                                         ...current,
-                                        publishStatus: value,
+                                        isPublished: value,
                                     }))
                                 }
                                 disabled={isReorderMode}
@@ -682,16 +744,16 @@ export default function ExerciseManagementByTopic() {
                                     <SelectItem value="published">
                                         Đã xuất bản
                                     </SelectItem>
-                                    <SelectItem value="draft">
+                                    <SelectItem value="unpublished">
                                         Bản nháp
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
 
                             <Select
-                                value={filterState.sortBy}
+                                value={filterDraftState.sortBy}
                                 onValueChange={(value: ExerciseSortBy) =>
-                                    setFilterState((current) => ({
+                                    setFilterDraftState((current) => ({
                                         ...current,
                                         sortBy: value,
                                     }))
@@ -716,12 +778,12 @@ export default function ExerciseManagementByTopic() {
 
                             <Select
                                 value={
-                                    filterState.orderByDescending
+                                    filterDraftState.orderByDescending
                                         ? "desc"
                                         : "asc"
                                 }
                                 onValueChange={(value) =>
-                                    setFilterState((current) => ({
+                                    setFilterDraftState((current) => ({
                                         ...current,
                                         orderByDescending: value === "desc",
                                     }))
@@ -750,6 +812,18 @@ export default function ExerciseManagementByTopic() {
                                 disabled={isReorderMode}
                             >
                                 Xóa lọc
+                            </Button>
+
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="h-9 shrink-0"
+                                onClick={applyExerciseFilters}
+                                disabled={
+                                    !isExerciseFilterDraftDirty || isReorderMode
+                                }
+                            >
+                                Áp dụng bộ lọc
                             </Button>
 
                             {!isReorderMode && (

@@ -4,6 +4,8 @@ public sealed record CourseSearchAdminQueries(
     string? Title = null,
     int Take = 30,
     int Page = 1,
+    bool? IsPublished = null,
+    int? HskLevel = null,
     CourseSortBy SortBy = CourseSortBy.CreatedAt,
     bool OrderByDescending = true,
     DateTime? StartCreatedAt = null,
@@ -14,7 +16,7 @@ public sealed record CourseSearchAdminQueries(
 {
     public string CacheKey =>
     // kí tự O trong format string để serialize DateTime theo chuẩn ISO 8601 đảm bảo cache key ổn định và chính xác khi có trường DateTime
-        $"course-s-adm:{Title}:{Take}:{Page}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}";
+        $"course-s-adm:{Title}:{Take}:{Page}:{SortBy}:{OrderByDescending}:{StartCreatedAt:O}:{EndCreatedAt:O}:{IsPublished}:{HskLevel}";
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 
     public string CacheScope => SearchCacheScopes.CourseAdminSearch;
@@ -52,12 +54,13 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                     s.From((request.Page - 1) * request.Take);
                 }
                 // Xây dựng query
-                // bool query để filter theo các field có trong request
+                // bool query để phép toán search và filter cho các field trong request
                 s.Query(q => q.Bool(b =>
                 {
                     if (!string.IsNullOrWhiteSpace(request.Title))
                     {
-                        b.Filter(f => f.Match(m => m.Field(c => c.Title.Suffix("keyword")).Query(request.Title)));
+                        // Title luôn phải match nếu người dùng tìm theo title.
+                        b.Must(f => f.Match(m => m.Field(c => c.Title).Query(request.Title)));
                     }
                     if (request.StartCreatedAt.HasValue || request.EndCreatedAt.HasValue)
                     {
@@ -74,6 +77,15 @@ public class CourseSearchAdminQueriesHandler(ElasticsearchClient client, ILogger
                             }
                         })));
                     }
+                    if (request.HskLevel.HasValue)
+                    {
+                        b.Filter(f => f.Term(t => t.Field(c => c.HskLevel).Value(request.HskLevel.Value)));
+                    }
+                    if (request.IsPublished.HasValue)
+                    {
+                        b.Filter(f => f.Term(t => t.Field(c => c.IsPublished).Value(request.IsPublished.Value)));
+                    }
+                    
                 }));
                 var primaryOrder = request.OrderByDescending ? SortOrder.Desc : SortOrder.Asc;
                 Action<SortOptionsDescriptor<CourseSearch>> primarySort = request.SortBy switch

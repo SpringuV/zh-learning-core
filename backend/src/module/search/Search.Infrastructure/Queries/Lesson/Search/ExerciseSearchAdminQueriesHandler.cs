@@ -1,13 +1,15 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
 public sealed record ExerciseSearchAdminQueries(
     Guid TopicId,
     string? Question = null,
     bool? IsPublished = null,
-    string? SkillType = null,
-    string? ExerciseType = null,
-    string? Difficulty = null,
-    string? Context = null,
+    SkillType? SkillType = null,
+    ExerciseType? ExerciseType = null,
+    ExerciseDifficulty? Difficulty = null,
+    ExerciseContext? Context = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
@@ -23,6 +25,8 @@ public sealed record ExerciseSearchAdminQueries(
         $"{TopicId}:{Question}:" +
         $"{ExerciseType}:" +
         $"{SkillType}:" +
+        $"{Difficulty}:" +
+        $"{IsPublished}:" +
         $"{Context}:{StartCreatedAt:O}:{EndCreatedAt:O}:{Take}:{Page}:{SortBy}:{OrderByDescending}";
     public TimeSpan CacheDuration => TimeSpan.FromMinutes(1);
 }
@@ -62,27 +66,28 @@ public class ExerciseSearchAdminQueriesHandler(ElasticsearchClient client, ILogg
                 s.Query(q => q.Bool(b =>
                 {
                     // Chỉ dùng topicId.keyword để filter chính xác theo GUID
-                    b.Filter(f => f.Term(t => t.Field(e => e.TopicId.Suffix("keyword")).Value(request.TopicId.ToString("D"))));
+                    b.Must(f => f.Term(t => t.Field(e => e.TopicId.Suffix("keyword")).Value(request.TopicId.ToString("D"))));
                     if (!string.IsNullOrWhiteSpace(request.Question))
                     {
-                        b.Filter(f => f.Match(m => m.Field(t => t.Question).Query(request.Question)));
+                        // không suffix "keyword" vì muốn search theo fulltext với analyzer của Elasticsearch
+                        b.Must(f => f.Match(m => m.Field(t => t.Question).Query(request.Question)));
                     }
-                    if (!string.IsNullOrWhiteSpace(request.ExerciseType))
+                    if (request.ExerciseType.HasValue)
                     {
                         // term query sẽ filter chính xác giá trị của exercise type, tránh lỗi khi parse enum hoặc filter sai kết quả không mong muốn khi dùng match query
-                        b.Filter(f => f.Term(t => t.Field(t => t.ExerciseType).Value(request.ExerciseType)));
+                        b.Filter(f => f.Term(t => t.Field(t => t.ExerciseType).Value(request.ExerciseType.Value.ToString())));
                     }
-                    if (!string.IsNullOrWhiteSpace(request.SkillType))
+                    if (request.SkillType.HasValue)
                     {
-                        b.Filter(f => f.Term(t => t.Field(t => t.SkillType).Value(request.SkillType)));
+                        b.Filter(f => f.Term(t => t.Field(t => t.SkillType).Value(request.SkillType.Value.ToString())));
                     }
-                    if (!string.IsNullOrWhiteSpace(request.Context))
+                    if (request.Context.HasValue)
                     {
-                        b.Filter(f => f.Term(t => t.Field(t => t.Context).Value(request.Context)));
+                        b.Filter(f => f.Term(t => t.Field(t => t.Context).Value(request.Context.Value.ToString())));
                     }
-                    if (!string.IsNullOrWhiteSpace(request.Difficulty))
+                    if (request.Difficulty.HasValue)
                     {
-                        b.Filter(f => f.Term(t => t.Field(t => t.Difficulty).Value(request.Difficulty)));
+                        b.Filter(f => f.Term(t => t.Field(t => t.Difficulty).Value(request.Difficulty.Value.ToString())));
                     }
                     if (request.IsPublished.HasValue)
                     {

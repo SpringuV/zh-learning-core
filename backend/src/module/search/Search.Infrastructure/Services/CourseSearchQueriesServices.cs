@@ -43,6 +43,8 @@ public class CourseSearchQueriesServices(ILogger<CourseSearchQueriesServices> lo
         var query = new CourseSearchAdminQueries(
             Title: request.Title,
             Page: request.Page,
+            IsPublished: request.IsPublished,
+            HskLevel: request.HskLevel,
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             SortBy: request.SortBy,

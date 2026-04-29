@@ -5,7 +5,6 @@ import {
     useDeferredValue,
     useEffect,
     useMemo,
-    useRef,
     useState,
 } from "react";
 import { toast } from "sonner";
@@ -39,6 +38,14 @@ import {
 const initialCourseQueryParams: CourseListQueryParams = {
     title: "",
     orderByDescending: true,
+    hskLevel: 0,
+    sortBy: "CreatedAt",
+    take: 50,
+};
+
+const initialDraftCourseQuery: Omit<CourseListQueryParams, "title"> = {
+    orderByDescending: true,
+    hskLevel: 0,
     sortBy: "CreatedAt",
     take: 50,
 };
@@ -65,12 +72,36 @@ const moveItem = <T,>(items: T[], fromIndex: number, toIndex: number): T[] => {
 export default function CourseCmsPage() {
     const [activeTab, setActiveTab] = useState<"courses" | "stats">("courses");
     const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [titleInput, setTitleInput] = useState("");
+    const [draftQuery, setDraftQuery] = useState<
+        Omit<CourseListQueryParams, "title">
+    >(initialDraftCourseQuery);
     const [queryParams, setQueryParams] = useState<CourseListQueryParams>(
         initialCourseQueryParams,
     );
-    const [levelFilter, setLevelFilter] = useState("all");
-    const [publishFilter, setPublishFilter] = useState("all");
     const [currentPage, setCurrentPage] = useState(1);
+    // isFilterDraftDirty sẽ so sánh các trường filter và sort trong draftQuery với queryParams để xác định xem có sự khác biệt nào không. Nếu có bất kỳ trường nào khác nhau, nó sẽ trả về true, cho biết rằng bộ lọc đã bị thay đổi và cần được áp dụng lại.
+    const isFilterDraftDirty = useMemo(
+        () =>
+            draftQuery.hskLevel !== queryParams.hskLevel ||
+            draftQuery.isPublished !== queryParams.isPublished ||
+            draftQuery.sortBy !== queryParams.sortBy ||
+            draftQuery.orderByDescending !== queryParams.orderByDescending,
+        [draftQuery, queryParams],
+    );
+
+    const applyFilters = useCallback(() => {
+        setCurrentPage(1);
+        setQueryParams((current) => ({
+            ...current,
+            title: titleInput.trim(),
+            hskLevel:
+                draftQuery.hskLevel === 0 ? undefined : draftQuery.hskLevel,
+            isPublished: draftQuery.isPublished,
+            sortBy: draftQuery.sortBy,
+            orderByDescending: draftQuery.orderByDescending,
+        }));
+    }, [draftQuery, titleInput]);
     const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
     const [isReorderMode, setIsReorderMode] = useState(false);
     const [orderedCourses, setOrderedCourses] = useState<CourseListItem[]>([]);
@@ -95,17 +126,34 @@ export default function CourseCmsPage() {
         courseId: null,
         courseTitle: "",
     });
+    // dùng debounce thay cho deferred value để tránh việc search khi người dùng đang gõ, chỉ search khi người dùng ngừng gõ một khoảng thời gian nhất định, giúp giảm số lượng request không cần thiết và cải thiện hiệu suất.
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setQueryParams((current) => ({
+                ...current,
+                title: titleInput.trim(),
+            }));
+        }, 500);
 
-    const deferredTitle = useDeferredValue(queryParams.title ?? "");
+        return () => clearTimeout(handler);
+    }, [titleInput]);
 
     const effectiveQueryParams = useMemo<CourseListQueryParams>(
         () => ({
             ...queryParams,
-            title: deferredTitle.trim(),
+            isPublished:
+                queryParams.isPublished === undefined
+                    ? undefined
+                    : queryParams.isPublished,
+            hskLevel:
+                Number(queryParams.hskLevel) === 0
+                    ? undefined
+                    : Number(queryParams.hskLevel),
+            title: queryParams.title?.trim() || "",
             take: itemsPerPage,
             page: currentPage,
         }),
-        [queryParams, deferredTitle, itemsPerPage, currentPage],
+        [queryParams, itemsPerPage, currentPage],
     );
 
     const coursesQuery = useGetListCourse(effectiveQueryParams);
@@ -121,23 +169,7 @@ export default function CourseCmsPage() {
     );
     const loadedCourses = useMemo(() => pageCourses, [pageCourses]);
 
-    const filteredCourses = useMemo(() => {
-        return pageCourses.filter((course) => {
-            const matchLevel =
-                levelFilter === "all" ||
-                String(course.hskLevel) === levelFilter;
-
-            const matchPublish =
-                publishFilter === "all" ||
-                (publishFilter === "published"
-                    ? course.isPublished
-                    : !course.isPublished);
-
-            return matchLevel && matchPublish;
-        });
-    }, [pageCourses, levelFilter, publishFilter]);
-
-    const displayCourses = isReorderMode ? orderedCourses : filteredCourses;
+    const displayCourses = isReorderMode ? orderedCourses : pageCourses;
 
     const totalDocs = currentPageData?.pagination?.total ?? 0;
     const totalCourses = totalDocs;
@@ -202,23 +234,21 @@ export default function CourseCmsPage() {
         queryParams.title,
         queryParams.sortBy,
         queryParams.orderByDescending,
-        levelFilter,
-        publishFilter,
+        queryParams.isPublished,
+        queryParams.hskLevel,
         itemsPerPage,
     ]);
 
     const resetFilters = () => {
+        setTitleInput("");
         setQueryParams(initialCourseQueryParams);
-        setLevelFilter("all");
-        setPublishFilter("all");
+        setDraftQuery(initialDraftCourseQuery);
         setCurrentPage(1);
     };
     // #region reorder
     const startReorderMode = () => {
         setActiveTab("courses");
         setCurrentPage(1);
-        setLevelFilter("all");
-        setPublishFilter("all");
         setQueryParams((current) => ({
             ...current,
             title: "",
@@ -461,12 +491,9 @@ export default function CourseCmsPage() {
                         <div className="mt-3 flex flex-wrap gap-3">
                             <Input
                                 type="text"
-                                value={queryParams.title || ""}
+                                value={titleInput}
                                 onChange={(event) =>
-                                    setQueryParams({
-                                        ...queryParams,
-                                        title: event.target.value,
-                                    })
+                                    setTitleInput(event.target.value)
                                 }
                                 placeholder="Tìm kiếm khóa học..."
                                 className="h-9 min-w-64 flex-1 bg-white text-sm"
@@ -474,15 +501,23 @@ export default function CourseCmsPage() {
                             />
 
                             <Select
-                                value={levelFilter}
-                                onValueChange={(value) => setLevelFilter(value)}
+                                value={draftQuery.hskLevel?.toString() || "0"}
+                                onValueChange={(value) =>
+                                    setDraftQuery({
+                                        ...draftQuery,
+                                        hskLevel:
+                                            value === "0"
+                                                ? undefined
+                                                : Number(value),
+                                    })
+                                }
                                 disabled={isReorderMode}
                             >
                                 <SelectTrigger className="h-9 w-32 bg-white text-sm">
                                     <SelectValue placeholder="HSK" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tất cả</SelectItem>
+                                    <SelectItem value="0">Tất cả</SelectItem>
                                     <SelectItem value="1">HSK 1</SelectItem>
                                     <SelectItem value="2">HSK 2</SelectItem>
                                     <SelectItem value="3">HSK 3</SelectItem>
@@ -493,9 +528,23 @@ export default function CourseCmsPage() {
                             </Select>
 
                             <Select
-                                value={publishFilter}
+                                value={
+                                    draftQuery.isPublished === true
+                                        ? "published"
+                                        : draftQuery.isPublished === false
+                                          ? "draft"
+                                          : "all"
+                                }
                                 onValueChange={(value) =>
-                                    setPublishFilter(value)
+                                    setDraftQuery({
+                                        ...draftQuery,
+                                        isPublished:
+                                            value === "published"
+                                                ? true
+                                                : value === "draft"
+                                                  ? false
+                                                  : undefined,
+                                    })
                                 }
                                 disabled={isReorderMode}
                             >
@@ -503,9 +552,7 @@ export default function CourseCmsPage() {
                                     <SelectValue placeholder="Trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">
-                                        Mọi trạng thái
-                                    </SelectItem>
+                                    <SelectItem value="all">Tất cả</SelectItem>
                                     <SelectItem value="published">
                                         Đã xuất bản
                                     </SelectItem>
@@ -516,9 +563,9 @@ export default function CourseCmsPage() {
                             </Select>
 
                             <Select
-                                value={queryParams.sortBy ?? "CreatedAt"}
+                                value={draftQuery.sortBy ?? "CreatedAt"}
                                 onValueChange={(value: CourseSortBy) =>
-                                    setQueryParams((current) => ({
+                                    setDraftQuery((current) => ({
                                         ...current,
                                         sortBy: value,
                                     }))
@@ -552,12 +599,12 @@ export default function CourseCmsPage() {
 
                             <Select
                                 value={
-                                    queryParams.orderByDescending
+                                    draftQuery.orderByDescending
                                         ? "desc"
                                         : "asc"
                                 }
                                 onValueChange={(value) =>
-                                    setQueryParams((current) => ({
+                                    setDraftQuery((current) => ({
                                         ...current,
                                         orderByDescending: value === "desc",
                                     }))
@@ -586,6 +633,16 @@ export default function CourseCmsPage() {
                                 disabled={isReorderMode}
                             >
                                 Xóa lọc
+                            </Button>
+
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="h-9 shrink-0"
+                                onClick={applyFilters}
+                                disabled={!isFilterDraftDirty || isReorderMode}
+                            >
+                                Áp dụng bộ lọc
                             </Button>
 
                             {!isReorderMode && (
