@@ -3,9 +3,9 @@ import {
     ExerciseCreateRequest,
     ExerciseListQueryParams,
     ExerciseReorderRequest,
-    ExerciseSessionPracticeItemWithoutAnswerResponse,
     UpdateExerciseRequest,
 } from "@/modules/lesson/types/exercise.type";
+import { LearningExerciseSessionPracticeDTOResponse } from "@/modules/lesson/types/topic.type";
 import { BaseResponse } from "@/shared/types/store.type";
 import {
     GcTime,
@@ -111,19 +111,23 @@ export const useGetSessionItemsSnapshot = (
 // #endregion
 
 // #region ExerciseSessionPractice
-export const useExerciseSessionPracticeWithoutAnswer = (exerciseId: string) => {
+export const useExerciseSessionPracticeWithoutAnswer = (
+    exerciseId: string,
+    sessionId: string,
+) => {
     return useQuery({
-        queryKey: ["start-exercise-session-practice", exerciseId],
+        queryKey: ["start-exercise-session-practice", exerciseId, sessionId],
         queryFn: async (): Promise<
-            BaseResponse<ExerciseSessionPracticeItemWithoutAnswerResponse>
+            BaseResponse<LearningExerciseSessionPracticeDTOResponse>
         > => {
             const response =
                 await exerciseApi.getExerciseSessionPracticeItemWithoutAnswer(
                     exerciseId,
+                    sessionId,
                 );
             return response.data;
         },
-        enabled: Boolean(exerciseId),
+        enabled: Boolean(exerciseId) && Boolean(sessionId), // chỉ kích hoạt query khi cả exerciseId và sessionId đều có giá trị hợp lệ
         refetchOnWindowFocus: false, // không tự động refetch khi cửa sổ được focus lại
         refetchOnMount: false, // không tự động refetch khi component được mount lại
         staleTime: StaleTime,

@@ -494,9 +494,9 @@ export function ViewOrEditExerciseModal() {
             });
 
             toast.success("Đã cập nhật bài tập.");
-            await viewDetailTanstack.refetch();
+            // await viewDetailTanstack.refetch();
             // console.log("Refetched exercise detail do vừa cập nhật");
-            setIsEditMode(false);
+            // setIsEditMode(false);
         } catch (error) {
             setErrors({ form: getErrorMessage(error) });
             toast.error(getErrorMessage(error));

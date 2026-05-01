@@ -1,12 +1,6 @@
 namespace Lesson.Domain.Entities;
 
-public enum PhraseType
-{
-    Word,
-    Phrase,
-    Idiom,
-    Sentence
-}
+
 
 public class FlashcardAggregate : BaseAggregateRoot
 {

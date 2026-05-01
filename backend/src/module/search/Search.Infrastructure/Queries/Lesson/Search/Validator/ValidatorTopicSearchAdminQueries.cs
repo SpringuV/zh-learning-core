@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Search.Validator;
 
 public sealed class TopicSearchAdminQueriesValidator : AbstractValidator<TopicSearchAdminQueries>
@@ -17,13 +19,8 @@ public sealed class TopicSearchAdminQueriesValidator : AbstractValidator<TopicSe
             .WithMessage("StartCreatedAt must be less than or equal to EndCreatedAt.");
 
         RuleFor(x => x.TopicType)
-            .Must(BeValidTopicType)
-            .When(x => x.TopicType.HasValue)
+            .IsInEnum()
             .WithMessage($"TopicType is invalid. Supported values: {string.Join(", ", Enum.GetNames<TopicType>())}.");
     }
 
-    private static bool BeValidTopicType(TopicType? topicType)
-    {
-        return !topicType.HasValue || Enum.IsDefined(topicType.Value);
-    }
 }

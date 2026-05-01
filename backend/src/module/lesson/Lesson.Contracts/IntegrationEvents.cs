@@ -300,6 +300,13 @@ public sealed record ExerciseOptionsUpdatedIntegrationEvent(
 #endregion
 
 #region Session Exercise Events
+public sealed record UserTopicExerciseSessionSequenceUpdatedIntegrationEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    int NewCurrentSequenceNo,
+    DateTime UpdatedAt
+): IntegrationEvent;
 public sealed record UserTopicExerciseSessionSnapshotInitializedIntegrationEvent(
     Guid SessionId,
     Guid UserId,

@@ -23,6 +23,14 @@ public sealed record TopicTotalExercisesUpdatedSearchCommand(
     DateTime UpdatedAt
 ): IRequest<Unit>;
 
+public sealed record ExerciseSessionSequenceUpdatedCommand(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    int NewCurrentSequenceNo,
+    DateTime UpdatedAt
+): IRequest<Unit>;
+
 public sealed record TopicPatchSearchCommand(
     Guid TopicId,
     object PatchDocument
@@ -199,6 +207,34 @@ public class TopicTotalExercisePublishedUpdatedSearchQueriesHandler(Elasticsearc
         if (!response.IsValidResponse)
         {
             throw new InvalidOperationException($"Failed to update total exercises published for topic with id {request.TopicId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
+        }
+
+        return Unit.Value;
+    }
+}
+#endregion
+
+#region UpdateSequence
+public class TopicSequenceUpdatedSearchCommandHandler(ElasticsearchClient elasticClient) : IRequestHandler<ExerciseSessionSequenceUpdatedCommand, Unit>
+{
+    private readonly ElasticsearchClient _elasticClient = elasticClient;
+
+    public async Task<Unit> Handle(ExerciseSessionSequenceUpdatedCommand request, CancellationToken cancellationToken)
+    {
+        var response = await _elasticClient.UpdateAsync<TopicExerciseSessionSearch, object>(
+            ConstantIndexElastic.TopicExerciseSessionIndex,
+            request.SessionId, // Assuming SessionId is used as the document Id for updating sequence number, if not, this needs to be adjusted based on the actual document structure
+            u => u.Doc(new
+            {
+                request.NewCurrentSequenceNo,
+                request.UpdatedAt
+            }).RetryOnConflict(3),
+            cancellationToken
+        );
+
+        if (!response.IsValidResponse)
+        {
+            throw new InvalidOperationException($"Failed to update sequence for topic with id {request.TopicId} in Elasticsearch. Reason: {(response.TryGetOriginalException(out var ex) ? ex!.Message : response.DebugInformation)}");
         }
 
         return Unit.Value;

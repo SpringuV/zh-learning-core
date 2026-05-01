@@ -221,11 +221,16 @@ public static class LessonSearchApi
     #endregion
     #region ExercisePracticeItem
     // hiển thị các câu hỏi của bài tập khi user luyện tập
-    public static async Task<IResult> GetExerciseSessionPracticeItemWithoutAnswer([FromRoute] Guid exerciseId, [FromServices] IExerciseSearchQueriesService exerciseSearchQueriesService, CancellationToken ct)
+    public static async Task<IResult> GetExerciseSessionPracticeItemWithoutAnswer([FromRoute] Guid exerciseId, [FromRoute] Guid sessionId, HttpContext httpContext, [FromServices] IExerciseSearchQueriesService exerciseSearchQueriesService, CancellationToken ct)
     {
         try
         {
-            var results = await exerciseSearchQueriesService.GetExerciseSessionPracticeItemWithoutAnswerAsync(exerciseId, ct);
+            var userIdClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+            var results = await exerciseSearchQueriesService.GetExerciseSessionPracticeItemWithoutAnswerAsync(exerciseId, sessionId, userId, ct);
             return Results.Ok(results);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

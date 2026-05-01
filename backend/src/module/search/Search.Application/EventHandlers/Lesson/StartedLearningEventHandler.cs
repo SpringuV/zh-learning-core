@@ -92,3 +92,28 @@ public class TopicExerciseSessionSnapshotInitializedEventHandler(
     }
 }
 #endregion
+
+#region ExerciseSessionSequenceUpdated
+public class TopicExerciseSessionSequenceUpdatedEventHandler(
+    ITopicProgressQueriesService topicProgressQueriesService,
+    ILogger<TopicExerciseSessionSequenceUpdatedEventHandler> logger) : IIntegrationEventHandler<UserTopicExerciseSessionSequenceUpdatedIntegrationEvent>
+{
+    private readonly ITopicProgressQueriesService _topicProgressQueriesService = topicProgressQueriesService;
+    private readonly ILogger<TopicExerciseSessionSequenceUpdatedEventHandler> _logger = logger;
+
+    public async Task HandleAsync(UserTopicExerciseSessionSequenceUpdatedIntegrationEvent @event, CancellationToken ct = default!)
+    {
+        _logger.LogInformation("Handling TopicExerciseSessionSequenceUpdatedIntegrationEvent for SessionId: {SessionId}, UserId: {UserId}, TopicId: {TopicId}", @event.SessionId, @event.UserId, @event.TopicId);
+        var request = new ExerciseSessionSequenceUpdatedQueriesRequest(
+            SessionId: @event.SessionId,
+            UserId: @event.UserId,
+            TopicId: @event.TopicId,
+            NewCurrentSequenceNo: @event.NewCurrentSequenceNo,
+            UpdatedAt: @event.UpdatedAt
+        );
+
+        await _topicProgressQueriesService.HandleUpdatedSequenceNoAsync(request, ct);
+        _logger.LogInformation("Finished handling TopicExerciseSessionSequenceUpdatedIntegrationEvent for SessionId: {SessionId}", @event.SessionId);
+    }
+}
+#endregion

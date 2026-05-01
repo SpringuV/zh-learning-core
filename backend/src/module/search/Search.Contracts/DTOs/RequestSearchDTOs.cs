@@ -380,7 +380,7 @@ public sealed record TopicSearchQueryRequest(
     Guid CourseId,
     string? Title = null,
     bool? IsPublished = null,
-    string? TopicType = null,
+    TopicType? TopicType = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
@@ -439,7 +439,13 @@ public sealed record ExerciseSessionItemSnapshot(
     DateTime? ViewedAt,
     DateTime? AnsweredAt
 );
-
+public sealed record ExerciseSessionSequenceUpdatedQueriesRequest(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    int NewCurrentSequenceNo,
+    DateTime UpdatedAt
+);
 public sealed record ExerciseSessionSnapshotInitializedQueriesRequest(
     Guid SessionId,
     Guid UserId,

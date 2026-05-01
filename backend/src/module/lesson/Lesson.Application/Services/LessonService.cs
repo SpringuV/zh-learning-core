@@ -125,7 +125,8 @@ public class LessonService(IMediator mediator) : ILessonService
             ExerciseId: request.ExerciseId,
             SessionId: request.SessionId,
             UserId: userId,
-            Answer: request.Answer
+            Answer: request.Answer,
+            CurrentSequenceNo: request.CurrentSequenceNo
         );
         return await _mediator.Send(command, cancellationToken);
     }

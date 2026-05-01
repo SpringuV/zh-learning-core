@@ -1,5 +1,6 @@
 namespace Lesson.Application.Outbox.Topic;
 
+#region  CreatedTopicProgress
 public sealed class TopicProgressCreatedOutbox(ILessonOutboxWriter lessonOutboxWriter)
     : INotificationHandler<UserTopicProgressCreatedEvent>
 {
@@ -19,7 +20,8 @@ public sealed class TopicProgressCreatedOutbox(ILessonOutboxWriter lessonOutboxW
             ),
             cancellationToken);
 }
-
+#endregion
+#region StartedTopicExerciseSession
 public sealed class TopicExerciseSessionStartedOutbox(ILessonOutboxWriter lessonOutboxWriter)
     : INotificationHandler<UserTopicExerciseSessionStartedEvent>
 {
@@ -35,7 +37,8 @@ public sealed class TopicExerciseSessionStartedOutbox(ILessonOutboxWriter lesson
         ),
         cancellationToken);
 }
-
+#endregion
+#region SnapshotInitialized
 public sealed class TopicExerciseSessionSnapshotInitializedOutbox(ILessonOutboxWriter lessonOutboxWriter)
     : INotificationHandler<UserTopicExerciseSessionSnapshotInitializedEvent>
 {
@@ -48,7 +51,7 @@ public sealed class TopicExerciseSessionSnapshotInitializedOutbox(ILessonOutboxW
             TopicId: notification.TopicId,
             TotalExercises: notification.TotalExercises,
             CurrentSequenceNo: notification.CurrentSequenceNo,
-            SessionItems: notification.SessionItems
+            SessionItems: [.. notification.SessionItems
                 .Select(item => new UserTopicExerciseSessionItemSnapshotIntegrationEvent(
                     SessionItemId: item.SessionItemId,
                     ExerciseId: item.ExerciseId,
@@ -57,10 +60,26 @@ public sealed class TopicExerciseSessionSnapshotInitializedOutbox(ILessonOutboxW
                     AttemptId: item.AttemptId,
                     Status: item.Status.ToString(),
                     ViewedAt: item.ViewedAt,
-                    AnsweredAt: item.AnsweredAt))
-                .ToList(),
+                    AnsweredAt: item.AnsweredAt))],
             InitializedAt: notification.InitializedAt,
             UpdatedAt: notification.UpdatedAt
         ),
         cancellationToken);
 }
+#endregion
+#region UpdatedTopicExerciseSessionSequence
+public sealed class TopicExerciseSessionSequenceUpdatedOutbox(ILessonOutboxWriter lessonOutboxWriter)
+    : INotificationHandler<UserTopicExerciseSessionSequenceUpdatedEvent>
+{
+    public Task Handle(UserTopicExerciseSessionSequenceUpdatedEvent notification, CancellationToken cancellationToken)
+    => lessonOutboxWriter.EnqueueAsync(
+        new UserTopicExerciseSessionSequenceUpdatedIntegrationEvent(
+            SessionId: notification.SessionId,
+            UserId: notification.UserId,
+            TopicId: notification.TopicId,
+            NewCurrentSequenceNo: notification.NewCurrentSequenceNo,
+            UpdatedAt: notification.UpdatedAt
+        ),
+        cancellationToken);
+}
+#endregion

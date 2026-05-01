@@ -40,6 +40,8 @@ public class UpdateExerciseCommandHandler(
                 }
 
                 // Update fields if provided
+                if (request.Options is not null)
+                    exerciseAggregate.UpdateOptions([.. request.Options]);
                 if (request.Description is not null)
                     exerciseAggregate.UpdateDescription(request.Description);
                 if (request.Question is not null)
@@ -61,8 +63,7 @@ public class UpdateExerciseCommandHandler(
 
                 if (request.Explanation is not null)
                     exerciseAggregate.UpdateExplanation(request.Explanation);
-                if (request.Options is not null)
-                    exerciseAggregate.UpdateOptions([.. request.Options]);
+                
 
                 await _exerciseRepository.UpdateAsync(exerciseAggregate, cancellationToken);
 

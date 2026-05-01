@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
 // Vì CourseTopicsOverviewAdminQueries có cùng tham số truyền vào giống với 
@@ -8,7 +10,7 @@ public sealed record CourseTopicsOverviewAdminQueries(
     Guid CourseId,
     string? Title = null,
     bool? IsPublished = null,
-    string? TopicType = null,
+    TopicType? TopicType = null,
     DateTime? StartCreatedAt = null,
     DateTime? EndCreatedAt = null,
     int Take = 30,
@@ -46,7 +48,7 @@ public sealed class CourseTopicsOverviewAdminQueriesHandler(
             CourseId: request.CourseId,
             Title: request.Title,
             IsPublished: request.IsPublished,
-            TopicType: ParseTopicType(request.TopicType),
+            TopicType: request.TopicType,
             StartCreatedAt: request.StartCreatedAt,
             EndCreatedAt: request.EndCreatedAt,
             Take: request.Take,
@@ -62,18 +64,6 @@ public sealed class CourseTopicsOverviewAdminQueriesHandler(
             Items: topicsResult.Items,
             Pagination: topicsResult.Pagination
         );
-    }
-
-    private static TopicType? ParseTopicType(string? topicType)
-    {
-        if (string.IsNullOrWhiteSpace(topicType))
-        {
-            return null;
-        }
-
-        return Enum.TryParse<TopicType>(topicType, true, out var parsed)
-            ? parsed
-            : null;
     }
 
     private async Task<CourseMetadataForTopicAdminResponse?> LoadCourseMetadataAsync(Guid courseId, CancellationToken cancellationToken)

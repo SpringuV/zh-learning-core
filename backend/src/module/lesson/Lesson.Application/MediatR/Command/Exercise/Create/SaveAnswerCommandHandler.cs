@@ -4,7 +4,8 @@ public sealed record SaveAnswerCommand(
     Guid ExerciseId,
     Guid SessionId,
     Guid UserId,
-    string Answer
+    string Answer,
+    int CurrentSequenceNo
 ) : IRequest<Result<SaveAnswerResponseDTO>>;
 
 #region Validator
@@ -16,6 +17,7 @@ public class ValidatorSaveAnswer : AbstractValidator<SaveAnswerCommand>
         RuleFor(x => x.SessionId).NotEmpty().WithMessage("SessionId is required.");
         RuleFor(x => x.UserId).NotEmpty().WithMessage("UserId is required.");
         RuleFor(x => x.Answer).NotEmpty().WithMessage("Answer is required.");
+        RuleFor(x => x.CurrentSequenceNo).GreaterThanOrEqualTo(0).WithMessage("CurrentSequenceNo must be a non-negative integer.");
     }
 }
 #endregion
@@ -35,19 +37,21 @@ public sealed class SaveAnswerCommandHandler(IExerciseRepository exerciseReposit
         try
         {
             var exerciseAggregate = null as ExerciseAggregate;
+            var sessionExercise = null as UserTopicExerciseSessionAggregate;
+            // var 
             exerciseAggregate = await _exerciseRepository.GetByIdAsync(request.ExerciseId, cancellationToken);
             if (exerciseAggregate is null) 
             {
                 return Result<SaveAnswerResponseDTO>.FailureResult("Exercise not found", (int)ErrorCode.NOTFOUND);
             }
             // phase 1: validate input (đã có FluentValidation đảm nhiệm, nhưng nếu cần validate thêm phức tạp hơn thì có thể làm ở đây)
-            var sessionItem = await _userTopicExerciseSessionRepository.GetByIdAsync(request.SessionId, cancellationToken);
-            if (sessionItem is null)
+            sessionExercise = await _userTopicExerciseSessionRepository.GetByIdAsync(request.SessionId, cancellationToken);
+            if (sessionExercise is null)
             {
                 return Result<SaveAnswerResponseDTO>.FailureResult("Learning session item not found", (int)ErrorCode.NOTFOUND);
             }
 
-            if (sessionItem.UserId != request.UserId)
+            if (sessionExercise.UserId != request.UserId)
             {
                 return Result<SaveAnswerResponseDTO>.FailureResult("Unauthorized", (int)ErrorCode.UN_AUTHORIZED);
             }
@@ -63,6 +67,8 @@ public sealed class SaveAnswerCommandHandler(IExerciseRepository exerciseReposit
                     skillType: exerciseAggregate.SkillType
                 );
             }
+
+            
             else
             {
                 if (exerciseAttempt!.IsFinalized)
@@ -77,6 +83,13 @@ public sealed class SaveAnswerCommandHandler(IExerciseRepository exerciseReposit
 
                 exerciseAttempt.UpdateAnswer(request.Answer, request.ExerciseId, request.SessionId);
             }
+            // update currentSequenceNo in sessionExercise if needed
+            if (request.CurrentSequenceNo > sessionExercise.CurrentSequenceNo)
+            {
+                sessionExercise.UpdateCurrentSequenceNo(request.CurrentSequenceNo);
+                // invalid cache của sessionExercise để client có thể lấy được currentSequenceNo mới nhất
+                
+            }
 
             await _unitOfWork.SaveChangeAsync(
                 async () =>
@@ -85,6 +98,7 @@ public sealed class SaveAnswerCommandHandler(IExerciseRepository exerciseReposit
                     {
                         throw new InvalidOperationException("Exercise attempt id is invalid.");
                     }
+                    await _userTopicExerciseSessionRepository.UpdateAsync(sessionExercise, cancellationToken);
 
                     if (isNewAttempt)
                     {
@@ -108,7 +122,7 @@ public sealed class SaveAnswerCommandHandler(IExerciseRepository exerciseReposit
                 SessionId: exerciseAttempt.SessionId,
                 AnsweredAt: exerciseAttempt.UpdatedAt,
                 Status: "Saved",
-                CurrentSequenceNo: sessionItem.CurrentSequenceNo
+                CurrentSequenceNo: sessionExercise.CurrentSequenceNo
             ));
         }
         catch (Exception ex)

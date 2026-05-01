@@ -11,4 +11,5 @@ public static class SearchCacheScopes
     public const string ExercisePublicSearch = "search:exercise:public";
     public const string ExerciseSessionItemsSnapshot = "search:session-items-snapshot";
     public const string TopicExerciseSessionSearch = "search:topic-exercise-session";
+    public const string ExerciseSessionPracticeItemWithoutAnswer = "search:session-practice-item-without-answer";
 }

@@ -230,9 +230,9 @@ public class ExerciseSearchQueriesService(IMediator mediator) : IExerciseSearchQ
         return await _mediator.Send(query, cancellationToken);
     }
 
-    public async Task<Result<ExerciseSessionPracticeItemWithoutAnswerResponse>> GetExerciseSessionPracticeItemWithoutAnswerAsync(Guid exerciseId, CancellationToken cancellationToken = default)
+    public async Task<Result<LearningExerciseSessionPracticeDTOResponse>> GetExerciseSessionPracticeItemWithoutAnswerAsync(Guid exerciseId, Guid sessionId, Guid userId, CancellationToken cancellationToken = default)
     {
-        var query = new ExerciseSessionPracticeItemWithoutAnswerQueries(exerciseId);
+        var query = new ExerciseSessionPracticeItemWithoutAnswerQueries(exerciseId, sessionId, userId);
         return await _mediator.Send(query, cancellationToken);
     }
 

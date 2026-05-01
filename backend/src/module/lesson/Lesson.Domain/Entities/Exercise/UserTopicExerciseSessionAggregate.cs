@@ -110,7 +110,20 @@ public class UserTopicExerciseSessionAggregate : BaseAggregateRoot
         
         TimeSpentSeconds = totalSeconds;
     }
-
+    public void UpdateCurrentSequenceNo(int currentSequenceNo)
+    {
+        if (currentSequenceNo < 1)
+            throw new ArgumentOutOfRangeException(nameof(currentSequenceNo), "CurrentSequenceNo must be greater than 0");
+        
+        CurrentSequenceNo = currentSequenceNo;
+        AddDomainEvent(new UserTopicExerciseSessionSequenceUpdatedEvent(
+            SessionId,
+            UserId,
+            TopicId,
+            CurrentSequenceNo,
+            UpdatedAt: DateTime.UtcNow
+        ));
+    }
     public void SetTotalScore(float totalScore)
     {
         if (totalScore < 0)

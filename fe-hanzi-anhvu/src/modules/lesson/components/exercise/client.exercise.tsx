@@ -8,6 +8,7 @@ import {
     CompleteLearningSessionResponse,
     CountinueLearningSessionResponse,
     LearningExerciseSessionItemDTOResponse,
+    LearningExerciseSessionPracticeDTOResponse,
     StartLearningTopicResponse,
 } from "@/modules/lesson/types/topic.type";
 import NavigationActions from "@/modules/lesson/components/exercise/components.client.exercise/navigation.actions";
@@ -18,7 +19,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExerciseSessionPracticeItemWithoutAnswerResponse } from "@/modules/lesson/types/exercise.type";
 import {
     useExerciseSessionPracticeWithoutAnswer,
     useGetSessionItemsSnapshot,
@@ -36,7 +36,13 @@ const normalizeRouteParam = (param: string | string[] | undefined): string => {
 };
 
 const ExerciseClientComponent = () => {
-    console.log("Rendering ExerciseClientComponent");
+    // nếu người dùng reload lại page thì cảnh báo là tiến trình piên học sẽ lưu lại,
+    // và khi họ quay lại trang chủ đề và nhấn bắt đầu học lại thì sẽ tiếp tục phiên học cũ
+    // thay vì tạo phiên học mới, để tránh mất tiến trình học của người dùng, tuy nhiên nếu
+    // người dùng đã hoàn thành phiên học hoặc muốn bắt đầu phiên học mới thì vẫn có thể bắt đầu lại
+    // bình thường, nên ở đây sẽ chỉ hiển thị cảnh báo khi người dùng reload lại page trong quá trình
+    // đang học mà chưa hoàn thành phiên học, còn nếu đã hoàn thành phiên học hoặc chưa bắt đầu học mà
+    // reload lại page thì sẽ không hiển thị cảnh báo vì lúc đó không có tiến trình nào bị mất cả
     const params = useParams();
     const router = useRouter();
     const { data: session, status } = useSession();
@@ -79,13 +85,54 @@ const ExerciseClientComponent = () => {
         LearningExerciseSessionItemDTOResponse[] | null
     >(null);
     const [currentExercise, setCurrentExercise] =
-        useState<ExerciseSessionPracticeItemWithoutAnswerResponse | null>(null);
+        useState<LearningExerciseSessionPracticeDTOResponse | null>(null);
     const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
 
     const [currentSequenceNumber, setCurrentSequenceNumber] = useState(0);
     const [totalExercises, setTotalExercises] = useState(0);
     const [isInitialized, setIsInitialized] = useState(false);
+    // #endregion
+    // #region unload confirmation
+    const handleReloadConfirmation = useCallback(
+        (event: KeyboardEvent) => {
+            if (!resolvedSessionId || !currentExercise) {
+                return;
+            }
 
+            const isReloadKey =
+                event.key === "F5" ||
+                ((event.key === "r" || event.key === "R") &&
+                    (event.ctrlKey || event.metaKey));
+            if (!isReloadKey) {
+                return;
+            }
+
+            event.preventDefault();
+            if (confirm("Do you want to reload the page?")) {
+                window.location.reload();
+            }
+        },
+        [resolvedSessionId, currentExercise],
+    );
+
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (!resolvedSessionId || !currentExercise) {
+                return;
+            }
+
+            event.preventDefault();
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        window.addEventListener("keydown", handleReloadConfirmation);
+
+        return () => {
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+            window.removeEventListener("keydown", handleReloadConfirmation);
+        };
+    }, [resolvedSessionId, currentExercise, handleReloadConfirmation]);
+    // #endregion
     // #region Effects: session bootstrap
     // Load dữ liệu ban đầu từ cache hoặc chờ snapshot query tự động trigger
     useEffect(() => {
@@ -150,7 +197,10 @@ const ExerciseClientComponent = () => {
     // #endregion
 
     const exerciseSessionPracticeQuery =
-        useExerciseSessionPracticeWithoutAnswer(selectedExerciseId);
+        useExerciseSessionPracticeWithoutAnswer(
+            selectedExerciseId,
+            resolvedSessionId,
+        );
 
     // #region Effects: exercise detail sync
     useEffect(() => {

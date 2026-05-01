@@ -8,46 +8,40 @@ public sealed record PaginationResponse(
     long Total);
 #region ExerciseSession
 
-public record ExerciseSessionPracticeItemWithoutAnswerResponse(
+public record LearningExerciseSessionPracticeDTOResponse(
     Guid ExerciseId,
     string Question,
-    string ExerciseType,
     string SkillType,
     string Difficulty,
     string Description,
-    int OrderIndex,
+    string? Answerd, // đáp án đã trả lời, nếu có (thường sẽ dùng để hiển thị lại khi người dùng tiếp tục làm bài tập đó, tránh trường hợp họ đã trả lời rồi nhưng chưa submit mà lại bị out ra ngoài do hết thời gian hoặc tắt app...)
     IReadOnlyList<ExerciseOption> Options,
     string? AudioUrl,
-    string? ImageUrl,
-    string Slug
+    string? ImageUrl
 );
 
-public record CountinueLearningExerciseDTO: ExerciseSessionPracticeItemWithoutAnswerResponse
+public record CountinueLearningExerciseDTO: LearningExerciseSessionPracticeDTOResponse
 {
     public CountinueLearningExerciseDTO(
         Guid ExerciseId,
         string Question,
-        string ExerciseType,
         string SkillType,
         string Difficulty,
         string Description,
-        int OrderIndex,
+        string? Answerd,
         IReadOnlyList<ExerciseOption> Options,
         string? AudioUrl,
-        string? ImageUrl,
-        string Slug
+        string? ImageUrl
     ) : base(ExerciseId, 
-            Question, 
-            ExerciseType, 
+            Question,  
             SkillType, 
             Difficulty, 
             Description, 
-            OrderIndex, 
+            Answerd,
             Options, 
-            AudioUrl, ImageUrl,
-            Slug)
-    {
-        
+            AudioUrl, 
+            ImageUrl)
+    {   
     }
 }
 // chỉ đánh dấu là đã nộp bài, không trả về kết quả đúng sai ở đây vì có thể sẽ có nhiều loại bài tập khác nhau với các cách thức trả lời khác nhau (text, optionId, file upload...)

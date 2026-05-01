@@ -7,6 +7,8 @@ flow in file:
     - 3: Kết quả trả về sẽ được map sang TopicSearchItemAdminResponse và xây dựng thành SearchQueryResult để trả về cho caller
     - 4: TopicSearchQueriesService sẽ gọi Mediator để gửi TopicSearchAdminQueries và nhận kết quả SearchQueryResult<TopicSearchItemAdminResponse> để trả về cho API controller
 */
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Search;
 
 public sealed record TopicSearchAdminQueries(

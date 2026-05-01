@@ -38,20 +38,6 @@ export interface ExerciseOption {
     text: string;
 }
 
-export interface ExerciseSessionPracticeItemWithoutAnswerResponse {
-    exerciseId: string;
-    question: string;
-    exerciseType: ExerciseType;
-    skillType: SkillType;
-    difficulty: ExerciseDifficulty;
-    slug: string;
-    description: string;
-    options: ExerciseOption[];
-    audioUrl?: string | null;
-    imageUrl?: string | null;
-    explanation?: string | null;
-}
-
 export interface ExerciseDetailResponse {
     exerciseId: string;
     question: string;

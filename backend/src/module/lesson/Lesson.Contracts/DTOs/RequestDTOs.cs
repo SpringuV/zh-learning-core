@@ -58,7 +58,8 @@ public sealed record CompleteLearningSessionRequestDTO(
 public sealed record SaveAnswerRequestDTO(
     Guid ExerciseId,
     Guid SessionId,
-    string Answer
+    string Answer,
+    int CurrentSequenceNo
 );
 public sealed record ExerciseCreateRequestDTO(
     Guid TopicId,

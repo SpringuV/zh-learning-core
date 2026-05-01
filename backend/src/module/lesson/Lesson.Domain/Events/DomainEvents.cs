@@ -347,7 +347,13 @@ public sealed record UserTopicExerciseSessionAbandonedEvent(
     DateTime AbandonedAt,
     DateTime UpdatedAt
 ) : BaseDomainEvent, INotification;
-
+public sealed record UserTopicExerciseSessionSequenceUpdatedEvent(
+    Guid SessionId,
+    Guid UserId,
+    Guid? TopicId,
+    int NewCurrentSequenceNo,
+    DateTime UpdatedAt
+) : BaseDomainEvent, INotification;
 public sealed record UserTopicExerciseSessionSnapshotInitializedEvent(
     Guid SessionId,
     Guid UserId,

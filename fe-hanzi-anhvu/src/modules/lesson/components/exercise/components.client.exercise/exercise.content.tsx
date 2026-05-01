@@ -1,12 +1,12 @@
 "use client";
 
+import { LearningExerciseSessionPracticeDTOResponse } from "@/modules/lesson/types/topic.type";
 import { memo } from "react";
-import { ExerciseSessionPracticeItemWithoutAnswerResponse } from "@/modules/lesson/types/exercise.type";
 
 const optionLabels = "abcdefghijklmnopqrstuvwxyz".toUpperCase();
 
 interface ExerciseContentProps {
-    currentExercise: ExerciseSessionPracticeItemWithoutAnswerResponse;
+    currentExercise: LearningExerciseSessionPracticeDTOResponse;
     currentAnswer: string;
     isCurrentSubmitted: boolean;
     onSelectOption: (optionId: string) => void;
@@ -25,9 +25,6 @@ const ExerciseContent = memo(
             <>
                 <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-                        <span className="rounded bg-slate-100 px-2 py-1">
-                            {currentExercise.exerciseType}
-                        </span>
                         <span className="rounded bg-slate-100 px-2 py-1">
                             {currentExercise.skillType}
                         </span>
@@ -53,7 +50,11 @@ const ExerciseContent = memo(
                 ) : null}
 
                 {currentExercise.audioUrl ? (
-                    <audio controls className="w-full">
+                    <audio
+                        controls
+                        className="w-full"
+                        controlsList="nodownload"
+                    >
                         <source src={currentExercise.audioUrl} />
                     </audio>
                 ) : null}

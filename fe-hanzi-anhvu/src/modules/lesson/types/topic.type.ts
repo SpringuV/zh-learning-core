@@ -1,5 +1,6 @@
 import {
     ExerciseDifficulty,
+    ExerciseOption,
     ExerciseType,
     SkillType,
 } from "@/modules/lesson/types/exercise.type";
@@ -48,20 +49,15 @@ export type TopicFormState = {
 // #region Start Or Countinue
 export interface LearningExerciseSessionPracticeDTOResponse {
     exerciseId: string;
-    topicId: string;
-    orderIndex: number;
-    description: string;
     question: string;
-    exerciseType: ExerciseType;
     skillType: SkillType;
     difficulty: ExerciseDifficulty;
-    slug: string;
-    audioUrl?: string;
-    imageUrl?: string;
-    options: {
-        id: string;
-        text: string;
-    }[];
+    description: string;
+    answerd: string | null; // đáp án đã lưu của người dùng cho bài tập này trong session, nếu có
+    options: ExerciseOption[];
+    audioUrl?: string | null;
+    imageUrl?: string | null;
+    explanation?: string | null;
 }
 
 export interface LearningExerciseSessionItemDTOResponse {

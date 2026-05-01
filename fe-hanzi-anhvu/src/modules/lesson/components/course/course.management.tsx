@@ -34,6 +34,7 @@ import {
     CourseListQueryParams,
     CourseSortBy,
 } from "@/modules/lesson/types/coure.type";
+import { Label } from "@/shared/components/ui/label";
 
 const initialCourseQueryParams: CourseListQueryParams = {
     title: "",
@@ -500,129 +501,170 @@ export default function CourseCmsPage() {
                                 disabled={isReorderMode}
                             />
 
-                            <Select
-                                value={draftQuery.hskLevel?.toString() || "0"}
-                                onValueChange={(value) =>
-                                    setDraftQuery({
-                                        ...draftQuery,
-                                        hskLevel:
-                                            value === "0"
-                                                ? undefined
-                                                : Number(value),
-                                    })
-                                }
-                                disabled={isReorderMode}
-                            >
-                                <SelectTrigger className="h-9 w-32 bg-white text-sm">
-                                    <SelectValue placeholder="HSK" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="0">Tất cả</SelectItem>
-                                    <SelectItem value="1">HSK 1</SelectItem>
-                                    <SelectItem value="2">HSK 2</SelectItem>
-                                    <SelectItem value="3">HSK 3</SelectItem>
-                                    <SelectItem value="4">HSK 4</SelectItem>
-                                    <SelectItem value="5">HSK 5</SelectItem>
-                                    <SelectItem value="6">HSK 6</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex flex-col items-center gap-2">
+                                <Label
+                                    htmlFor="hskLevel"
+                                    className="text-sm text-slate-700"
+                                >
+                                    HSK
+                                </Label>
+                                <Select
+                                    value={
+                                        draftQuery.hskLevel?.toString() || "0"
+                                    }
+                                    onValueChange={(value) =>
+                                        setDraftQuery({
+                                            ...draftQuery,
+                                            hskLevel:
+                                                value === "0"
+                                                    ? undefined
+                                                    : Number(value),
+                                        })
+                                    }
+                                    disabled={isReorderMode}
+                                >
+                                    <SelectTrigger className="h-9 bg-white text-sm">
+                                        <SelectValue placeholder="HSK" />
+                                    </SelectTrigger>
+                                    <SelectContent
+                                        className="w-10"
+                                        id="hskLevel"
+                                    >
+                                        <SelectItem value="0">
+                                            Tất cả
+                                        </SelectItem>
+                                        <SelectItem value="1">HSK 1</SelectItem>
+                                        <SelectItem value="2">HSK 2</SelectItem>
+                                        <SelectItem value="3">HSK 3</SelectItem>
+                                        <SelectItem value="4">HSK 4</SelectItem>
+                                        <SelectItem value="5">HSK 5</SelectItem>
+                                        <SelectItem value="6">HSK 6</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <Select
-                                value={
-                                    draftQuery.isPublished === true
-                                        ? "published"
-                                        : draftQuery.isPublished === false
-                                          ? "draft"
-                                          : "all"
-                                }
-                                onValueChange={(value) =>
-                                    setDraftQuery({
-                                        ...draftQuery,
-                                        isPublished:
-                                            value === "published"
-                                                ? true
-                                                : value === "draft"
-                                                  ? false
-                                                  : undefined,
-                                    })
-                                }
-                                disabled={isReorderMode}
-                            >
-                                <SelectTrigger className="h-9 w-44 bg-white text-sm">
-                                    <SelectValue placeholder="Trạng thái" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tất cả</SelectItem>
-                                    <SelectItem value="published">
-                                        Đã xuất bản
-                                    </SelectItem>
-                                    <SelectItem value="draft">
-                                        Bản nháp
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex flex-col items-center gap-2">
+                                <Label
+                                    htmlFor="publishStatus"
+                                    className="text-sm text-slate-700"
+                                >
+                                    Trạng thái
+                                </Label>
+                                <Select
+                                    value={
+                                        draftQuery.isPublished === true
+                                            ? "published"
+                                            : draftQuery.isPublished === false
+                                              ? "draft"
+                                              : "all"
+                                    }
+                                    onValueChange={(value) =>
+                                        setDraftQuery({
+                                            ...draftQuery,
+                                            isPublished:
+                                                value === "published"
+                                                    ? true
+                                                    : value === "draft"
+                                                      ? false
+                                                      : undefined,
+                                        })
+                                    }
+                                    disabled={isReorderMode}
+                                >
+                                    <SelectTrigger className="h-9 w-44 bg-white text-sm">
+                                        <SelectValue placeholder="Trạng thái" />
+                                    </SelectTrigger>
+                                    <SelectContent id="publishStatus">
+                                        <SelectItem value="all">
+                                            Tất cả
+                                        </SelectItem>
+                                        <SelectItem value="published">
+                                            Đã xuất bản
+                                        </SelectItem>
+                                        <SelectItem value="draft">
+                                            Bản nháp
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <Select
-                                value={draftQuery.sortBy ?? "CreatedAt"}
-                                onValueChange={(value: CourseSortBy) =>
-                                    setDraftQuery((current) => ({
-                                        ...current,
-                                        sortBy: value,
-                                    }))
-                                }
-                                disabled={isReorderMode}
-                            >
-                                <SelectTrigger className="h-9 w-40 bg-white text-sm">
-                                    <SelectValue placeholder="Sắp xếp theo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="CreatedAt">
-                                        Ngày tạo
-                                    </SelectItem>
-                                    <SelectItem value="UpdatedAt">
-                                        Ngày cập nhật
-                                    </SelectItem>
-                                    <SelectItem value="Title">
-                                        Tiêu đề
-                                    </SelectItem>
-                                    <SelectItem value="HskLevel">
-                                        Cấp độ HSK
-                                    </SelectItem>
-                                    <SelectItem value="TotalTopics">
-                                        Tổng topic
-                                    </SelectItem>
-                                    <SelectItem value="TotalStudentsEnrolled">
-                                        Tổng học viên
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex flex-col items-center gap-2">
+                                <Label
+                                    htmlFor="sortBy"
+                                    className="text-sm text-slate-700"
+                                >
+                                    Sắp xếp theo
+                                </Label>
+                                <Select
+                                    value={draftQuery.sortBy ?? "CreatedAt"}
+                                    onValueChange={(value: CourseSortBy) =>
+                                        setDraftQuery((current) => ({
+                                            ...current,
+                                            sortBy: value,
+                                        }))
+                                    }
+                                    disabled={isReorderMode}
+                                >
+                                    <SelectTrigger className="h-9 w-40 bg-white text-sm">
+                                        <SelectValue placeholder="Sắp xếp theo" />
+                                    </SelectTrigger>
+                                    <SelectContent id="sortBy">
+                                        <SelectItem value="CreatedAt">
+                                            Ngày tạo
+                                        </SelectItem>
+                                        <SelectItem value="UpdatedAt">
+                                            Ngày cập nhật
+                                        </SelectItem>
+                                        <SelectItem value="Title">
+                                            Tiêu đề
+                                        </SelectItem>
+                                        <SelectItem value="HskLevel">
+                                            Cấp độ HSK
+                                        </SelectItem>
+                                        <SelectItem value="TotalTopics">
+                                            Tổng topic
+                                        </SelectItem>
+                                        <SelectItem value="TotalStudentsEnrolled">
+                                            Tổng học viên
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <Select
-                                value={
-                                    draftQuery.orderByDescending
-                                        ? "desc"
-                                        : "asc"
-                                }
-                                onValueChange={(value) =>
-                                    setDraftQuery((current) => ({
-                                        ...current,
-                                        orderByDescending: value === "desc",
-                                    }))
-                                }
-                                disabled={isReorderMode}
-                            >
-                                <SelectTrigger className="h-9 w-36 bg-white text-sm">
-                                    <SelectValue placeholder="Thứ tự" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="desc">
-                                        Giảm dần
-                                    </SelectItem>
-                                    <SelectItem value="asc">
-                                        Tăng dần
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex flex-col items-center gap-2">
+                                <Label
+                                    htmlFor="orderBy"
+                                    className="text-sm text-slate-700"
+                                >
+                                    Thứ tự
+                                </Label>
+                                <Select
+                                    value={
+                                        draftQuery.orderByDescending
+                                            ? "desc"
+                                            : "asc"
+                                    }
+                                    onValueChange={(value) =>
+                                        setDraftQuery((current) => ({
+                                            ...current,
+                                            orderByDescending: value === "desc",
+                                        }))
+                                    }
+                                    disabled={isReorderMode}
+                                >
+                                    <SelectTrigger className="h-9 w-36 bg-white text-sm">
+                                        <SelectValue placeholder="Thứ tự" />
+                                    </SelectTrigger>
+                                    <SelectContent id="orderBy">
+                                        <SelectItem value="desc">
+                                            Giảm dần
+                                        </SelectItem>
+                                        <SelectItem value="asc">
+                                            Tăng dần
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
                             <Button
                                 type="button"

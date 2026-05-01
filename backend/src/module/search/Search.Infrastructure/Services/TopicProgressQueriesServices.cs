@@ -43,4 +43,16 @@ public class TopicProgressQueriesServices(IMediator mediator) : ITopicProgressQu
                 AccuracyRate: request.AccuracyRate,
                 CreatedAt: request.CreatedAt),
             cancellationToken);
+
+    public Task HandleUpdatedSequenceNoAsync(ExerciseSessionSequenceUpdatedQueriesRequest request, CancellationToken cancellationToken = default)
+    {
+        return _mediator.Send(
+            new ExerciseSessionSequenceUpdatedCommand(
+                SessionId: request.SessionId,
+                UserId: request.UserId,
+                TopicId: request.TopicId,
+                NewCurrentSequenceNo: request.NewCurrentSequenceNo,
+                UpdatedAt: request.UpdatedAt),
+            cancellationToken);
+    }
 }

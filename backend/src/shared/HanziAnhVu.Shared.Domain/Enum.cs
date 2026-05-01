@@ -42,3 +42,22 @@ public enum ExerciseContext
     Classroom,  // Dành cho assignment giao bài trong lớp
     Mixed       // Có thể dùng cho cả hai
 }
+public enum PhraseType
+{
+    Word,
+    Phrase,
+    Idiom,
+    Sentence
+}
+public enum UserTopicExerciseSessionItemStatus
+{
+    Pending = 0,
+    Viewed = 1,
+    Completed = 2
+}
+
+public enum TopicType
+{
+    Learning,
+    Exam
+}

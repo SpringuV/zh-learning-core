@@ -1,10 +1,5 @@
 namespace Lesson.Domain.Entities;
 
-public enum TopicType
-{
-    Learning,
-    Exam
-}
 public class TopicAggregate: BaseAggregateRoot
 {
     public Guid TopicId { get; private set; }

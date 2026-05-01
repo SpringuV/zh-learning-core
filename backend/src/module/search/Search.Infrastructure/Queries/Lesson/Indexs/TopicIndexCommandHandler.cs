@@ -1,3 +1,5 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Infrastructure.Queries.Lesson.Indexs;
 
 public sealed record TopicIndexCommand(

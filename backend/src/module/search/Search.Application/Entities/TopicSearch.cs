@@ -1,10 +1,8 @@
+using HanziAnhVu.Shared.Domain;
+
 namespace Search.Application.Entities;
 
-public enum TopicType
-{
-    Learning,
-    Exam
-}
+
 public class TopicSearch
 {
     public Guid TopicId { get; set; }

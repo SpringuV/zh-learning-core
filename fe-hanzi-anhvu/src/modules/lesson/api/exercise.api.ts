@@ -4,11 +4,13 @@ import {
     ExerciseListItem,
     ExerciseListQueryParams,
     ExerciseReorderRequest,
-    ExerciseSessionPracticeItemWithoutAnswerResponse,
     TopicExercisesOverviewResponse,
     UpdateExerciseRequest,
 } from "@/modules/lesson/types/exercise.type";
-import { ExerciseSessionItemsSnapshotItemsResponse } from "@/modules/lesson/types/topic.type";
+import {
+    ExerciseSessionItemsSnapshotItemsResponse,
+    LearningExerciseSessionPracticeDTOResponse,
+} from "@/modules/lesson/types/topic.type";
 import {
     AdminBaseListResponse,
     BaseResponse,
@@ -29,8 +31,10 @@ const endPoints = {
     updateExercise: `lesson/v1/exercise`,
     deleteExercise: (exerciseId: string) => `lesson/v1/exercise/${exerciseId}`,
     detailExercise: (exerciseId: string) => `search/v1/exercises/${exerciseId}`,
-    getExerciseSessionPracticeItemWithoutAnswer: (exerciseId: string) =>
-        `search/v1/exercises/${exerciseId}/practice-item`,
+    getExerciseSessionPracticeItemWithoutAnswer: (
+        exerciseId: string,
+        sessionId: string,
+    ) => `search/v1/exercises/${exerciseId}/practice-item/${sessionId}`,
     getSessionItemsSnapshot: (sessionId: string, slug: string) =>
         `search/v1/exercise-session-items-snapshot/${sessionId}/${slug}`,
     saveAnswer: "lesson/v1/topic-progress/exercise-session/save-answer",
@@ -90,10 +94,18 @@ export const exerciseApi = {
             endPoints.detailExercise(exerciseId),
         );
     },
-    async getExerciseSessionPracticeItemWithoutAnswer(exerciseId: string) {
+    async getExerciseSessionPracticeItemWithoutAnswer(
+        exerciseId: string,
+        sessionId: string,
+    ) {
         return await http.get<
-            BaseResponse<ExerciseSessionPracticeItemWithoutAnswerResponse>
-        >(endPoints.getExerciseSessionPracticeItemWithoutAnswer(exerciseId));
+            BaseResponse<LearningExerciseSessionPracticeDTOResponse>
+        >(
+            endPoints.getExerciseSessionPracticeItemWithoutAnswer(
+                exerciseId,
+                sessionId,
+            ),
+        );
     },
     async getSessionItemsSnapshot(sessionId: string, slug: string) {
         return await http.get<

@@ -1,11 +1,5 @@
 namespace Lesson.Domain.Entities.Exercise;
 
-public enum UserTopicExerciseSessionItemStatus
-{
-    Pending = 0,
-    Viewed = 1,
-    Completed = 2
-}
 
 public sealed record UserTopicExerciseSessionItemSnapshot(
     Guid SessionItemId,
