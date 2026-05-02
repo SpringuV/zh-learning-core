@@ -46,6 +46,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:3000",
+                "https://zh-learning-core.vercel.app",
                 "https://localhost:3000",
                 "http://127.0.0.1:3000",
                 "https://127.0.0.1:3000") // Frontend URLs
