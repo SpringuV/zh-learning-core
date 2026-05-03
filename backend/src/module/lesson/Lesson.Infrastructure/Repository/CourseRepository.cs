@@ -66,7 +66,8 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
         return await ExecuteAsync(
             async () =>
             {
-                return await _dbContext.Courses.Select(c => (int?)c.OrderIndex).DefaultIfEmpty(0).MaxAsync(ct);
+                var maxOrderIndex = await _dbContext.Courses.MaxAsync(c => (int?)c.OrderIndex, ct);
+                return maxOrderIndex ?? 0;
             },
             "Database error getting max OrderIndex",
             "Unexpected error getting max OrderIndex",

@@ -1,12 +1,6 @@
 import { BookOpen, Gem, Map, Route, ChevronRight, History } from "lucide-react";
-
-const learningItems = [
-    // mục ôn tập, mục này sẽ hiển thị các bài học mà học viên đánh dấu là cần ôn tập thêm vào đây
-    { label: "Ôn tập", icon: History, active: false },
-    { label: "Khóa học của tôi", icon: BookOpen, active: false },
-    { label: "Lộ trình học", icon: Route, active: false },
-    { label: "Roadmap", icon: Map, active: false },
-];
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type ClientDashboardSidebarProps = {
     collapsed?: boolean;
@@ -15,6 +9,40 @@ type ClientDashboardSidebarProps = {
 export function ClientDashboardSidebar({
     collapsed = false,
 }: ClientDashboardSidebarProps) {
+    const path = usePathname();
+    const learningItems = [
+        // mục ôn tập, mục này sẽ hiển thị các bài học mà học viên đánh dấu là cần ôn tập thêm vào đây
+        {
+            label: "Trang chủ",
+            icon: Gem,
+            active: path === "/u/dashboard",
+            href: "/u/dashboard",
+        },
+        {
+            label: "Ôn tập",
+            icon: History,
+            active: path === "/u/review",
+            href: "/u/review",
+        },
+        {
+            label: "Khóa học của tôi",
+            icon: BookOpen,
+            active: path === "/u/my-courses",
+            href: "/u/my-courses",
+        },
+        {
+            label: "Lộ trình học",
+            icon: Route,
+            active: path === "/u/learning-path",
+            href: "/u/learning-path",
+        },
+        {
+            label: "Roadmap",
+            icon: Map,
+            active: path === "/u/roadmap",
+            href: "/u/roadmap",
+        },
+    ];
     return (
         <aside
             className={
@@ -36,17 +64,22 @@ export function ClientDashboardSidebar({
                         (collapsed ? "justify-center" : "gap-3")
                     }
                 >
-                    <div className="relative">
-                        {collapsed ? (
-                            <div className="grid size-9 place-items-center rounded-lg bg-emerald-100 text-xs font-black text-emerald-700">
-                                HV
-                            </div>
-                        ) : (
-                            <p className="text-xl font-black leading-none tracking-tight text-slate-900">
-                                HanziAnhVu
-                            </p>
-                        )}
-                    </div>
+                    <Link
+                        href="/u/dashboard"
+                        className="flex items-center justify-center gap-2"
+                    >
+                        <div className="relative">
+                            {collapsed ? (
+                                <div className="grid size-9 place-items-center rounded-lg bg-emerald-100 text-xs font-black text-emerald-700">
+                                    HV
+                                </div>
+                            ) : (
+                                <p className="text-xl font-black leading-none tracking-tight text-slate-900">
+                                    HanziAnhVu
+                                </p>
+                            )}
+                        </div>
+                    </Link>
                 </div>
             </div>
 
@@ -60,8 +93,9 @@ export function ClientDashboardSidebar({
                 {learningItems.map((item) => {
                     const Icon = item.icon;
                     return (
-                        <button
+                        <Link
                             key={item.label}
+                            href={item.href}
                             className={
                                 "flex w-full items-center rounded-xl py-2.5 transition-colors " +
                                 (item.active
@@ -82,14 +116,14 @@ export function ClientDashboardSidebar({
                                 <Icon className="size-4" />
                                 {!collapsed ? item.label : null}
                             </span>
-                            {!collapsed ? (
+                            {/* {!collapsed ? (
                                 <span className="flex items-center gap-2">
                                     {item.active ? (
                                         <ChevronRight className="size-4" />
                                     ) : null}
                                 </span>
-                            ) : null}
-                        </button>
+                            ) : null} */}
+                        </Link>
                     );
                 })}
             </nav>
