@@ -7,7 +7,7 @@ using NpgsqlTypes;
 public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepository> logger) : LessonRepositoryBase(logger), ICourseRepository
 {
     private readonly LessonDbContext _dbContext = dbContext;
-    private const int ReorderTempBase = 1_000_000_000;
+    private const int ReorderTempBase = 1_000_000;
 
     public async Task AddAsync(CourseAggregate course, CancellationToken cancellationToken = default)
     {
@@ -66,7 +66,7 @@ public class CourseRepository(LessonDbContext dbContext, ILogger<CourseRepositor
         return await ExecuteAsync(
             async () =>
             {
-                return await _dbContext.Courses.Select(c => (int?)c.OrderIndex ?? 0).MaxAsync(ct);
+                return await _dbContext.Courses.Select(c => (int?)c.OrderIndex).DefaultIfEmpty(0).MaxAsync(ct);
             },
             "Database error getting max OrderIndex",
             "Unexpected error getting max OrderIndex",
