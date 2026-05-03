@@ -2,6 +2,8 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY . .
+#COPY ./backend/src/hanzi-anhvu-hsk/HanziAnhVuHsk.Api.csproj ./hanzi-anhvu-hsk/
+WORKDIR /src/hanzi-anhvu-hsk 
 RUN dotnet restore ./HanziAnhVuHsk.Api.csproj
 RUN dotnet publish ./HanziAnhVuHsk.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
