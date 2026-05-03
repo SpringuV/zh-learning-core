@@ -37,7 +37,6 @@ jobs:
       - name: Build Docker image (frontend)
         run: |
           docker build \
-            --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
             --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
             --build-arg NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }} \
             --build-arg NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }} \

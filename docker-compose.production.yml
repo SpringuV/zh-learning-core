@@ -3,10 +3,13 @@ services:
     image: postgres:16-alpine
     container_name: zh-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-identity_hanzi}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      USERS_DB: ${USERS_DB:-users_hanzi}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      USERS_DB: ${USERS_DB_CONNECTION}
+      LESSON_DB: ${LESSON_DB_CONNECTION}
+      CLASSROOM_DB: ${CLASSROOM_DB_CONNECTION}
+      AUTH_IDENTITY_DB: ${AUTH_IDENTITY_DB_CONNECTION}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./deploy/postgres/init-multiple-databases.sh:/docker-entrypoint-initdb.d/01-init-multiple-databases.sh:ro
