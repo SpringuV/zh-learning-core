@@ -74,6 +74,7 @@ services:
       ConnectionStrings__UsersDbConnection: ${USERS_DB_CONNECTION}
       ConnectionStrings__LessonDbConnection: ${LESSON_DB_CONNECTION}
       ConnectionStrings__ClassroomDbConnection: ${CLASSROOM_DB_CONNECTION}
+      ConnectionStrings__redis-hanzi: redis:6379
       OcrService__BaseUrl: http://ocr-service:8000
       OcrService__TimeoutSeconds: ${OCR_TIMEOUT_SECONDS:-120}
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
@@ -113,6 +114,17 @@ services:
     networks:
       - app-network
 
+  redis:
+    container_name: zh-redis
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    expose:
+      - "6379"
+    restart: unless-stopped # Đảm bảo Redis luôn chạy, trừ khi bị dừng thủ công
+    networks:
+      - app-network
+
   ocr-service:
     container_name: zh-ocr
     build:
@@ -136,3 +148,4 @@ networks:
 volumes:
   postgres-data:
   elasticsearch-data:
+  redis-data:

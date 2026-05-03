@@ -35,7 +35,7 @@ builder.Services.AddSingleton<ICacheVersionService, DistributedCacheVersionServi
 // phải đặt sau khi đăng ký các handlers trong từng module để đảm bảo pipeline behaviors được áp dụng cho tất cả handlers.
 builder.Services.AddMediatRPipelineBehaviors();
 // add redis client
-builder.AddRedisClient("redis-hanzi");
+builder.AddRedisClient("redis-hanzi"); // Đăng ký Redis client với connection string từ config, sử dụng thư viện RedisClient (ví dụ: StackExchange.Redis hoặc một thư viện Redis khác mà bạn đã triển khai).
 // Configure CORS to allow frontend
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
