@@ -44,11 +44,14 @@ services:
 
   next-app:
     container_name: zh-next
+    image: ${DOCKER_USERNAME}/hanzi-app-frontend:latest
     build:
+      # context là thư mục gốc của frontend, nơi chứa Dockerfile và toàn bộ mã nguồn frontend, để đảm bảo Docker có thể copy tất cả các file cần thiết vào image.
       context: ./fe-hanzi-anhvu
       dockerfile: Dockerfile
+      # Truyền biến môi trường build-time để sử dụng trong Dockerfile nếu cần, nhưng cũng nên có ở runtime
       args:
-        NEXT_PUBLIC_API_BASE_URL: /api
+        NEXT_PUBLIC_API_BASE_URL: /api # không phải truyền http://localhost:8080 vì trong container, frontend sẽ gọi API qua nginx proxy tại /api
         NEXT_PUBLIC_SITE_URL: ${PUBLIC_BASE_URL}
         NEXTAUTH_URL: ${PUBLIC_BASE_URL}
     environment:
@@ -65,6 +68,7 @@ services:
 
   dotnet-api:
     container_name: zh-api
+    image: ${DOCKER_USERNAME}/hanzi-app-backend:latest
     build:
       context: ./backend/src
       dockerfile: hanzi-anhvu-hsk/Dockerfile

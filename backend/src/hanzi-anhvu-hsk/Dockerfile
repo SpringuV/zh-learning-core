@@ -13,5 +13,6 @@ COPY --from=build /app/publish .
 
 EXPOSE 8080
 
+# Set ASP.NET Core to bind to port 8080 when present, otherwise default to 80
 ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "HanziAnhVuHsk.Api.dll"]

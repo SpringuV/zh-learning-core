@@ -62,9 +62,10 @@ class Http {
     constructor() {
         enableDevSelfSignedTlsForLocalApi();
 
-        // Create axios instance with base config
+        const baseURL = API_BASE_URL;
+
         this.instance = axios.create({
-            baseURL: API_BASE_URL, // Set base URL
+            baseURL,
             timeout: 60 * 1000, // 60 second timeout
             withCredentials: true, // Send cookies with requests
         });
@@ -123,8 +124,8 @@ class Http {
 
                     try {
                         // Refresh using HttpOnly cookies; backend will rotate cookies.
-                        await axios.post(
-                            `${API_BASE_URL}/auth/v1/refresh-token`,
+                        await this.instance.post(
+                            "/auth/v1/refresh-token",
                             {},
                             {
                                 withCredentials: true,
