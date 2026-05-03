@@ -6,8 +6,18 @@ RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY .env.production .env.production
 COPY . .
+
+# configure environment variables for the build
+# it can be overridden at runtime by passing --build-arg to docker build or setting them in the hosting environment (e.g. Vercel, Railway, etc.)
+ARG NEXT_PUBLIC_API_BASE_URL="/api"
+ARG NEXT_PUBLIC_SITE_URL="https://your-domain.com"
+ARG NEXTAUTH_URL="https://your-domain.com"
+ARG NEXTAUTH_SECRET="isdfisdjfjasdfjkll"
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -18,7 +28,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # copy only necessary files for running the app
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.env.production .env.production
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 EXPOSE 3000
