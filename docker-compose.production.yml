@@ -65,8 +65,8 @@ services:
   dotnet-api:
     container_name: zh-api
     build:
-      context: ./backend/src/hanzi-anhvu-hsk
-      dockerfile: Dockerfile
+      context: ./backend/src
+      dockerfile: hanzi-anhvu-hsk/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080 # Lắng nghe trên tất cả các interface để có thể truy cập từ bên ngoài container
